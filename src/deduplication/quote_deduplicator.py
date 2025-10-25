@@ -257,6 +257,7 @@ class QuoteDeduplicator:
         - Position: Use earliest start, latest end (covers both)
         - Speaker: Keep from first quote
         - Timestamp: Keep from first quote
+        - Entailment: Keep from quote with higher relevance (most validated)
 
         Args:
             q1: First quote
@@ -279,11 +280,17 @@ class QuoteDeduplicator:
         earlier_start = min(q1.start_position, q2.start_position)
         later_end = max(q1.end_position, q2.end_position)
 
+        # Preserve entailment data from quote with higher relevance score
+        # (most likely to have accurate validation)
+        quote_with_higher_relevance = q1 if q1.relevance_score >= q2.relevance_score else q2
+
         return Quote(
             quote_text=longer_text,
             relevance_score=higher_score,
             start_position=earlier_start,
             end_position=later_end,
             speaker=q1.speaker,
-            timestamp_seconds=q1.timestamp_seconds
+            timestamp_seconds=q1.timestamp_seconds,
+            entailment_score=quote_with_higher_relevance.entailment_score,
+            entailment_relationship=quote_with_higher_relevance.entailment_relationship
         )

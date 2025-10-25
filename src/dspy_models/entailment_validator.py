@@ -17,6 +17,8 @@ Usage:
 """
 
 import dspy
+import time
+import asyncio
 from typing import Literal, List, Dict
 from pathlib import Path
 
@@ -39,8 +41,8 @@ class EntailmentValidation(dspy.Signature):
 
     claim: str = dspy.InputField(desc="The claim to validate")
     quote: str = dspy.InputField(desc="The quote to check for support")
-    relationship: Literal["SUPPORTS", "RELATED", "NEUTRAL", "CONTRADICTS"] = dspy.OutputField(
-        desc="The relationship between quote and claim"
+    relationship: Literal["SUPPORTS", "RELATED", "NEUTRAL", "CONTRADICTS"] = (
+        dspy.OutputField(desc="The relationship between quote and claim")
     )
     reasoning: str = dspy.OutputField(desc="Brief explanation of the relationship")
     confidence: float = dspy.OutputField(desc="Confidence score (0.0-1.0)")
@@ -80,8 +82,7 @@ class EntailmentValidatorModel:
 
             # Configure DSPy
             lm = dspy.LM(
-                f"ollama/{settings.ollama_model}",
-                api_base=settings.ollama_url
+                f"ollama/{settings.ollama_model}", api_base=settings.ollama_url
             )
             dspy.configure(lm=lm)
 
@@ -91,8 +92,10 @@ class EntailmentValidatorModel:
             self.optimized = True
 
             # Log few-shot examples
-            if hasattr(self.model, 'demos') and self.model.demos:
-                logger.info(f"Loaded model with {len(self.model.demos)} few-shot examples")
+            if hasattr(self.model, "demos") and self.model.demos:
+                logger.info(
+                    f"Loaded model with {len(self.model.demos)} few-shot examples"
+                )
             else:
                 logger.info("Loaded model (zero-shot)")
         else:
@@ -104,8 +107,7 @@ class EntailmentValidatorModel:
 
             # Configure DSPy for baseline
             lm = dspy.LM(
-                f"ollama/{settings.ollama_model}",
-                api_base=settings.ollama_url
+                f"ollama/{settings.ollama_model}", api_base=settings.ollama_url
             )
             dspy.configure(lm=lm)
 
@@ -113,13 +115,17 @@ class EntailmentValidatorModel:
             self.model = dspy.ChainOfThought(EntailmentValidation)
             self.optimized = False
 
-    def validate(self, claim: str, quote: str) -> Dict[str, any]:
+    def validate(
+        self, claim: str, quote: str, retry_count: int = 2, retry_delay: float = 2.0
+    ) -> Dict[str, any]:
         """
-        Validate whether a quote supports a claim.
+        Validate whether a quote supports a claim with retry logic for GPU errors.
 
         Args:
             claim: The claim to validate
             quote: The quote to check
+            retry_count: Number of retries on GPU/CUDA errors (default: 2)
+            retry_delay: Delay before retry in seconds (default: 2.0s for GPU cooldown)
 
         Returns:
             Dict with keys: relationship, reasoning, confidence
@@ -138,29 +144,67 @@ class EntailmentValidatorModel:
             # }
             ```
         """
-        try:
-            result = self.model(claim=claim, quote=quote)
+        for attempt in range(retry_count + 1):
+            try:
+                result = self.model(claim=claim, quote=quote)
 
-            return {
-                "relationship": result.relationship,
-                "reasoning": result.reasoning,
-                "confidence": float(result.confidence) if hasattr(result, 'confidence') else 0.8,
-            }
-        except Exception as e:
-            logger.error(f"Error in entailment validation: {e}", exc_info=True)
-            # Return neutral on error
-            return {
-                "relationship": "NEUTRAL",
-                "reasoning": f"Error during validation: {str(e)}",
-                "confidence": 0.0,
-            }
+                return {
+                    "relationship": result.relationship,
+                    "reasoning": result.reasoning,
+                    "confidence": (
+                        float(result.confidence)
+                        if hasattr(result, "confidence")
+                        else 0.8
+                    ),
+                }
+            except Exception as e:
+                error_msg = str(e).lower()
+                is_gpu_error = any(
+                    keyword in error_msg
+                    for keyword in [
+                        "cuda",
+                        "gpu",
+                        "memory",
+                        "llama runner",
+                        "exit status 2",
+                    ]
+                )
+
+                if is_gpu_error and attempt < retry_count:
+                    logger.warning(
+                        f"GPU error during entailment validation (attempt {attempt + 1}/{retry_count + 1}): {e}"
+                    )
+                    logger.info(
+                        f"Waiting {retry_delay}s for GPU cooldown before retry..."
+                    )
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    logger.error(f"Error in entailment validation: {e}", exc_info=True)
+                    # Return neutral on error
+                    return {
+                        "relationship": "NEUTRAL",
+                        "reasoning": f"Error during validation: {str(e)[:100]}",
+                        "confidence": 0.0,
+                    }
+
+        # Should not reach here, but just in case
+        return {
+            "relationship": "NEUTRAL",
+            "reasoning": "All retries exhausted",
+            "confidence": 0.0,
+        }
 
     def validate_batch(
-        self,
-        claim_quote_pairs: List[tuple[str, str]]
+        self, claim_quote_pairs: List[tuple[str, str]]
     ) -> List[Dict[str, any]]:
         """
-        Validate multiple claim-quote pairs.
+        Validate multiple claim-quote pairs sequentially.
+
+        Note: Sequential processing is used because DSPy is not thread-safe.
+        The old TypeScript system achieved parallelism through JavaScript's
+        event loop (true async I/O), which Python cannot replicate with
+        synchronous DSPy calls without causing thread contention and PC freezing.
 
         Args:
             claim_quote_pairs: List of (claim, quote) tuples
@@ -195,7 +239,7 @@ class EntailmentValidatorModel:
             )
 
         # Log summary
-        supports_count = sum(1 for r in results if r['relationship'] == 'SUPPORTS')
+        supports_count = sum(1 for r in results if r["relationship"] == "SUPPORTS")
         logger.info(
             f"Batch validation complete: {supports_count}/{len(results)} SUPPORTS"
         )
@@ -203,9 +247,7 @@ class EntailmentValidatorModel:
         return results
 
     def filter_supporting_quotes(
-        self,
-        claim: str,
-        quotes: List[str]
+        self, claim: str, quotes: List[str]
     ) -> List[tuple[str, Dict[str, any]]]:
         """
         Filter quotes to keep only those that SUPPORT the claim.
@@ -249,7 +291,7 @@ class EntailmentValidatorModel:
         supporting_quotes = [
             (quote, result)
             for quote, result in zip(quotes, results)
-            if result['relationship'] == 'SUPPORTS'
+            if result["relationship"] == "SUPPORTS"
         ]
 
         filtered_count = len(quotes) - len(supporting_quotes)
@@ -260,4 +302,3 @@ class EntailmentValidatorModel:
             )
 
         return supporting_quotes
-

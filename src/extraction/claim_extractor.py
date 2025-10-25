@@ -180,14 +180,15 @@ class ClaimExtractor:
                 chunk.text
             )
 
-            # Convert to ExtractedClaim objects
+            # Convert to ExtractedClaim objects, filtering out empty claims
             claims = [
                 ExtractedClaim(
-                    claim_text=claim_text,
+                    claim_text=claim_text.strip(),
                     source_chunk_id=chunk.chunk_id,
                     confidence=1.0  # Initial confidence (before scoring)
                 )
                 for claim_text in claim_texts
+                if claim_text and claim_text.strip()  # Filter empty/whitespace-only claims
             ]
 
             logger.debug(

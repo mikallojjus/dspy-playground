@@ -53,23 +53,8 @@ def _init_logging():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file = log_dir / f"extraction_{timestamp}.log"
 
-    # Set up root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
-    root_logger.handlers.clear()  # Remove any existing handlers
-
-    # File handler - logs everything (DEBUG and above)
-    file_formatter = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(file_formatter)
-    root_logger.addHandler(file_handler)
-
-    # Console handler - configurable level (default INFO)
-    console_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    # Get log level from environment (default INFO)
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
     level_map = {
         "DEBUG": logging.DEBUG,
         "INFO": logging.INFO,
@@ -77,11 +62,29 @@ def _init_logging():
         "ERROR": logging.ERROR,
         "CRITICAL": logging.CRITICAL,
     }
+    configured_level = level_map.get(log_level, logging.INFO)
+
+    # Set up root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(configured_level)
+    root_logger.handlers.clear()  # Remove any existing handlers
+
+    # File handler - respects LOG_LEVEL from .env
+    file_formatter = logging.Formatter(
+        fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    file_handler.setLevel(configured_level)
+    file_handler.setFormatter(file_formatter)
+    root_logger.addHandler(file_handler)
+
+    # Console handler - same level as file handler
     console_formatter = ColoredFormatter(
         fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s", datefmt="%H:%M:%S"
     )
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level_map.get(console_level, logging.INFO))
+    console_handler.setLevel(configured_level)
     console_handler.setFormatter(console_formatter)
     root_logger.addHandler(console_handler)
 

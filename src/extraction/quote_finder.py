@@ -38,6 +38,8 @@ class Quote:
         end_position: Character position in transcript
         speaker: Speaker identifier
         timestamp_seconds: Timestamp in seconds
+        entailment_score: Entailment confidence score (0.0-1.0), if validated
+        entailment_relationship: SUPPORTS/RELATED/NEUTRAL/CONTRADICTS, if validated
     """
     quote_text: str
     relevance_score: float
@@ -45,6 +47,8 @@ class Quote:
     end_position: int
     speaker: str
     timestamp_seconds: int
+    entailment_score: Optional[float] = None
+    entailment_relationship: Optional[str] = None
 
 
 @dataclass
@@ -230,8 +234,22 @@ class QuoteFinder:
             top_k=self.max_quotes
         )
 
+        # Filter by minimum relevance threshold
+        quotes_before_threshold = len(reranked)
+        reranked_above_threshold = [
+            r for r in reranked
+            if r["score"] >= settings.min_quote_relevance
+        ]
+
+        if len(reranked_above_threshold) < quotes_before_threshold:
+            logger.debug(
+                f"Filtered {quotes_before_threshold - len(reranked_above_threshold)} quotes "
+                f"below relevance threshold {settings.min_quote_relevance} "
+                f"({len(reranked_above_threshold)} remaining)"
+            )
+
         quotes = []
-        for result in reranked:
+        for result in reranked_above_threshold:
             candidate = filtered_candidates[result["index"]]
             quote = Quote(
                 quote_text=candidate.quote_text,

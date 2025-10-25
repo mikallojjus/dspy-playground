@@ -41,7 +41,7 @@ class EmbeddingService:
     Features:
     - Generates 768-dimensional embeddings using nomic-embed-text
     - LRU cache (10,000 entries, 1 hour TTL)
-    - Batch processing (10 texts at a time)
+    - Batch processing (5 texts at a time with delays)
     - Exponential backoff retry logic
     - Cosine similarity calculation
     """
@@ -50,7 +50,7 @@ class EmbeddingService:
         self,
         cache_max_size: int = None,
         cache_ttl_hours: int = None,
-        batch_size: int = 10,
+        batch_size: int = 5,
     ):
         """
         Initialize the embedding service.
@@ -58,7 +58,7 @@ class EmbeddingService:
         Args:
             cache_max_size: Maximum cache entries (default from settings)
             cache_ttl_hours: Cache TTL in hours (default from settings)
-            batch_size: Number of texts to process in parallel (default: 10)
+            batch_size: Number of texts to process in parallel (default: 5)
         """
         self.ollama_url = settings.ollama_url
         self.model = settings.ollama_embedding_model
@@ -91,6 +91,13 @@ class EmbeddingService:
 
         if cache_key in self._cache:
             embedding, timestamp = self._cache[cache_key]
+
+            # Validate cached embedding (protect against poisoned cache entries)
+            if len(embedding) != 768:
+                logger.warning(f"Corrupted cache entry detected (dim={len(embedding)}), removing")
+                del self._cache[cache_key]
+                self.cache_misses += 1
+                return None
 
             # Check if expired
             if time.time() - timestamp < self.cache_ttl_seconds:
@@ -151,6 +158,11 @@ class EmbeddingService:
 
                 # Validate embedding dimension
                 if len(embedding) != 768:
+                    # DEBUG: Log the problematic text to diagnose the issue
+                    logger.error(
+                        f"Ollama returned {len(embedding)} dimensions for text: "
+                        f"'{text[:200]}...' (len={len(text)})"
+                    )
                     raise ValueError(f"Expected 768 dimensions, got {len(embedding)}")
 
                 # Cache the result
@@ -198,8 +210,11 @@ class EmbeddingService:
 
         # Process in batches
         embeddings = []
+        total_batches = (len(texts) + self.batch_size - 1) // self.batch_size
+
         for i in range(0, len(texts), self.batch_size):
             batch = texts[i:i + self.batch_size]
+            batch_num = i // self.batch_size + 1
 
             # Process batch in parallel
             batch_embeddings = await asyncio.gather(
@@ -209,9 +224,14 @@ class EmbeddingService:
             embeddings.extend(batch_embeddings)
 
             logger.debug(
-                f"Processed batch {i // self.batch_size + 1} "
+                f"Processed batch {batch_num}/{total_batches} "
                 f"({len(batch)} texts)"
             )
+
+            # Add delay between batches to avoid overwhelming Ollama
+            # (except for last batch)
+            if batch_num < total_batches:
+                await asyncio.sleep(0.2)
 
         logger.info(
             f"Generated {len(embeddings)} embeddings "

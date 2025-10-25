@@ -1,13 +1,4 @@
 {
-  "description": "Manually labeled claim-quote pairs for entailment validation training",
-  "created": "2025-10-25",
-  "total_examples": 30,
-  "label_distribution": {
-    "SUPPORTS": 15,
-    "RELATED": 10,
-    "NEUTRAL": 3,
-    "CONTRADICTS": 2
-  },
   "examples": [
     {
       "claim": "Bitcoin reached $69,000 in November 2021",

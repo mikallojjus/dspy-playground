@@ -202,7 +202,9 @@ class ClaimRepository:
                 quote_id=quote_id,
                 relevance_score=quote_obj.relevance_score,
                 match_confidence=quote_obj.relevance_score,  # Same for now
-                match_type="reranked"
+                match_type="reranked",
+                entailment_score=quote_obj.entailment_score,
+                entailment_relationship=quote_obj.entailment_relationship
             )
 
             self.session.add(claim_quote)
@@ -297,7 +299,9 @@ class ClaimRepository:
                     quote_id=quote_id,
                     relevance_score=quote_obj.relevance_score,
                     match_confidence=quote_obj.relevance_score,
-                    match_type="reranked_crossepisode"
+                    match_type="reranked_crossepisode",
+                    entailment_score=quote_obj.entailment_score,
+                    entailment_relationship=quote_obj.entailment_relationship
                 )
 
                 self.session.add(claim_quote)

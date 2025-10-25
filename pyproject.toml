@@ -16,4 +16,5 @@ dependencies = [
     "requests>=2.31.0",
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
+    "rich>=13.7.0",
 ]

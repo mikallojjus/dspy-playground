@@ -48,12 +48,18 @@ class ConfidenceCalculator:
     """
     Calculate weighted confidence scores for claims based on quote quality.
 
-    Formula: (avgRelevance × 0.6) + (maxRelevance × 0.2) + (quoteCount/5 × 0.2)
+    Formula: (avgRelevance × 0.6) + (maxRelevance × 0.2) + (countScore × 0.2)
 
     The formula balances:
     - Average relevance (60%): Primary indicator of claim quality
     - Max relevance (20%): Rewards exceptional supporting quotes
     - Quote count (20%): More evidence increases confidence (with diminishing returns)
+
+    Count score formula: max(0, (count - 1) / 4)
+    - 1 quote → 0.0 (no confidence from single quote)
+    - 2 quotes → 0.25
+    - 3 quotes → 0.5
+    - 5+ quotes → 1.0
 
     Example:
         ```python
@@ -67,7 +73,8 @@ class ConfidenceCalculator:
 
         components = calculator.calculate(quotes)
         # avg: 0.893, max: 0.92, count: 3
-        # confidence: 0.893×0.6 + 0.92×0.2 + 0.6×0.2 = 0.836
+        # count_score: (3-1)/4 = 0.5
+        # confidence: 0.893×0.6 + 0.92×0.2 + 0.5×0.2 = 0.820
         ```
     """
 
@@ -117,7 +124,7 @@ class ConfidenceCalculator:
 
             assert 0.0 <= components.final_confidence <= 1.0
             assert components.quote_count == 8
-            assert components.count_score == 1.0  # 8/5 capped at 1.0
+            assert components.count_score == 1.0  # (8-1)/4 = 1.75 capped at 1.0
             ```
         """
         if not quotes:
@@ -131,7 +138,10 @@ class ConfidenceCalculator:
 
         avg_relevance = sum(q.relevance_score for q in quotes) / len(quotes)
         max_relevance = max(q.relevance_score for q in quotes)
-        count_score = min(len(quotes) / self.max_quotes_for_full_score, 1.0)
+
+        # Penalize single-quote claims: (count - 1) / 4
+        # 1 quote → 0.0, 2 quotes → 0.25, 3 quotes → 0.5, 5+ quotes → 1.0
+        count_score = min(max(0.0, (len(quotes) - 1) / 4), 1.0)
 
         confidence = (
             avg_relevance * self.relevance_weight +
@@ -143,7 +153,7 @@ class ConfidenceCalculator:
 
         logger.debug(
             f"Calculated confidence: {confidence:.3f} "
-            f"(avg={avg_relevance:.3f}, max={max_relevance:.3f}, count={len(quotes)})"
+            f"(avg={avg_relevance:.3f}, max={max_relevance:.3f}, count={len(quotes)}, count_score={count_score:.3f})"
         )
 
         return ConfidenceComponents(

@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Dict
 import time
 
+from src.config.settings import settings
 from src.database.connection import get_db_session
 from src.database.models import PodcastEpisode
 from src.database.claim_repository import ClaimRepository
@@ -243,33 +244,10 @@ class ExtractionPipeline:
         claims_with_quotes = await quote_finder.find_quotes_for_claims(claims)
         logger.info(f"  ✓ Found quotes for {len(claims_with_quotes)} claims")
 
-        # Step 6: Entailment validation (NEW - Sprint 4)
-        logger.info("Step 6/13: Validating entailment (filtering non-SUPPORTS quotes)...")
-        quotes_before_entailment = sum(len(c.quotes) for c in claims_with_quotes)
-
-        for claim in claims_with_quotes:
-            if not claim.quotes:
-                continue
-
-            # Filter to keep only SUPPORTS quotes
-            supporting_quotes_with_results = self.entailment_validator.filter_supporting_quotes(
-                claim.claim_text,
-                [q.quote_text for q in claim.quotes]
-            )
-
-            # Map back to Quote objects
-            supporting_quote_texts = {quote_text for quote_text, _ in supporting_quotes_with_results}
-            claim.quotes = [q for q in claim.quotes if q.quote_text in supporting_quote_texts]
-
-        quotes_after_entailment = sum(len(c.quotes) for c in claims_with_quotes)
-        entailment_filtered = quotes_before_entailment - quotes_after_entailment
-
-        logger.info(
-            f"  ✓ {quotes_before_entailment} → {quotes_after_entailment} quotes "
-            f"({entailment_filtered} non-SUPPORTS filtered)"
-        )
-
-        logger.info("Step 7/13: Deduplicating quotes...")
+        # Step 6: Deduplicate quotes BEFORE validation (NEW - Sprint 4)
+        # This ensures we validate the FINAL merged quote texts, not intermediate versions
+        logger.info("Step 6/13: Deduplicating quotes...")
+        quotes_before_dedup = sum(len(c.quotes) for c in claims_with_quotes)
         all_quotes = [q for c in claims_with_quotes for q in c.quotes]
         unique_quotes = self.quote_deduplicator.deduplicate(all_quotes)
         logger.info(
@@ -279,6 +257,40 @@ class ExtractionPipeline:
 
         claims_with_quotes = self._remap_quotes_to_claims(
             claims_with_quotes, all_quotes, unique_quotes
+        )
+
+        # Step 7: Entailment validation on FINAL deduplicated quotes (NEW - Sprint 4)
+        # We validate after deduplication to ensure the actual text being saved
+        # to the database has been validated (not an intermediate text that gets replaced)
+        logger.info("Step 7/13: Validating entailment (filtering non-SUPPORTS quotes)...")
+        quotes_before_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+
+        for claim in claims_with_quotes:
+            if not claim.quotes:
+                continue
+
+            # Validate ALL quotes and attach entailment data
+            quote_texts = [q.quote_text for q in claim.quotes]
+            pairs = [(claim.claim_text, quote_text) for quote_text in quote_texts]
+            validation_results = self.entailment_validator.validate_batch(pairs)
+
+            # Attach entailment data to Quote objects
+            for quote, result in zip(claim.quotes, validation_results):
+                quote.entailment_score = result.get('confidence', 0.0)
+                quote.entailment_relationship = result.get('relationship', 'UNKNOWN')
+
+            # Filter to keep only SUPPORTS quotes
+            claim.quotes = [
+                q for q in claim.quotes
+                if q.entailment_relationship == 'SUPPORTS'
+            ]
+
+        quotes_after_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+        entailment_filtered = quotes_before_entailment - quotes_after_entailment
+
+        logger.info(
+            f"  ✓ {quotes_before_entailment} → {quotes_after_entailment} quotes "
+            f"({entailment_filtered} non-SUPPORTS filtered)"
         )
 
         logger.info("Step 8/13: Deduplicating claims (batch level)...")
@@ -424,7 +436,7 @@ class ExtractionPipeline:
             claims_extracted=len(claims),
             claims_after_dedup=len(deduplicated_claims),
             claims_with_quotes=len(claims_with_quotes),
-            quotes_before_dedup=len(all_quotes),
+            quotes_before_dedup=quotes_before_dedup,
             quotes_after_dedup=len(unique_quotes),
             quotes_before_entailment=quotes_before_entailment,
             quotes_after_entailment=quotes_after_entailment,
@@ -446,6 +458,9 @@ class ExtractionPipeline:
             f"(avg {avg_quotes:.1f} quotes/claim)"
         )
 
+        # Cleanup: Unload all models from GPU to prevent memory accumulation between runs
+        self._cleanup_gpu_models()
+
         return PipelineResult(
             episode_id=episode_id,
             claims=claims_with_quotes,
@@ -453,6 +468,35 @@ class ExtractionPipeline:
             saved_claim_ids=saved_claim_ids if unique_claims_for_db else [],
             duplicate_details=duplicate_details
         )
+
+    def _cleanup_gpu_models(self):
+        """
+        Unload all Ollama models from GPU to prevent memory accumulation between runs.
+
+        This prevents the GPU OOM issue where models from previous runs stay resident
+        and cause crashes when the next run tries to initialize new model instances.
+
+        Critical models to unload:
+        - qwen2.5:7b (inference model, ~7GB VRAM)
+        - nomic-embed-text (embedding model, ~200MB VRAM)
+        """
+        import httpx
+
+        models_to_unload = [
+            settings.ollama_model,      # qwen2.5:7b
+            "nomic-embed-text"          # embedding model
+        ]
+
+        for model_name in models_to_unload:
+            try:
+                httpx.post(
+                    f"{settings.ollama_url}/api/generate",
+                    json={"model": model_name, "keep_alive": 0},
+                    timeout=5.0
+                )
+                logger.debug(f"Unloaded {model_name} from GPU")
+            except Exception as e:
+                logger.debug(f"Failed to unload {model_name}: {e}")
 
     def _load_episode(self, episode_id: int) -> PodcastEpisode:
         """

@@ -590,6 +590,7 @@ dependencies = [
     { name = "pytest-asyncio" },
     { name = "python-dotenv" },
     { name = "requests" },
+    { name = "rich" },
     { name = "sqlalchemy" },
 ]
 
@@ -605,6 +606,7 @@ requires-dist = [
     { name = "pytest-asyncio", specifier = ">=0.23.0" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "requests", specifier = ">=2.31.0" },
+    { name = "rich", specifier = ">=13.7.0" },
     { name = "sqlalchemy", specifier = ">=2.0.23" },
 ]
 
