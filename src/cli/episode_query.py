@@ -65,14 +65,11 @@ class EpisodeQueryService:
 
     def __del__(self):
         """Close session if we own it."""
-        if self._owns_session and hasattr(self, 'session'):
+        if self._owns_session and hasattr(self, "session"):
             self.session.close()
 
     def get_episodes_to_process(
-        self,
-        podcast_id: Optional[int] = None,
-        limit: int = 0,
-        force: bool = False
+        self, podcast_id: Optional[int] = None, limit: int = 0, force: bool = False
     ) -> List[PodcastEpisode]:
         """
         Get episodes to process based on filters.
@@ -110,9 +107,8 @@ class EpisodeQueryService:
         )
 
         # Base query: episodes with transcripts
-        query = (
-            self.session.query(PodcastEpisode)
-            .filter(PodcastEpisode.transcript.isnot(None))
+        query = self.session.query(PodcastEpisode).filter(
+            PodcastEpisode.transcript.isnot(None)
         )
 
         # Filter by podcast_id if provided
@@ -123,16 +119,15 @@ class EpisodeQueryService:
         # Skip already-processed episodes unless force=True
         if not force:
             # LEFT JOIN to find episodes without claims
-            query = (
-                query.outerjoin(Claim, Claim.episode_id == PodcastEpisode.id)
-                .filter(Claim.id.is_(None))  # No claims = not processed
-            )
+            query = query.outerjoin(
+                Claim, Claim.episode_id == PodcastEpisode.id
+            ).filter(
+                Claim.id.is_(None)
+            )  # No claims = not processed
             logger.debug("Filtering to unprocessed episodes only (force=False)")
 
         # Order by newest first (published_at DESC), NULL dates last
-        query = query.order_by(
-            PodcastEpisode.published_at.desc().nulls_last()
-        )
+        query = query.order_by(PodcastEpisode.published_at.desc().nulls_last())
 
         # Apply limit if specified
         if limit > 0:
@@ -182,10 +177,7 @@ class EpisodeQueryService:
 
         return is_processed
 
-    def get_processing_stats(
-        self,
-        podcast_id: Optional[int] = None
-    ) -> Dict[str, int]:
+    def get_processing_stats(self, podcast_id: Optional[int] = None) -> Dict[str, int]:
         """
         Get summary statistics for episodes.
 
@@ -209,8 +201,7 @@ class EpisodeQueryService:
         episode_filter = PodcastEpisode.transcript.isnot(None)
         if podcast_id is not None:
             episode_filter = and_(
-                episode_filter,
-                PodcastEpisode.podcast_id == podcast_id
+                episode_filter, PodcastEpisode.podcast_id == podcast_id
             )
 
         # Total episodes with transcripts
@@ -242,7 +233,7 @@ class EpisodeQueryService:
             "total_episodes": total_episodes,
             "processed": processed,
             "unprocessed": unprocessed,
-            "total_claims": total_claims
+            "total_claims": total_claims,
         }
 
         logger.info(
@@ -272,7 +263,7 @@ class EpisodeQueryService:
         )
 
         if episode:
-            # You could extract podcast name from episode metadata
+            # We can extract podcast name from episode metadata
             # For now, just return podcast_id as string
             return f"Podcast {podcast_id}"
 
