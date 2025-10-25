@@ -2,6 +2,117 @@
   "examples": [
     {
       "episode_id": null,
+      "transcript_chunk": "I'm only trusting the L two to provide me the nice stuff. I'm not trusting it to provide me the core stuff. The core Property, Rights and censorship resistance that Ethereum is gonna gimme. Welcome to Bankless where today we explore crypto. Man, crypto is risky. You gotta be careful out there.",
+      "claim": "Crypto is risky",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "generic"
+      ],
+      "notes": "Too generic - no specific information, metrics, or context about what makes crypto risky"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Bitcoin has been around for over a decade now. It's really important in the financial world. Everyone should understand how important Bitcoin is to the future of finance.",
+      "claim": "Bitcoin is important",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "opinion"
+      ],
+      "notes": "Vague value judgment - no specific facts, metrics, or concrete information"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "DeFi is revolutionary, man. It's changing everything. Like, this is the future of finance. Everyone's talking about it.",
+      "claim": "DeFi is revolutionary",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "opinion"
+      ],
+      "notes": "Generic opinion without specific facts, metrics, or concrete examples"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Trading crypto can be profitable if you know what you're doing. Some people make good money, some lose it all. It's all about timing and strategy.",
+      "claim": "Crypto trading can be profitable",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "generic"
+      ],
+      "notes": "Generic truism - applies to any trading, no specific facts or data"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Ethereum is a great platform for smart contracts. It's really powerful and developers love it. The ecosystem is amazing.",
+      "claim": "Ethereum is great for smart contracts",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "opinion"
+      ],
+      "notes": "Vague value judgment - lacks specific technical facts or metrics"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "NFTs are interesting. Some people think they're the future of art and digital ownership. Others think it's all a fad. Time will tell.",
+      "claim": "NFTs are interesting",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "opinion"
+      ],
+      "notes": "Completely vague - 'interesting' is subjective and provides no factual information"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Layer 2 solutions are important for scaling Ethereum. They help reduce gas fees and make transactions faster. Everyone's building on Layer 2 now.",
+      "claim": "Layer 2 solutions are important",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "generic"
+      ],
+      "notes": "Generic statement - no specific solutions named, no metrics provided"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "You should do your own research before investing in crypto. Never invest more than you can afford to lose. This is not financial advice.",
+      "claim": "You should do your own research",
+      "quality": "bad",
+      "issues": [
+        "advice",
+        "generic"
+      ],
+      "notes": "Generic advice, not a factual claim - common disclaimer language"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Bitcoin's price is volatile. It goes up and down all the time. That's just how crypto works.",
+      "claim": "Bitcoin is volatile",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "generic"
+      ],
+      "notes": "Generic truism - no specific volatility metrics, timeframes, or data"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Web3 is the future. Decentralization is key. We're moving away from centralized platforms to a more open internet.",
+      "claim": "Web3 is the future",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "opinion",
+        "speculative"
+      ],
+      "notes": "Speculative opinion with no concrete facts - 'the future' is vague and unverifiable"
+    },
+    {
+      "episode_id": null,
       "transcript_chunk": "His approval has a new low 44.9%. Disapproval is a new high morning consult, has his approval at 46, which is the lowest point of his second term. We'll keep going on, but very quickly not good.",
       "claim": "His approval has reached a new low of 44.9%",
       "quality": "bad",

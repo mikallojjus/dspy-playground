@@ -2,6 +2,14 @@
   "examples": [
     {
       "episode_id": null,
+      "transcript_chunk": "Cancer screenings, surgeries needed to be rescheduled. It was difficult to get care for certain individuals who were having heart attacks because there were so much pressure on the emergency 9 1 1 dispatch system. Even my, and within my hospital, we had to dedicate a new ward specifically for patients with lung issues, mostly related to COVID-19.",
+      "claim": "During the first wave of COVID-19, hospitals and emergency rooms were overwhelmed, elective care was rescheduled, and there was pressure on the dispatch system.",
+      "quality": "good",
+      "issues": [],
+      "notes": "Factual, specific description of COVID-19 impact on healthcare"
+    },
+    {
+      "episode_id": null,
       "transcript_chunk": "And agriculture also has all these other problems, right? It's, it uses 70% of our fresh water. It's the leading driver of water pollution and deforestation and wetlands, drainage.",
       "claim": "Agriculture uses 70% of the world's fresh water.",
       "quality": "good",
@@ -10,37 +18,63 @@
     },
     {
       "episode_id": null,
-      "transcript_chunk": "So as of recently his and this is all posted online through the Golf Handicap Information Network. It's called again GHIN. He had a handicap of 2.8, which is ridiculous.",
-      "claim": "Trump's handicap is 2.8 as posted on GHIN",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific verifiable fact with source (GHIN)"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "Rick Riley, famous sports writer for Sports Illustrated wrote a whole book on it. It's called Commander and Cheat, how Golf Explains Trump. And this is what Rick Riley wrote in his book.",
-      "claim": "Rick Riley wrote a book called 'Commander and Cheat' about Trump's cheating in golf",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific claim with full name, book title, and context"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "His approval has a new low 44.9%. Disapproval is a new high morning consult, has his approval at 46, which is the lowest point of his second term. We'll keep going on, but very quickly not good.",
-      "claim": "Disapproval is at a new high, according to Morning Consult",
+      "transcript_chunk": "DeFi is revolutionary, man. It's changing everything. Like, this is the future of finance. Everyone's talking about it.",
+      "claim": "DeFi is revolutionary",
       "quality": "bad",
       "issues": [
-        "missing_context"
+        "vague",
+        "opinion"
       ],
-      "notes": "Disapproval of what? Subject is missing"
+      "notes": "Generic opinion without specific facts, metrics, or concrete examples"
     },
     {
       "episode_id": null,
-      "transcript_chunk": "Voters, 31% more likely to hear negative economic news than positive economic news. Right? The worst gap since May of 2023, which is funny 'cause in May of 2023 things were okay, but that's all right.",
-      "claim": "Voters are 31% more likely to hear negative economic news than positive economic news",
+      "transcript_chunk": "It became left verse right, which then ended up flipping, interestingly enough, because when the pandemic first started and the vaccine was being developed, this was operation warp speed headed by President Trump. Then we saw a few years later, as mandates were being forced perhaps where they didn't need to be, where recommendations were being made about boosters that weren't a hundred percent accurate. We started seeing a flipping of the left and right parties.",
+      "claim": "President Trump headed Operation Warp Speed",
       "quality": "good",
       "issues": [],
-      "notes": "Specific statistic, factual claim"
+      "notes": "Clear factual statement - names the person and the program"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "NFTs are interesting. Some people think they're the future of art and digital ownership. Others think it's all a fad. Time will tell.",
+      "claim": "NFTs are interesting",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "opinion"
+      ],
+      "notes": "Completely vague - 'interesting' is subjective and provides no factual information"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "It has, as we stated in the article, about a $40 billion budget, which is 1% of, of the federal budget. And it does a lot of great work when people like Mr. Musk say, Hey, we've gotta feed it into the wood chipper and get rid of it. What they're talking about is aid and assistance and democracy building and disease prevention and infrastructure creation in all of the nations where U-S-A-I-D is located.",
+      "claim": "USAID has a $40 billion budget, which is 1% of the federal budget",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific financial figures, factual"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Layer 2 solutions are important for scaling Ethereum. They help reduce gas fees and make transactions faster. Everyone's building on Layer 2 now.",
+      "claim": "Layer 2 solutions are important",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "generic"
+      ],
+      "notes": "Generic statement - no specific solutions named, no metrics provided"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Bitcoin's price is volatile. It goes up and down all the time. That's just how crypto works.",
+      "claim": "Bitcoin is volatile",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "generic"
+      ],
+      "notes": "Generic truism - no specific volatility metrics, timeframes, or data"
     },
     {
       "episode_id": null,
@@ -55,38 +89,14 @@
     },
     {
       "episode_id": null,
-      "transcript_chunk": "Goldman Sachs looking stock today is trading all the time high. They're considered the, you know, world's leading thought leaders in investment space. I mean, I think that's a weird flex to make in the first place.",
-      "claim": "Goldman Sachs is considered the world's leading thought leader in investment space.",
-      "quality": "good",
-      "issues": [],
-      "notes": "Factual claim about Goldman Sachs reputation"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "I certainly don't know for, for example, I've never investigated anything like that in my time. That said, there's a few more things to get to. Maxwell's attorney David, Oscar Marcus has responded saying that they can confirm that they're in discussions with the government and that Ghislaine will always ghislaine will always testify truthfully and quote, we are grateful to President Trump for his commitment to uncovering the truth in this case.",
-      "claim": "Ghislaine Maxwell's attorney confirmed discussions with the government",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific factual claim with named attorney"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "It became left verse right, which then ended up flipping, interestingly enough, because when the pandemic first started and the vaccine was being developed, this was operation warp speed headed by President Trump. Then we saw a few years later, as mandates were being forced perhaps where they didn't need to be, where recommendations were being made about boosters that weren't a hundred percent accurate. We started seeing a flipping of the left and right parties.",
-      "claim": "President Trump headed Operation Warp Speed",
-      "quality": "good",
-      "issues": [],
-      "notes": "Clear factual statement - names the person and the program"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "So when I see it, I go, well if due process is meant to protect us, then it's meant to protect everyone. If due process is meant to be the thing that stops me from stopping frisk happening or the P police coming into here with a a no-knock warrant or yeah whatever these things that exist that are right on the fringes of it, I think that protects me. So it should protect you whoever the you is.",
-      "claim": "Due process should protect everyone equally",
+      "transcript_chunk": "And there was a mantra that was born about at that time from our channel called Stay Alert, not anxious. Because I saw even for myself, how easy it is to become anxious given the fact that we have this new virus, it's spreading so rapidly, there's information that's spreading rapidly that could be true or untrue. Everyone was confused.",
+      "claim": "There was a mantra called 'Stay Alert, not anxious' during the pandemic.",
       "quality": "bad",
       "issues": [
         "vague",
-        "opinion"
+        "missing_context"
       ],
-      "notes": "Too vague - this is a general philosophical statement rather than a specific factual claim"
+      "notes": "Vague, useless claim - unclear significance and which channel/organization created it"
     },
     {
       "episode_id": null,
@@ -97,6 +107,36 @@
         "advertisement"
       ],
       "notes": "This is an ad - commercial content, not factual claim worthy of extraction"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Bitcoin has been around for over a decade now. It's really important in the financial world. Everyone should understand how important Bitcoin is to the future of finance.",
+      "claim": "Bitcoin is important",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "opinion"
+      ],
+      "notes": "Vague value judgment - no specific facts, metrics, or concrete information"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "You should do your own research before investing in crypto. Never invest more than you can afford to lose. This is not financial advice.",
+      "claim": "You should do your own research",
+      "quality": "bad",
+      "issues": [
+        "advice",
+        "generic"
+      ],
+      "notes": "Generic advice, not a factual claim - common disclaimer language"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Goldman Sachs looking stock today is trading all the time high. They're considered the, you know, world's leading thought leaders in investment space. I mean, I think that's a weird flex to make in the first place.",
+      "claim": "Goldman Sachs is considered the world's leading thought leader in investment space.",
+      "quality": "good",
+      "issues": [],
+      "notes": "Factual claim about Goldman Sachs reputation"
     }
   ]
 }

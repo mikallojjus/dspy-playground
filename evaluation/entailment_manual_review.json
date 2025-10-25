@@ -244,6 +244,76 @@
       "relationship": "SUPPORTS",
       "reasoning": "Quote directly confirms OpenSea's trading volume for 2021",
       "confidence": 1.0
+    },
+    {
+      "claim": "Crypto is risky",
+      "quote": "Crypto trading involves risk of loss. Not investment advice. Please do your own research.",
+      "relationship": "RELATED",
+      "reasoning": "Legal disclaimer, not factual evidence of risk - just standard warning language",
+      "confidence": 0.95
+    },
+    {
+      "claim": "Crypto is risky",
+      "quote": "Whether you're a complete beginner or a seasoned pro, go to Kraken dot com slash bankless to see what crypto can be. Not investment advice. Crypto trading involves risk of loss.",
+      "relationship": "RELATED",
+      "reasoning": "Ad copy with legal disclaimer - promotional content, not evidence",
+      "confidence": 0.9
+    },
+    {
+      "claim": "Ethereum has lower transaction fees than Bitcoin",
+      "quote": "Bankless Nation, you guys get a special deal on our crypto trading course. Use code BANKLESS for 20% off. Visit our site today!",
+      "relationship": "NEUTRAL",
+      "reasoning": "Pure advertisement, completely unrelated to the claim",
+      "confidence": 1.0
+    },
+    {
+      "claim": "DeFi protocols saw significant growth in 2021",
+      "quote": "This content is for informational purposes only and should not be considered financial advice. Always consult with a licensed financial advisor before making investment decisions.",
+      "relationship": "NEUTRAL",
+      "reasoning": "Standard legal disclaimer, provides no information about DeFi growth",
+      "confidence": 1.0
+    },
+    {
+      "claim": "Layer 2 solutions reduce Ethereum gas fees",
+      "quote": "Sign up for our newsletter at bankless.com to get the latest crypto news. Don't miss out on exclusive content!",
+      "relationship": "NEUTRAL",
+      "reasoning": "Marketing call-to-action, no connection to Layer 2 or gas fees",
+      "confidence": 1.0
+    },
+    {
+      "claim": "Bitcoin mining consumes significant energy",
+      "quote": "I think Bitcoin mining is really energy-intensive, you know. It's like, super power-hungry or whatever.",
+      "relationship": "RELATED",
+      "reasoning": "Casual opinion, not factual evidence - lacks specificity and authority",
+      "confidence": 0.85
+    },
+    {
+      "claim": "NFTs experienced a boom in 2021",
+      "quote": "Man, everyone was talking about NFTs. It was crazy. My friend made some money on them, I think.",
+      "relationship": "RELATED",
+      "reasoning": "Anecdotal opinion without factual validation of market boom",
+      "confidence": 0.8
+    },
+    {
+      "claim": "Solana has faster transaction speeds than Ethereum",
+      "quote": "Check out our Solana staking guide at bankless.com slash solana. Start earning rewards today with our exclusive partners!",
+      "relationship": "NEUTRAL",
+      "reasoning": "Promotional content for staking guide, doesn't compare transaction speeds",
+      "confidence": 0.95
+    },
+    {
+      "claim": "The Bitcoin halving reduces block rewards",
+      "quote": "Remember to subscribe to Bankless for more crypto content. Hit that subscribe button and enable notifications!",
+      "relationship": "NEUTRAL",
+      "reasoning": "YouTube-style call-to-action, completely unrelated to Bitcoin halving",
+      "confidence": 1.0
+    },
+    {
+      "claim": "Smart contracts enable automated execution of agreements",
+      "quote": "Before we continue, a quick word from our sponsor. This episode is brought to you by Ledger hardware wallets - keeping your crypto secure since 2014.",
+      "relationship": "NEUTRAL",
+      "reasoning": "Sponsor message, no information about smart contracts",
+      "confidence": 1.0
     }
   ]
 }

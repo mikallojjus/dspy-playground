@@ -1,13 +1,60 @@
 {
-  "description": "Training set for entailment validation (70% of manual review)",
-  "total_examples": 24,
   "examples": [
+    {
+      "claim": "Vitalik Buterin co-founded Ethereum in 2013",
+      "quote": "Vitalik Buterin was one of the co-founders who launched the Ethereum project in 2013",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote confirms Buterin's role as Ethereum co-founder with correct year",
+      "confidence": 1.0
+    },
+    {
+      "claim": "The DAO hack resulted in the loss of $60 million in Ethereum",
+      "quote": "The DAO hack led to a contentious hard fork of Ethereum",
+      "relationship": "RELATED",
+      "reasoning": "Discusses consequences of the hack but doesn't validate the loss amount",
+      "confidence": 0.85
+    },
+    {
+      "claim": "Crypto is risky",
+      "quote": "Whether you're a complete beginner or a seasoned pro, go to Kraken dot com slash bankless to see what crypto can be. Not investment advice. Crypto trading involves risk of loss.",
+      "relationship": "RELATED",
+      "reasoning": "Ad copy with legal disclaimer - promotional content, not evidence",
+      "confidence": 0.9
+    },
+    {
+      "claim": "El Salvador adopted Bitcoin as legal tender in September 2021",
+      "quote": "El Salvador became the first country to make Bitcoin legal tender in September 2021",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote directly confirms El Salvador's Bitcoin adoption with correct date",
+      "confidence": 1.0
+    },
+    {
+      "claim": "MicroStrategy purchased $425 million worth of Bitcoin in August 2020",
+      "quote": "MicroStrategy CEO Michael Saylor is a vocal Bitcoin advocate",
+      "relationship": "RELATED",
+      "reasoning": "Related to MicroStrategy's Bitcoin involvement but doesn't validate the specific purchase",
+      "confidence": 0.85
+    },
     {
       "claim": "The Bitcoin halving occurred in May 2020",
       "quote": "Bitcoin halvings happen approximately every four years",
       "relationship": "RELATED",
       "reasoning": "Discusses halving mechanism but doesn't validate the specific 2020 event",
       "confidence": 0.9
+    },
+    {
+      "claim": "Cardano's Alonzo upgrade enabled smart contracts in September 2021",
+      "quote": "Cardano implemented the Alonzo upgrade in September 2021, bringing smart contract functionality to the network",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote directly confirms the upgrade, its purpose, and timing",
+      "confidence": 1.0
+    },
+    {
+      "claim": "Binance Smart Chain launched in September 2020",
+      "quote": "Binance Smart Chain, now known as BNB Chain, went live in September 2020",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote confirms BSC launch with correct date",
+      "confidence": 1.0
     },
     {
       "claim": "Mike Novogratz founded Galaxy Digital in 2018",
@@ -17,73 +64,38 @@
       "confidence": 1.0
     },
     {
+      "claim": "Ethereum transitioned to proof-of-stake in September 2022",
+      "quote": "Proof-of-stake is more energy efficient than proof-of-work",
+      "relationship": "RELATED",
+      "reasoning": "Discusses the mechanisms mentioned in claim but doesn't validate the transition event",
+      "confidence": 0.95
+    },
+    {
+      "claim": "NFT sales volume reached $25 billion in 2021",
+      "quote": "The NFT market saw explosive growth in 2021, with total sales volume hitting approximately $25 billion",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote confirms the sales volume figure and year",
+      "confidence": 1.0
+    },
+    {
       "claim": "Tesla acquired $1.5 billion worth of Bitcoin in February 2021",
-      "quote": "Many companies added Bitcoin to their balance sheets in 2021",
-      "relationship": "RELATED",
-      "reasoning": "General context about 2021 corporate Bitcoin adoption, doesn't validate Tesla specifically",
-      "confidence": 0.9
+      "quote": "Tesla announced it purchased $1.5 billion in Bitcoin in early 2021",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote confirms the purchase amount and timeframe",
+      "confidence": 0.95
     },
     {
-      "claim": "The DAO hack resulted in the loss of $60 million in Ethereum",
-      "quote": "The DAO was hacked in 2016, resulting in approximately $60 million worth of Ethereum being stolen",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote confirms the hack amount and cryptocurrency involved",
+      "claim": "Smart contracts enable automated execution of agreements",
+      "quote": "Before we continue, a quick word from our sponsor. This episode is brought to you by Ledger hardware wallets - keeping your crypto secure since 2014.",
+      "relationship": "NEUTRAL",
+      "reasoning": "Sponsor message, no information about smart contracts",
       "confidence": 1.0
-    },
-    {
-      "claim": "Ethereum gas fees averaged $50 per transaction in May 2021",
-      "quote": "Ethereum network congestion led to extremely high transaction fees during the 2021 bull market, with averages around $50 in May",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote confirms the gas fee average and timeframe",
-      "confidence": 0.95
-    },
-    {
-      "claim": "MicroStrategy purchased $425 million worth of Bitcoin in August 2020",
-      "quote": "MicroStrategy made its initial Bitcoin purchase of $425 million in August 2020",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote directly confirms the purchase amount and timing",
-      "confidence": 1.0
-    },
-    {
-      "claim": "Cardano's Alonzo upgrade enabled smart contracts in September 2021",
-      "quote": "Smart contracts allow for programmable decentralized applications",
-      "relationship": "RELATED",
-      "reasoning": "Explains smart contracts but doesn't validate Cardano's upgrade",
-      "confidence": 0.9
-    },
-    {
-      "claim": "The SEC rejected multiple Bitcoin ETF applications in 2017",
-      "quote": "In 2017, the SEC turned down several proposals for Bitcoin ETFs",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote directly confirms SEC rejections of Bitcoin ETFs in 2017",
-      "confidence": 0.95
-    },
-    {
-      "claim": "Solana launched its mainnet in March 2020",
-      "quote": "Solana's mainnet beta went live in March 2020",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote confirms Solana mainnet launch with correct date",
-      "confidence": 0.95
     },
     {
       "claim": "Bitcoin's market capitalization exceeded $1 trillion in February 2021",
       "quote": "Bitcoin's market cap crossed the $1 trillion milestone for the first time in February 2021",
       "relationship": "SUPPORTS",
       "reasoning": "Quote directly confirms the market cap milestone with correct timeframe",
-      "confidence": 1.0
-    },
-    {
-      "claim": "Coinbase went public in April 2021 via direct listing",
-      "quote": "Coinbase chose a direct listing instead of traditional IPO when it went public in April 2021",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote confirms both the timing and method of Coinbase going public",
-      "confidence": 1.0
-    },
-    {
-      "claim": "El Salvador adopted Bitcoin as legal tender in September 2021",
-      "quote": "El Salvador became the first country to make Bitcoin legal tender in September 2021",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote directly confirms El Salvador's Bitcoin adoption with correct date",
       "confidence": 1.0
     },
     {
@@ -94,17 +106,87 @@
       "confidence": 0.8
     },
     {
+      "claim": "Ethereum gas fees averaged $50 per transaction in May 2021",
+      "quote": "Ethereum network congestion led to extremely high transaction fees during the 2021 bull market, with averages around $50 in May",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote confirms the gas fee average and timeframe",
+      "confidence": 0.95
+    },
+    {
       "claim": "Solana launched its mainnet in March 2020",
-      "quote": "The restaurant serves lunch from noon to 3 PM",
+      "quote": "Solana's mainnet beta went live in March 2020",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote confirms Solana mainnet launch with correct date",
+      "confidence": 0.95
+    },
+    {
+      "claim": "DeFi protocols saw significant growth in 2021",
+      "quote": "This content is for informational purposes only and should not be considered financial advice. Always consult with a licensed financial advisor before making investment decisions.",
       "relationship": "NEUTRAL",
-      "reasoning": "Completely unrelated topic",
+      "reasoning": "Standard legal disclaimer, provides no information about DeFi growth",
       "confidence": 1.0
     },
     {
-      "claim": "The Bitcoin halving occurred in May 2020",
-      "quote": "Bitcoin's third halving event took place in May 2020, reducing block rewards to 6.25 BTC",
+      "claim": "Layer 2 solutions reduce Ethereum gas fees",
+      "quote": "Sign up for our newsletter at bankless.com to get the latest crypto news. Don't miss out on exclusive content!",
+      "relationship": "NEUTRAL",
+      "reasoning": "Marketing call-to-action, no connection to Layer 2 or gas fees",
+      "confidence": 1.0
+    },
+    {
+      "claim": "Cardano's Alonzo upgrade enabled smart contracts in September 2021",
+      "quote": "Smart contracts allow for programmable decentralized applications",
+      "relationship": "RELATED",
+      "reasoning": "Explains smart contracts but doesn't validate Cardano's upgrade",
+      "confidence": 0.9
+    },
+    {
+      "claim": "Mike Novogratz founded Galaxy Digital in 2018",
+      "quote": "Mike Novogratz is a prominent Bitcoin investor",
+      "relationship": "RELATED",
+      "reasoning": "Identifies Novogratz but doesn't validate Galaxy Digital founding",
+      "confidence": 0.85
+    },
+    {
+      "claim": "Bitcoin's market capitalization exceeded $1 trillion in February 2021",
+      "quote": "Weather patterns affect renewable energy production",
+      "relationship": "NEUTRAL",
+      "reasoning": "Completely unrelated to Bitcoin or cryptocurrency",
+      "confidence": 1.0
+    },
+    {
+      "claim": "The DAO hack resulted in the loss of $60 million in Ethereum",
+      "quote": "The DAO was hacked in 2016, resulting in approximately $60 million worth of Ethereum being stolen",
       "relationship": "SUPPORTS",
-      "reasoning": "Quote explicitly confirms the halving event with correct date and details",
+      "reasoning": "Quote confirms the hack amount and cryptocurrency involved",
+      "confidence": 1.0
+    },
+    {
+      "claim": "MicroStrategy purchased $425 million worth of Bitcoin in August 2020",
+      "quote": "MicroStrategy made its initial Bitcoin purchase of $425 million in August 2020",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote directly confirms the purchase amount and timing",
+      "confidence": 1.0
+    },
+    {
+      "claim": "Bitcoin reached $69,000 in November 2021",
+      "quote": "Bitcoin's price dropped below $20,000 in June 2022",
+      "relationship": "NEUTRAL",
+      "reasoning": "Different timeframe and price point, doesn't support or contradict the claim about November 2021",
+      "confidence": 0.95
+    },
+    {
+      "claim": "NFTs experienced a boom in 2021",
+      "quote": "Man, everyone was talking about NFTs. It was crazy. My friend made some money on them, I think.",
+      "relationship": "RELATED",
+      "reasoning": "Anecdotal opinion without factual validation of market boom",
+      "confidence": 0.8
+    },
+    {
+      "claim": "Bitcoin reached $69,000 in November 2021",
+      "quote": "Bitcoin hit its all-time high of $69,000 in November of 2021",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote directly states the claim with exact figures and timeframe",
       "confidence": 1.0
     },
     {
@@ -115,59 +197,24 @@
       "confidence": 0.9
     },
     {
-      "claim": "Bitcoin reached $69,000 in November 2021",
-      "quote": "Bitcoin's price dropped below $20,000 in June 2022",
-      "relationship": "NEUTRAL",
-      "reasoning": "Different timeframe and price point, doesn't support or contradict the claim about November 2021",
+      "claim": "The SEC rejected multiple Bitcoin ETF applications in 2017",
+      "quote": "In 2017, the SEC turned down several proposals for Bitcoin ETFs",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote directly confirms SEC rejections of Bitcoin ETFs in 2017",
       "confidence": 0.95
     },
     {
-      "claim": "FTX collapsed in November 2022",
-      "quote": "FTX filed for bankruptcy in November 2022 after a liquidity crisis",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote directly confirms FTX collapse with specific timeframe",
-      "confidence": 1.0
-    },
-    {
-      "claim": "Bitcoin's market capitalization exceeded $1 trillion in February 2021",
-      "quote": "Weather patterns affect renewable energy production",
+      "claim": "The Bitcoin halving reduces block rewards",
+      "quote": "Remember to subscribe to Bankless for more crypto content. Hit that subscribe button and enable notifications!",
       "relationship": "NEUTRAL",
-      "reasoning": "Completely unrelated to Bitcoin or cryptocurrency",
+      "reasoning": "YouTube-style call-to-action, completely unrelated to Bitcoin halving",
       "confidence": 1.0
     },
     {
-      "claim": "Bitcoin reached $69,000 in November 2021",
-      "quote": "Bitcoin hit its all-time high of $69,000 in November of 2021",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote directly states the claim with exact figures and timeframe",
-      "confidence": 1.0
-    },
-    {
-      "claim": "NFT sales volume reached $25 billion in 2021",
-      "quote": "The NFT market saw explosive growth in 2021, with total sales volume hitting approximately $25 billion",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote confirms the sales volume figure and year",
-      "confidence": 1.0
-    },
-    {
-      "claim": "Mike Novogratz founded Galaxy Digital in 2018",
-      "quote": "Mike Novogratz is a prominent Bitcoin investor",
-      "relationship": "RELATED",
-      "reasoning": "Identifies Novogratz but doesn't validate Galaxy Digital founding",
-      "confidence": 0.85
-    },
-    {
-      "claim": "Vitalik Buterin co-founded Ethereum in 2013",
-      "quote": "Vitalik Buterin was one of the co-founders who launched the Ethereum project in 2013",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote confirms Buterin's role as Ethereum co-founder with correct year",
-      "confidence": 1.0
-    },
-    {
-      "claim": "Ethereum transitioned to proof-of-stake in September 2022",
-      "quote": "The merge happened in September 2022, transitioning Ethereum from proof-of-work to proof-of-stake",
-      "relationship": "SUPPORTS",
-      "reasoning": "Quote explicitly describes the transition with correct date and mechanism",
+      "claim": "Ethereum has lower transaction fees than Bitcoin",
+      "quote": "Bankless Nation, you guys get a special deal on our crypto trading course. Use code BANKLESS for 20% off. Visit our site today!",
+      "relationship": "NEUTRAL",
+      "reasoning": "Pure advertisement, completely unrelated to the claim",
       "confidence": 1.0
     }
   ]

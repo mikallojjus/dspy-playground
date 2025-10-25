@@ -2,164 +2,26 @@
   "examples": [
     {
       "episode_id": null,
-      "transcript_chunk": "And there was a mantra that was born about at that time from our channel called Stay Alert, not anxious. Because I saw even for myself, how easy it is to become anxious given the fact that we have this new virus, it's spreading so rapidly, there's information that's spreading rapidly that could be true or untrue. Everyone was confused.",
-      "claim": "There was a mantra called 'Stay Alert, not anxious' during the pandemic.",
+      "transcript_chunk": "Web3 is the future. Decentralization is key. We're moving away from centralized platforms to a more open internet.",
+      "claim": "Web3 is the future",
       "quality": "bad",
       "issues": [
         "vague",
-        "missing_context"
+        "opinion",
+        "speculative"
       ],
-      "notes": "Vague, useless claim - unclear significance and which channel/organization created it"
+      "notes": "Speculative opinion with no concrete facts - 'the future' is vague and unverifiable"
     },
     {
       "episode_id": null,
-      "transcript_chunk": "It was started during the Bush, the Bush 43 administration, and it has been monumental in saving literally hundreds of thousands of lives through a variety of means that these U-S-A-I-D analysts and workers have determined are the best ways to stop aids, which they have basically done on the continent of Africa. I mean, there are still flareups and there are still people suffering from the, the disease. Last I, last I was on it. They said that it was an estimated 26 million lives saved due to that program, and they expanded on it to include things like tuberculosis and malaria and, you know, fighting diseases as we learned just a few years ago, overseas helps to prevent them from spreading back here. Right.",
-      "claim": "The PEPFAR initiative, started during the Bush 43 administration, has saved approximately 26 million lives by fighting AIDS in Africa",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific program, timeframe, impact metric - comprehensive and factual"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "And even though I was, you know, I wrote about the climate, it's a third of our climate problem, and I knew nothing about it. The main problem really is that, and you know, agriculture is replacing nature and nature stores a lot of carbon. So when you tear down a forest, all that carbon goes into the atmosphere.",
-      "claim": "Deforestation releases carbon stored in forests into the atmosphere.",
-      "quality": "good",
-      "issues": [],
-      "notes": "Scientific fact, clear mechanism explained - factual and verifiable"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "A couple of days ago, the British Council Building was destroyed. The EU delegation building was destroyed. An American engineering company was destroyed, and a Russian drone landed a hundred kilometers inside of Poland, literally inside of NATO's airspace.",
-      "claim": "An American engineering company was destroyed recently",
+      "transcript_chunk": "Trading crypto can be profitable if you know what you're doing. Some people make good money, some lose it all. It's all about timing and strategy.",
+      "claim": "Crypto trading can be profitable",
       "quality": "bad",
       "issues": [
         "vague",
-        "missing_context"
+        "generic"
       ],
-      "notes": "Too vague - which company? where? when? no specifics provided"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "It has, as we stated in the article, about a $40 billion budget, which is 1% of, of the federal budget. And it does a lot of great work when people like Mr. Musk say, Hey, we've gotta feed it into the wood chipper and get rid of it. What they're talking about is aid and assistance and democracy building and disease prevention and infrastructure creation in all of the nations where U-S-A-I-D is located.",
-      "claim": "USAID has a $40 billion budget, which is 1% of the federal budget",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific financial figures, factual"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "A couple of days ago, the British Council Building was destroyed. The EU delegation building was destroyed. An American engineering company was destroyed, and a Russian drone landed a hundred kilometers inside of Poland, literally inside of NATO's airspace.",
-      "claim": "Russian drones landed a hundred kilometers inside Poland, literally inside NATO's airspace",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific factual claim with location details"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "However, come before the committee, well wouldn't you know it? The hearing began and they passed it on a voice vote. So that means that they've approved of a motion to subpoena Ghislaine Maxwell.",
-      "claim": "The House Oversight Committee approved a motion to subpoena Ghislaine Maxwell",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific, factual, verifiable - clear action, subject, and object"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "When I was a, a young lad, I wound up in a room with Heidi Klum. I did not know who Heidi Klum was at the time, but I fucking knew that whoever this person was, she was something because she looked like a fucking alien. She did not look like she was part of the same species as literally every the other thousand people in that room you just looked at and like, everybody had the same thing.",
-      "claim": "Heidi Klum looks like an alien compared to other people in the room",
-      "quality": "bad",
-      "issues": [
-        "opinion"
-      ],
-      "notes": "This is an opinion - subjective description, not a factual claim"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "Yeah, while we're on the subject of sort of like interestingly re revelatory little nuggets, here's another one for you. This is just, while it's sort of listing his business interests. Currently, president Trump and the Trump organization own and operate the magnificent Trump Tower, Trump international hotel and tower, the Trump building 1290 avenue of the Americas, Trump Park Avenue, Trump Park, Trump Park, east Trump, world Tower six 10 Park Avenue.",
-      "claim": "Currently, President Trump and the Trump Organization own and operate properties such as Trump Tower, Trump International Hotel & Tower, Trump Building, 1290 Avenue of the Americas, Trump Park Avenue, Trump Park East, and World Tower Six 10 Park Avenue",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific list of properties with clear ownership - factual and verifiable"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "You are exactly right. The ban itself lasted only about a year before Biden administration reverses it. You have thousands more trans service members out at this point where you see, instead of this bolt outta the blue, now it's like a hurricane forming offshore.",
-      "claim": "The ban lasted only about a year before being reversed by the Biden administration",
-      "quality": "bad",
-      "issues": [
-        "missing_context"
-      ],
-      "notes": "What ban? No specific policy or ban identified"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "And many of these lawmakers were in states that voted overwhelmingly for Donald John Trump. I'm talking about Alabama and Ohio, where constituents slammed trump's agenda items, things like cuts to Medicaid and the so-called big beautiful bill, his harsh immigration crackdown, the federal takeover of Washington DC and Donald Trump cozying up to dictators. Bottom line, the attendees were loud and clear saying, we do not want this.",
-      "claim": "Town hall attendees expressed dissatisfaction with Trump's agenda items, including cuts to Medicaid, immigration crackdowns, federal takeover of Washington DC, and support for dictators.",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific factual description of town hall events"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "And that is, and so that's ge Georgie Maloff, right? So Maloff was Stalin's deputy premier, and so Stalin dies and Maloff was just like, well, I guess I have to be premier. And Maloff was, was Vance like, and he's just a schlub.",
-      "claim": "Georgi Maloff was Stalin's deputy premier",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific, factual, self-contained - names the person and their role clearly"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "And we did it in a variety of ways from farming to working on some of the infrastructure projects, employing Iraqi citizens to build walls to, you know, there were some things that were somewhat crazy and ludicrous, but it gave them a job. And there was also, hey, enlist in the Iraqi army or the Iraqi police force. Well, U-S-I-I-D also helped us build barracks and the kinds of things you need for an army and a police force and a police station.",
-      "claim": "USAID built barracks and supported the establishment of the Iraqi army and police force",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific factual claim about USAID activities"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "I mean look, this is not full repeal like we were saying before, you know, leaves in place, this sort of big architecture, a lot of the changes it's making are sort of turning the dials on things. So, you know, it's, we wouldn't expect it to have as much attention maybe as the Affordable Care Act or something equivalent, but surely half a quarter, you know, we're like at 0.01%. There's gonna be no debate on this.",
-      "claim": "The new bill is not full repeal but leaves in place much of the existing architecture",
-      "quality": "bad",
-      "issues": [
-        "missing_context"
-      ],
-      "notes": "What new bill? No specific legislation identified"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "And whether you're early in your journey or more advanced, happy head offers, targeted options that actually work. Topical treatments, oral capsules or potent dual action bundles all delivered directly to you discreetly and freshly compounded. In the us most people start seeing results in three to six months.",
-      "claim": "Happy Head provides topical treatments, oral capsules, or dual action bundles",
-      "quality": "bad",
-      "issues": [
-        "advertisement"
-      ],
-      "notes": "This is an ad - commercial content should not be extracted as claims"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "In Georgia there is, you know, the Moldova has the transista and then there are the two that existed since 2014 in Ukraine. Every one of those has been generated by Russian action. They have gone into a country, taken a bite, and then stayed there because no one pushed them out.",
-      "claim": "Russia has gone into countries like Georgia, taken bites of their territory, and stayed there because no one pushed them out",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific geopolitical claim with examples"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "And every time those groups prove them false, just as trans service members have over these nine years of us serving openly and authentically. And there are so many disconnects between any of the logic presented by the government that when these policies did become challenged in court, again, you had two district court judges basically flatly rejecting them on the face of it saying, there is nothing here but animus. It is in fact the service records of the members that were the plaintiffs.",
-      "claim": "Service records of the plaintiffs in court cases challenged these claims as evidence that the policies were false",
-      "quality": "bad",
-      "issues": [
-        "vague",
-        "missing_context"
-      ],
-      "notes": "What claims were challenged and what policies were false? Too many unclear references"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "Cancer screenings, surgeries needed to be rescheduled. It was difficult to get care for certain individuals who were having heart attacks because there were so much pressure on the emergency 9 1 1 dispatch system. Even my, and within my hospital, we had to dedicate a new ward specifically for patients with lung issues, mostly related to COVID-19.",
-      "claim": "During the first wave of COVID-19, hospitals and emergency rooms were overwhelmed, elective care was rescheduled, and there was pressure on the dispatch system.",
-      "quality": "good",
-      "issues": [],
-      "notes": "Factual, specific description of COVID-19 impact on healthcare"
+      "notes": "Generic truism - applies to any trading, no specific facts or data"
     },
     {
       "episode_id": null,
@@ -174,11 +36,64 @@
     },
     {
       "episode_id": null,
-      "transcript_chunk": "And even though I was, you know, I wrote about the climate, it's a third of our climate problem, and I knew nothing about it. The main problem really is that, and you know, agriculture is replacing nature and nature stores a lot of carbon. So when you tear down a forest, all that carbon goes into the atmosphere.",
-      "claim": "Agriculture contributes a third to climate problems.",
+      "transcript_chunk": "Voters, 31% more likely to hear negative economic news than positive economic news. Right? The worst gap since May of 2023, which is funny 'cause in May of 2023 things were okay, but that's all right.",
+      "claim": "Voters are 31% more likely to hear negative economic news than positive economic news",
       "quality": "good",
       "issues": [],
-      "notes": "Specific proportion, factual claim"
+      "notes": "Specific statistic, factual claim"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "In Georgia there is, you know, the Moldova has the transista and then there are the two that existed since 2014 in Ukraine. Every one of those has been generated by Russian action. They have gone into a country, taken a bite, and then stayed there because no one pushed them out.",
+      "claim": "Russia has gone into countries like Georgia, taken bites of their territory, and stayed there because no one pushed them out",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific geopolitical claim with examples"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "And whether you're early in your journey or more advanced, happy head offers, targeted options that actually work. Topical treatments, oral capsules or potent dual action bundles all delivered directly to you discreetly and freshly compounded. In the us most people start seeing results in three to six months.",
+      "claim": "Happy Head provides topical treatments, oral capsules, or dual action bundles",
+      "quality": "bad",
+      "issues": [
+        "advertisement"
+      ],
+      "notes": "This is an ad - commercial content should not be extracted as claims"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Rick Riley, famous sports writer for Sports Illustrated wrote a whole book on it. It's called Commander and Cheat, how Golf Explains Trump. And this is what Rick Riley wrote in his book.",
+      "claim": "Rick Riley wrote a book called 'Commander and Cheat' about Trump's cheating in golf",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific claim with full name, book title, and context"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Yeah, while we're on the subject of sort of like interestingly re revelatory little nuggets, here's another one for you. This is just, while it's sort of listing his business interests. Currently, president Trump and the Trump organization own and operate the magnificent Trump Tower, Trump international hotel and tower, the Trump building 1290 avenue of the Americas, Trump Park Avenue, Trump Park, Trump Park, east Trump, world Tower six 10 Park Avenue.",
+      "claim": "Currently, President Trump and the Trump Organization own and operate properties such as Trump Tower, Trump International Hotel & Tower, Trump Building, 1290 Avenue of the Americas, Trump Park Avenue, Trump Park East, and World Tower Six 10 Park Avenue",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific list of properties with clear ownership - factual and verifiable"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Ethereum is a great platform for smart contracts. It's really powerful and developers love it. The ecosystem is amazing.",
+      "claim": "Ethereum is great for smart contracts",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "opinion"
+      ],
+      "notes": "Vague value judgment - lacks specific technical facts or metrics"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "And we did it in a variety of ways from farming to working on some of the infrastructure projects, employing Iraqi citizens to build walls to, you know, there were some things that were somewhat crazy and ludicrous, but it gave them a job. And there was also, hey, enlist in the Iraqi army or the Iraqi police force. Well, U-S-I-I-D also helped us build barracks and the kinds of things you need for an army and a police force and a police station.",
+      "claim": "USAID built barracks and supported the establishment of the Iraqi army and police force",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific factual claim about USAID activities"
     },
     {
       "episode_id": null,
@@ -193,11 +108,32 @@
     },
     {
       "episode_id": null,
-      "transcript_chunk": "He went after a reporter from Australia saying it might affect diplomatic relations with the country because they asked a question that he didn't like. So it's bleeding into the other politics as well. And the one upside of this, and I'll stop talking after this, is that when Pam Bondi did utter her comments trying to distinguish between free speech and hate speech, there's a torrent to pushback from people on the right who said, that's absurd.",
-      "claim": "Pam Bondi's comments about pursuing hate speech were met with pushback from people on the right",
+      "transcript_chunk": "So when I see it, I go, well if due process is meant to protect us, then it's meant to protect everyone. If due process is meant to be the thing that stops me from stopping frisk happening or the P police coming into here with a a no-knock warrant or yeah whatever these things that exist that are right on the fringes of it, I think that protects me. So it should protect you whoever the you is.",
+      "claim": "Due process should protect everyone equally",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "opinion"
+      ],
+      "notes": "Too vague - this is a general philosophical statement rather than a specific factual claim"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "And even though I was, you know, I wrote about the climate, it's a third of our climate problem, and I knew nothing about it. The main problem really is that, and you know, agriculture is replacing nature and nature stores a lot of carbon. So when you tear down a forest, all that carbon goes into the atmosphere.",
+      "claim": "Deforestation releases carbon stored in forests into the atmosphere.",
       "quality": "good",
       "issues": [],
-      "notes": "Specific person, specific action, specific response - factual and self-contained"
+      "notes": "Scientific fact, clear mechanism explained - factual and verifiable"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "You are exactly right. The ban itself lasted only about a year before Biden administration reverses it. You have thousands more trans service members out at this point where you see, instead of this bolt outta the blue, now it's like a hurricane forming offshore.",
+      "claim": "The ban lasted only about a year before being reversed by the Biden administration",
+      "quality": "bad",
+      "issues": [
+        "missing_context"
+      ],
+      "notes": "What ban? No specific policy or ban identified"
     },
     {
       "episode_id": null,
@@ -209,6 +145,141 @@
         "missing_context"
       ],
       "notes": "Vague - where? when exactly? no specific location or date provided"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "However, come before the committee, well wouldn't you know it? The hearing began and they passed it on a voice vote. So that means that they've approved of a motion to subpoena Ghislaine Maxwell.",
+      "claim": "The House Oversight Committee approved a motion to subpoena Ghislaine Maxwell",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific, factual, verifiable - clear action, subject, and object"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "So as of recently his and this is all posted online through the Golf Handicap Information Network. It's called again GHIN. He had a handicap of 2.8, which is ridiculous.",
+      "claim": "Trump's handicap is 2.8 as posted on GHIN",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific verifiable fact with source (GHIN)"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "A couple of days ago, the British Council Building was destroyed. The EU delegation building was destroyed. An American engineering company was destroyed, and a Russian drone landed a hundred kilometers inside of Poland, literally inside of NATO's airspace.",
+      "claim": "Russian drones landed a hundred kilometers inside Poland, literally inside NATO's airspace",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific factual claim with location details"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "He went after a reporter from Australia saying it might affect diplomatic relations with the country because they asked a question that he didn't like. So it's bleeding into the other politics as well. And the one upside of this, and I'll stop talking after this, is that when Pam Bondi did utter her comments trying to distinguish between free speech and hate speech, there's a torrent to pushback from people on the right who said, that's absurd.",
+      "claim": "Pam Bondi's comments about pursuing hate speech were met with pushback from people on the right",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific person, specific action, specific response - factual and self-contained"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "His approval has a new low 44.9%. Disapproval is a new high morning consult, has his approval at 46, which is the lowest point of his second term. We'll keep going on, but very quickly not good.",
+      "claim": "Disapproval is at a new high, according to Morning Consult",
+      "quality": "bad",
+      "issues": [
+        "missing_context"
+      ],
+      "notes": "Disapproval of what? Subject is missing"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "And that is, and so that's ge Georgie Maloff, right? So Maloff was Stalin's deputy premier, and so Stalin dies and Maloff was just like, well, I guess I have to be premier. And Maloff was, was Vance like, and he's just a schlub.",
+      "claim": "Georgi Maloff was Stalin's deputy premier",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific, factual, self-contained - names the person and their role clearly"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "When I was a, a young lad, I wound up in a room with Heidi Klum. I did not know who Heidi Klum was at the time, but I fucking knew that whoever this person was, she was something because she looked like a fucking alien. She did not look like she was part of the same species as literally every the other thousand people in that room you just looked at and like, everybody had the same thing.",
+      "claim": "Heidi Klum looks like an alien compared to other people in the room",
+      "quality": "bad",
+      "issues": [
+        "opinion"
+      ],
+      "notes": "This is an opinion - subjective description, not a factual claim"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "A couple of days ago, the British Council Building was destroyed. The EU delegation building was destroyed. An American engineering company was destroyed, and a Russian drone landed a hundred kilometers inside of Poland, literally inside of NATO's airspace.",
+      "claim": "An American engineering company was destroyed recently",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "missing_context"
+      ],
+      "notes": "Too vague - which company? where? when? no specifics provided"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "It was started during the Bush, the Bush 43 administration, and it has been monumental in saving literally hundreds of thousands of lives through a variety of means that these U-S-A-I-D analysts and workers have determined are the best ways to stop aids, which they have basically done on the continent of Africa. I mean, there are still flareups and there are still people suffering from the, the disease. Last I, last I was on it. They said that it was an estimated 26 million lives saved due to that program, and they expanded on it to include things like tuberculosis and malaria and, you know, fighting diseases as we learned just a few years ago, overseas helps to prevent them from spreading back here. Right.",
+      "claim": "The PEPFAR initiative, started during the Bush 43 administration, has saved approximately 26 million lives by fighting AIDS in Africa",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific program, timeframe, impact metric - comprehensive and factual"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "I certainly don't know for, for example, I've never investigated anything like that in my time. That said, there's a few more things to get to. Maxwell's attorney David, Oscar Marcus has responded saying that they can confirm that they're in discussions with the government and that Ghislaine will always ghislaine will always testify truthfully and quote, we are grateful to President Trump for his commitment to uncovering the truth in this case.",
+      "claim": "Ghislaine Maxwell's attorney confirmed discussions with the government",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific factual claim with named attorney"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "I'm only trusting the L two to provide me the nice stuff. I'm not trusting it to provide me the core stuff. The core Property, Rights and censorship resistance that Ethereum is gonna gimme. Welcome to Bankless where today we explore crypto. Man, crypto is risky. You gotta be careful out there.",
+      "claim": "Crypto is risky",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "generic"
+      ],
+      "notes": "Too generic - no specific information, metrics, or context about what makes crypto risky"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "I mean look, this is not full repeal like we were saying before, you know, leaves in place, this sort of big architecture, a lot of the changes it's making are sort of turning the dials on things. So, you know, it's, we wouldn't expect it to have as much attention maybe as the Affordable Care Act or something equivalent, but surely half a quarter, you know, we're like at 0.01%. There's gonna be no debate on this.",
+      "claim": "The new bill is not full repeal but leaves in place much of the existing architecture",
+      "quality": "bad",
+      "issues": [
+        "missing_context"
+      ],
+      "notes": "What new bill? No specific legislation identified"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "And every time those groups prove them false, just as trans service members have over these nine years of us serving openly and authentically. And there are so many disconnects between any of the logic presented by the government that when these policies did become challenged in court, again, you had two district court judges basically flatly rejecting them on the face of it saying, there is nothing here but animus. It is in fact the service records of the members that were the plaintiffs.",
+      "claim": "Service records of the plaintiffs in court cases challenged these claims as evidence that the policies were false",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "missing_context"
+      ],
+      "notes": "What claims were challenged and what policies were false? Too many unclear references"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "And even though I was, you know, I wrote about the climate, it's a third of our climate problem, and I knew nothing about it. The main problem really is that, and you know, agriculture is replacing nature and nature stores a lot of carbon. So when you tear down a forest, all that carbon goes into the atmosphere.",
+      "claim": "Agriculture contributes a third to climate problems.",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific proportion, factual claim"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "And many of these lawmakers were in states that voted overwhelmingly for Donald John Trump. I'm talking about Alabama and Ohio, where constituents slammed trump's agenda items, things like cuts to Medicaid and the so-called big beautiful bill, his harsh immigration crackdown, the federal takeover of Washington DC and Donald Trump cozying up to dictators. Bottom line, the attendees were loud and clear saying, we do not want this.",
+      "claim": "Town hall attendees expressed dissatisfaction with Trump's agenda items, including cuts to Medicaid, immigration crackdowns, federal takeover of Washington DC, and support for dictators.",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific factual description of town hall events"
     }
   ]
 }
