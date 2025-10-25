@@ -1,11 +1,17 @@
 [project]
 name = "dspy-playground"
 version = "0.1.0"
-description = "Add your description here"
+description = "DSPy-powered claim and quote extraction pipeline for podcast transcripts"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "dspy>=3.0.3",
     "jupyterlab>=4.4.10",
     "python-dotenv>=1.1.1",
+    "psycopg2-binary>=2.9.9",
+    "sqlalchemy>=2.0.23",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "pgvector>=0.2.4",
+    "requests>=2.31.0",
 ]
