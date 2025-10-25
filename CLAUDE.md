@@ -23,11 +23,6 @@ Quotes were being found using:
 
 We want to optimize each prompt
 
-Things to consider:
-
-- Context window and transcript chunking
-- Transcript segmentation - we want to
-
 ## DSPy Optimization Goals
 
 **Primary Goal:** Optimize 2 prompts with measurable improvement
