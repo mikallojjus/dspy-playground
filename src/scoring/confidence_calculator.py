@@ -48,12 +48,12 @@ class ConfidenceCalculator:
     """
     Calculate weighted confidence scores for claims based on quote quality.
 
-    Formula: (avgRelevance × 0.6) + (maxRelevance × 0.2) + (countScore × 0.2)
+    Formula: (avgRelevance × 0.65) + (maxRelevance × 0.25) + (countScore × 0.10)
 
     The formula balances:
-    - Average relevance (60%): Primary indicator of claim quality
-    - Max relevance (20%): Rewards exceptional supporting quotes
-    - Quote count (20%): More evidence increases confidence (with diminishing returns)
+    - Average relevance (65%): Primary indicator of claim quality
+    - Max relevance (25%): Rewards exceptional supporting quotes
+    - Quote count (10%): More evidence increases confidence (with diminishing returns)
 
     Count score formula: max(0, (count - 1) / 4)
     - 1 quote → 0.0 (no confidence from single quote)
@@ -80,9 +80,9 @@ class ConfidenceCalculator:
 
     def __init__(
         self,
-        relevance_weight: float = 0.6,
-        max_relevance_weight: float = 0.2,
-        count_weight: float = 0.2,
+        relevance_weight: float = 0.65,
+        max_relevance_weight: float = 0.25,
+        count_weight: float = 0.10,
         max_quotes_for_full_score: int = 5
     ):
         """
