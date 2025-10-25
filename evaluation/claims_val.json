@@ -1,0 +1,102 @@
+{
+  "examples": [
+    {
+      "episode_id": null,
+      "transcript_chunk": "And agriculture also has all these other problems, right? It's, it uses 70% of our fresh water. It's the leading driver of water pollution and deforestation and wetlands, drainage.",
+      "claim": "Agriculture uses 70% of the world's fresh water.",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific statistic, verifiable"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "So as of recently his and this is all posted online through the Golf Handicap Information Network. It's called again GHIN. He had a handicap of 2.8, which is ridiculous.",
+      "claim": "Trump's handicap is 2.8 as posted on GHIN",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific verifiable fact with source (GHIN)"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Rick Riley, famous sports writer for Sports Illustrated wrote a whole book on it. It's called Commander and Cheat, how Golf Explains Trump. And this is what Rick Riley wrote in his book.",
+      "claim": "Rick Riley wrote a book called 'Commander and Cheat' about Trump's cheating in golf",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific claim with full name, book title, and context"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "His approval has a new low 44.9%. Disapproval is a new high morning consult, has his approval at 46, which is the lowest point of his second term. We'll keep going on, but very quickly not good.",
+      "claim": "Disapproval is at a new high, according to Morning Consult",
+      "quality": "bad",
+      "issues": [
+        "missing_context"
+      ],
+      "notes": "Disapproval of what? Subject is missing"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Voters, 31% more likely to hear negative economic news than positive economic news. Right? The worst gap since May of 2023, which is funny 'cause in May of 2023 things were okay, but that's all right.",
+      "claim": "Voters are 31% more likely to hear negative economic news than positive economic news",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific statistic, factual claim"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "So, you know, he, he had this, he had this charge and he had actually come, he's been in the US for 12 years. He had come in 2013, he had applied for asylum. It was denied, but they sort of let him out to do these yearly ice check-ins.",
+      "claim": "He applied for asylum, which was denied",
+      "quality": "bad",
+      "issues": [
+        "pronoun",
+        "missing_context"
+      ],
+      "notes": "Who is 'he'? No subject identified"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Goldman Sachs looking stock today is trading all the time high. They're considered the, you know, world's leading thought leaders in investment space. I mean, I think that's a weird flex to make in the first place.",
+      "claim": "Goldman Sachs is considered the world's leading thought leader in investment space.",
+      "quality": "good",
+      "issues": [],
+      "notes": "Factual claim about Goldman Sachs reputation"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "I certainly don't know for, for example, I've never investigated anything like that in my time. That said, there's a few more things to get to. Maxwell's attorney David, Oscar Marcus has responded saying that they can confirm that they're in discussions with the government and that Ghislaine will always ghislaine will always testify truthfully and quote, we are grateful to President Trump for his commitment to uncovering the truth in this case.",
+      "claim": "Ghislaine Maxwell's attorney confirmed discussions with the government",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific factual claim with named attorney"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "It became left verse right, which then ended up flipping, interestingly enough, because when the pandemic first started and the vaccine was being developed, this was operation warp speed headed by President Trump. Then we saw a few years later, as mandates were being forced perhaps where they didn't need to be, where recommendations were being made about boosters that weren't a hundred percent accurate. We started seeing a flipping of the left and right parties.",
+      "claim": "President Trump headed Operation Warp Speed",
+      "quality": "good",
+      "issues": [],
+      "notes": "Clear factual statement - names the person and the program"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "So when I see it, I go, well if due process is meant to protect us, then it's meant to protect everyone. If due process is meant to be the thing that stops me from stopping frisk happening or the P police coming into here with a a no-knock warrant or yeah whatever these things that exist that are right on the fringes of it, I think that protects me. So it should protect you whoever the you is.",
+      "claim": "Due process should protect everyone equally",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "opinion"
+      ],
+      "notes": "Too vague - this is a general philosophical statement rather than a specific factual claim"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Quince has closet staples you'll want to reach for over and over like cozy, cashmere and cotton sweaters for just under $50. Breathable, flow knit polos and comfortable lightweight pants that somehow work for both Weekend hangs and dressed up dinners. Best part, everything with Quince is half the cost of similar brands by working directly with top artisans and cutting out the middleman.",
+      "claim": "Quince offers high-quality basics for a fraction of the cost compared to similar brands",
+      "quality": "bad",
+      "issues": [
+        "advertisement"
+      ],
+      "notes": "This is an ad - commercial content, not factual claim worthy of extraction"
+    }
+  ]
+}

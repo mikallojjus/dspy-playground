@@ -1,0 +1,134 @@
+{
+  "predict": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "transcript_chunk": "It was started during the Bush, the Bush 43 administration, and it has been monumental in saving literally hundreds of thousands of lives through a variety of means that these U-S-A-I-D analysts and workers have determined are the best ways to stop aids, which they have basically done on the continent of Africa. I mean, there are still flareups and there are still people suffering from the, the disease. Last I, last I was on it. They said that it was an estimated 26 million lives saved due to that program, and they expanded on it to include things like tuberculosis and malaria and, you know, fighting diseases as we learned just a few years ago, overseas helps to prevent them from spreading back here. Right.",
+        "reasoning": "Not supplied for this particular example.",
+        "claims": [
+          "The U-S-A-I-D program, started during the Bush 43 administration, has saved hundreds of thousands of lives by addressing AIDS, tuberculosis, and malaria in Africa"
+        ]
+      },
+      {
+        "augmented": true,
+        "transcript_chunk": "And there was a mantra that was born about at that time from our channel called Stay Alert, not anxious. Because I saw even for myself, how easy it is to become anxious given the fact that we have this new virus, it's spreading so rapidly, there's information that's spreading rapidly that could be true or untrue. Everyone was confused.",
+        "reasoning": "Not supplied for this particular example.",
+        "claims": [
+          "A mantra 'Stay Alert, not anxious' was created during the early stages of the pandemic"
+        ]
+      },
+      {
+        "augmented": true,
+        "transcript_chunk": "And that is, and so that's ge Georgie Maloff, right? So Maloff was Stalin's deputy premier, and so Stalin dies and Maloff was just like, well, I guess I have to be premier. And Maloff was, was Vance like, and he's just a schlub.",
+        "reasoning": "Not supplied for this particular example.",
+        "claims": [
+          "Georgie Maloff was Stalin's deputy premier and became premier after Stalin's death"
+        ]
+      },
+      {
+        "transcript_chunk": "It became left verse right, which then ended up flipping, interestingly enough, because when the pandemic first started and the vaccine was being developed, this was operation warp speed headed by President Trump. Then we saw a few years later, as mandates were being forced perhaps where they didn't need to be, where recommendations were being made about boosters that weren't a hundred percent accurate. We started seeing a flipping of the left and right parties.",
+        "claims": [
+          "President Trump headed Operation Warp Speed"
+        ],
+        "quality": "good"
+      },
+      {
+        "transcript_chunk": "A couple of days ago, the British Council Building was destroyed. The EU delegation building was destroyed. An American engineering company was destroyed, and a Russian drone landed a hundred kilometers inside of Poland, literally inside of NATO's airspace.",
+        "claims": [
+          "An American engineering company was destroyed recently"
+        ],
+        "quality": "bad"
+      },
+      {
+        "transcript_chunk": "When I was a, a young lad, I wound up in a room with Heidi Klum. I did not know who Heidi Klum was at the time, but I fucking knew that whoever this person was, she was something because she looked like a fucking alien. She did not look like she was part of the same species as literally every the other thousand people in that room you just looked at and like, everybody had the same thing.",
+        "claims": [
+          "Heidi Klum looks like an alien compared to other people in the room"
+        ],
+        "quality": "bad"
+      },
+      {
+        "transcript_chunk": "And every time those groups prove them false, just as trans service members have over these nine years of us serving openly and authentically. And there are so many disconnects between any of the logic presented by the government that when these policies did become challenged in court, again, you had two district court judges basically flatly rejecting them on the face of it saying, there is nothing here but animus. It is in fact the service records of the members that were the plaintiffs.",
+        "claims": [
+          "Service records of the plaintiffs in court cases challenged these claims as evidence that the policies were false"
+        ],
+        "quality": "bad"
+      },
+      {
+        "transcript_chunk": "He went after a reporter from Australia saying it might affect diplomatic relations with the country because they asked a question that he didn't like. So it's bleeding into the other politics as well. And the one upside of this, and I'll stop talking after this, is that when Pam Bondi did utter her comments trying to distinguish between free speech and hate speech, there's a torrent to pushback from people on the right who said, that's absurd.",
+        "claims": [
+          "Pam Bondi's comments about pursuing hate speech were met with pushback from people on the right"
+        ],
+        "quality": "good"
+      },
+      {
+        "transcript_chunk": "A lot of studies in the past have said around 15,000 could be more or less than that. But that's a reasonable number to think of. As for what's happening, many of us are on administrative leave, like I am waiting final separation or retirement.",
+        "claims": [
+          "Many of them are on administrative leave"
+        ],
+        "quality": "bad"
+      },
+      {
+        "transcript_chunk": "However, come before the committee, well wouldn't you know it? The hearing began and they passed it on a voice vote. So that means that they've approved of a motion to subpoena Ghislaine Maxwell.",
+        "claims": [
+          "The House Oversight Committee approved a motion to subpoena Ghislaine Maxwell"
+        ],
+        "quality": "good"
+      },
+      {
+        "transcript_chunk": "I mean look, this is not full repeal like we were saying before, you know, leaves in place, this sort of big architecture, a lot of the changes it's making are sort of turning the dials on things. So, you know, it's, we wouldn't expect it to have as much attention maybe as the Affordable Care Act or something equivalent, but surely half a quarter, you know, we're like at 0.01%. There's gonna be no debate on this.",
+        "claims": [
+          "The new bill is not full repeal but leaves in place much of the existing architecture"
+        ],
+        "quality": "bad"
+      },
+      {
+        "transcript_chunk": "So when I see it, I go, well if due process is meant to protect us, then it's meant to protect everyone. If due process is meant to be the thing that stops me from stopping frisk happening or the P police coming into here with a a no-knock warrant or yeah whatever these things that exist that are right on the fringes of it, I think that protects me. So it should protect you whoever the you is.",
+        "claims": [
+          "Due process should protect everyone equally"
+        ],
+        "quality": "bad"
+      },
+      {
+        "transcript_chunk": "You are exactly right. The ban itself lasted only about a year before Biden administration reverses it. You have thousands more trans service members out at this point where you see, instead of this bolt outta the blue, now it's like a hurricane forming offshore.",
+        "claims": [
+          "The ban lasted only about a year before being reversed by the Biden administration"
+        ],
+        "quality": "bad"
+      },
+      {
+        "transcript_chunk": "So, you know, he, he had this, he had this charge and he had actually come, he's been in the US for 12 years. He had come in 2013, he had applied for asylum. It was denied, but they sort of let him out to do these yearly ice check-ins.",
+        "claims": [
+          "He applied for asylum, which was denied"
+        ],
+        "quality": "bad"
+      }
+    ],
+    "signature": {
+      "instructions": "Extract factual, verifiable claims from podcast transcript text.\n\nClaims should be:\n- Factual (not opinions)\n- Self-contained (no pronouns like he/she/they)\n- Specific (include names, numbers, dates)\n- Concise (5-40 words)",
+      "fields": [
+        {
+          "prefix": "Transcript Chunk:",
+          "description": "The podcast transcript text to analyze"
+        },
+        {
+          "prefix": "Reasoning: Let's think step by step in order to",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Claims:",
+          "description": "List of factual claims extracted from the transcript"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "3.0.3",
+      "cloudpickle": "3.1"
+    }
+  }
+}
