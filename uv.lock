@@ -592,6 +592,7 @@ name = "dspy-playground"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "dspy" },
     { name = "dspy-ai" },
     { name = "jupyterlab" },
     { name = "python-dotenv" },
@@ -599,6 +600,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "dspy", specifier = ">=3.0.3" },
     { name = "dspy-ai", specifier = ">=3.0.3" },
     { name = "jupyterlab", specifier = ">=4.4.10" },
     { name = "python-dotenv", specifier = ">=1.1.1" },

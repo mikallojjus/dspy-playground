@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "dspy>=3.0.3",
     "dspy-ai>=3.0.3",
     "jupyterlab>=4.4.10",
     "python-dotenv>=1.1.1",
