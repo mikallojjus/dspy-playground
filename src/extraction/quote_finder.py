@@ -15,8 +15,8 @@ Usage:
         print(f"Quotes: {len(claim.quotes)}")
 """
 
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
+from typing import List, Optional
 
 from src.config.settings import settings
 from src.extraction.claim_extractor import ExtractedClaim
@@ -57,11 +57,15 @@ class ClaimWithQuotes:
         source_chunk_id: Source chunk ID
         quotes: List of supporting quotes (max 10)
         confidence: Initial confidence (from claim extraction)
+        confidence_components: Confidence score components (set by ConfidenceCalculator)
+        metadata: Additional metadata (for merge tracking, etc.)
     """
     claim_text: str
     source_chunk_id: int
     quotes: List[Quote]
     confidence: float = 1.0
+    confidence_components: Optional['ConfidenceComponents'] = None
+    metadata: Optional[dict] = field(default_factory=dict)
 
 
 class QuoteFinder:
@@ -98,6 +102,7 @@ class QuoteFinder:
     def __init__(
         self,
         search_index: TranscriptSearchIndex,
+        reranker: 'RerankerService',
         max_quotes_per_claim: int = None,
         initial_candidates: int = 30
     ):
@@ -106,10 +111,12 @@ class QuoteFinder:
 
         Args:
             search_index: Transcript search index for semantic search
+            reranker: Reranker service for high-precision scoring
             max_quotes_per_claim: Maximum quotes per claim (default from settings)
             initial_candidates: Number of candidates to fetch before filtering
         """
         self.search_index = search_index
+        self.reranker = reranker
         self.max_quotes = max_quotes_per_claim or settings.max_quotes_per_claim
         self.initial_candidates = initial_candidates
 
@@ -191,7 +198,6 @@ class QuoteFinder:
         Returns:
             List of quotes (up to max_quotes)
         """
-        # 1. Semantic search for candidates
         candidates = await self.search_index.find_quotes_for_claim(
             claim.claim_text,
             top_k=self.initial_candidates
@@ -201,7 +207,6 @@ class QuoteFinder:
             logger.warning(f"No candidates found for claim: {claim.claim_text[:60]}...")
             return []
 
-        # 2. Filter out questions
         filtered_candidates = [
             c for c in candidates
             if not self._is_question(c.quote_text)
@@ -219,21 +224,24 @@ class QuoteFinder:
             )
             return []
 
-        # 3. Select top quotes (already sorted by similarity from search)
-        top_candidates = filtered_candidates[:self.max_quotes]
+        reranked = await self.reranker.rerank_quotes(
+            claim.claim_text,
+            [c.quote_text for c in filtered_candidates],
+            top_k=self.max_quotes
+        )
 
-        # 4. Convert to Quote objects
-        quotes = [
-            Quote(
-                quote_text=c.quote_text,
-                relevance_score=c.similarity_score,
-                start_position=c.start_position,
-                end_position=c.end_position,
-                speaker=c.speaker,
-                timestamp_seconds=c.timestamp_seconds
+        quotes = []
+        for result in reranked:
+            candidate = filtered_candidates[result["index"]]
+            quote = Quote(
+                quote_text=candidate.quote_text,
+                relevance_score=result["score"],
+                start_position=candidate.start_position,
+                end_position=candidate.end_position,
+                speaker=candidate.speaker,
+                timestamp_seconds=candidate.timestamp_seconds
             )
-            for c in top_candidates
-        ]
+            quotes.append(quote)
 
         return quotes
 
