@@ -18,12 +18,13 @@ Usage:
     print(f"Average {result.avg_quotes_per_claim:.1f} quotes per claim")
 """
 
-from dataclasses import dataclass
-from typing import List, Optional
+from dataclasses import dataclass, field
+from typing import List, Optional, Dict
 import time
 
 from src.database.connection import get_db_session
 from src.database.models import PodcastEpisode
+from src.database.claim_repository import ClaimRepository
 from src.preprocessing.transcript_parser import TranscriptParser
 from src.preprocessing.chunking_service import ChunkingService
 from src.extraction.claim_extractor import ClaimExtractor
@@ -32,8 +33,9 @@ from src.extraction.quote_finder import QuoteFinder, ClaimWithQuotes, Quote
 from src.infrastructure.embedding_service import EmbeddingService
 from src.infrastructure.reranker_service import RerankerService
 from src.deduplication.quote_deduplicator import QuoteDeduplicator
-from src.deduplication.claim_deduplicator import ClaimDeduplicator
+from src.deduplication.claim_deduplicator import ClaimDeduplicator, DatabaseDeduplicationResult
 from src.scoring.confidence_calculator import ConfidenceCalculator
+from src.dspy_models.entailment_validator import EntailmentValidatorModel
 from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
@@ -53,6 +55,12 @@ class PipelineStats:
         claims_with_quotes: Number of claims that have at least one quote
         quotes_before_dedup: Number of quotes before deduplication
         quotes_after_dedup: Number of quotes after deduplication
+        quotes_before_entailment: Number of quotes before entailment filtering
+        quotes_after_entailment: Number of quotes after entailment filtering
+        entailment_filtered_quotes: Number of quotes filtered by entailment
+        database_duplicates_found: Number of duplicate claims found in database
+        claims_saved: Number of new claims saved to database
+        quotes_saved: Number of unique quotes saved to database
         total_quotes: Total quotes in final result
         avg_quotes_per_claim: Average quotes per claim
         processing_time_seconds: Total processing time
@@ -65,6 +73,12 @@ class PipelineStats:
     claims_with_quotes: int
     quotes_before_dedup: int
     quotes_after_dedup: int
+    quotes_before_entailment: int
+    quotes_after_entailment: int
+    entailment_filtered_quotes: int
+    database_duplicates_found: int
+    claims_saved: int
+    quotes_saved: int
     total_quotes: int
     avg_quotes_per_claim: float
     processing_time_seconds: float
@@ -79,10 +93,14 @@ class PipelineResult:
         episode_id: Episode ID processed
         claims: Claims with supporting quotes
         stats: Pipeline statistics
+        saved_claim_ids: IDs of claims saved to database
+        duplicate_details: Information about duplicate claims found
     """
     episode_id: int
     claims: List[ClaimWithQuotes]
     stats: PipelineStats
+    saved_claim_ids: List[int] = field(default_factory=list)
+    duplicate_details: List[Dict] = field(default_factory=list)
 
 
 class ExtractionPipeline:
@@ -139,6 +157,7 @@ class ExtractionPipeline:
         self.quote_deduplicator = QuoteDeduplicator()
         self.claim_deduplicator = ClaimDeduplicator(self.embedder, self.reranker)
         self.confidence_calculator = ConfidenceCalculator()
+        self.entailment_validator = EntailmentValidatorModel()
 
         logger.info("ExtractionPipeline ready")
 
@@ -219,12 +238,38 @@ class ExtractionPipeline:
         )
         logger.info(f"  ✓ Indexed {search_index.get_segment_count()} segments")
 
-        logger.info("Step 5/9: Finding quotes for claims...")
+        logger.info("Step 5/13: Finding quotes for claims...")
         quote_finder = QuoteFinder(search_index, self.reranker)
         claims_with_quotes = await quote_finder.find_quotes_for_claims(claims)
         logger.info(f"  ✓ Found quotes for {len(claims_with_quotes)} claims")
 
-        logger.info("Step 6/9: Deduplicating quotes...")
+        # Step 6: Entailment validation (NEW - Sprint 4)
+        logger.info("Step 6/13: Validating entailment (filtering non-SUPPORTS quotes)...")
+        quotes_before_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+
+        for claim in claims_with_quotes:
+            if not claim.quotes:
+                continue
+
+            # Filter to keep only SUPPORTS quotes
+            supporting_quotes_with_results = self.entailment_validator.filter_supporting_quotes(
+                claim.claim_text,
+                [q.quote_text for q in claim.quotes]
+            )
+
+            # Map back to Quote objects
+            supporting_quote_texts = {quote_text for quote_text, _ in supporting_quotes_with_results}
+            claim.quotes = [q for q in claim.quotes if q.quote_text in supporting_quote_texts]
+
+        quotes_after_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+        entailment_filtered = quotes_before_entailment - quotes_after_entailment
+
+        logger.info(
+            f"  ✓ {quotes_before_entailment} → {quotes_after_entailment} quotes "
+            f"({entailment_filtered} non-SUPPORTS filtered)"
+        )
+
+        logger.info("Step 7/13: Deduplicating quotes...")
         all_quotes = [q for c in claims_with_quotes for q in c.quotes]
         unique_quotes = self.quote_deduplicator.deduplicate(all_quotes)
         logger.info(
@@ -236,7 +281,7 @@ class ExtractionPipeline:
             claims_with_quotes, all_quotes, unique_quotes
         )
 
-        logger.info("Step 7/9: Deduplicating claims...")
+        logger.info("Step 8/13: Deduplicating claims (batch level)...")
         deduplicated_claims = await self.claim_deduplicator.deduplicate_batch(
             claims_with_quotes
         )
@@ -245,14 +290,14 @@ class ExtractionPipeline:
             f"({len(claims_with_quotes) - len(deduplicated_claims)} duplicates removed)"
         )
 
-        logger.info("Step 8/9: Calculating confidence scores...")
+        logger.info("Step 9/13: Calculating confidence scores...")
         for claim in deduplicated_claims:
             conf = self.confidence_calculator.calculate(claim.quotes)
             claim.confidence = conf.final_confidence
             claim.confidence_components = conf
         logger.info(f"  ✓ Calculated confidence for {len(deduplicated_claims)} claims")
 
-        logger.info("Step 9/9: Filtering low-confidence claims...")
+        logger.info("Step 10/13: Filtering low-confidence claims...")
         from src.config.settings import settings
         high_confidence_claims = [
             c for c in deduplicated_claims
@@ -274,6 +319,100 @@ class ExtractionPipeline:
                 time.time() - start_time
             )
 
+        # Step 11: Database deduplication (NEW - Sprint 4)
+        logger.info("Step 11/13: Checking database for duplicate claims...")
+        db_session = get_db_session()
+        duplicate_details = []
+        unique_claims_for_db = []
+
+        try:
+            for claim in claims_with_quotes:
+                # Generate embedding for database search
+                embedding = await self.embedder.embed_text(claim.claim_text)
+
+                # Check against database
+                dedup_result = await self.claim_deduplicator.deduplicate_against_database(
+                    claim.claim_text,
+                    embedding,
+                    episode_id,
+                    db_session
+                )
+
+                if dedup_result.is_duplicate:
+                    # Found duplicate - merge quotes to existing claim
+                    duplicate_details.append({
+                        "claim_text": claim.claim_text,
+                        "existing_claim_id": dedup_result.existing_claim_id,
+                        "reranker_score": dedup_result.reranker_score,
+                        "new_quotes_count": len(claim.quotes)
+                    })
+
+                    # Merge quotes to existing claim
+                    repo = ClaimRepository(db_session)
+                    await repo.merge_quotes_to_existing_claim(
+                        dedup_result.existing_claim_id,
+                        claim.quotes,
+                        episode_id
+                    )
+
+                    logger.info(
+                        f"  Merged {len(claim.quotes)} quotes to existing claim {dedup_result.existing_claim_id}"
+                    )
+                else:
+                    # Unique claim - prepare for insertion
+                    claim.metadata["embedding"] = embedding
+                    unique_claims_for_db.append(claim)
+
+            logger.info(
+                f"  ✓ Found {len(duplicate_details)} duplicates, "
+                f"{len(unique_claims_for_db)} unique claims to save"
+            )
+
+            # Step 12: Save to PostgreSQL (NEW - Sprint 4)
+            logger.info("Step 12/13: Saving claims and quotes to database...")
+
+            if unique_claims_for_db:
+                repo = ClaimRepository(db_session)
+
+                # Save claims (without embeddings first)
+                saved_claim_ids = await repo.save_claims(unique_claims_for_db, episode_id)
+
+                # Update embeddings
+                embeddings_dict = {
+                    claim_id: claim.metadata["embedding"]
+                    for claim_id, claim in zip(saved_claim_ids, unique_claims_for_db)
+                }
+                await repo.update_claim_embeddings(embeddings_dict)
+
+                # Count unique quotes saved
+                unique_quote_positions = set()
+                for claim in unique_claims_for_db:
+                    for quote in claim.quotes:
+                        unique_quote_positions.add((quote.start_position, quote.end_position))
+                quotes_saved = len(unique_quote_positions)
+
+                logger.info(
+                    f"  ✓ Saved {len(saved_claim_ids)} claims, {quotes_saved} unique quotes"
+                )
+            else:
+                saved_claim_ids = []
+                quotes_saved = 0
+                logger.info("  ✓ No new claims to save (all were duplicates)")
+
+            # Step 13: Commit transaction
+            logger.info("Step 13/13: Committing transaction...")
+            db_session.commit()
+            logger.info("  ✓ Transaction committed")
+
+        except Exception as e:
+            logger.error(f"Error in database operations: {e}", exc_info=True)
+            db_session.rollback()
+            logger.warning("Transaction rolled back")
+            raise
+        finally:
+            db_session.close()
+
+        # Calculate final stats
         total_quotes = sum(len(c.quotes) for c in claims_with_quotes)
         avg_quotes = total_quotes / len(claims_with_quotes)
         processing_time = time.time() - start_time
@@ -287,6 +426,12 @@ class ExtractionPipeline:
             claims_with_quotes=len(claims_with_quotes),
             quotes_before_dedup=len(all_quotes),
             quotes_after_dedup=len(unique_quotes),
+            quotes_before_entailment=quotes_before_entailment,
+            quotes_after_entailment=quotes_after_entailment,
+            entailment_filtered_quotes=entailment_filtered,
+            database_duplicates_found=len(duplicate_details),
+            claims_saved=len(saved_claim_ids) if unique_claims_for_db else 0,
+            quotes_saved=quotes_saved if unique_claims_for_db else 0,
             total_quotes=total_quotes,
             avg_quotes_per_claim=avg_quotes,
             processing_time_seconds=processing_time
@@ -304,7 +449,9 @@ class ExtractionPipeline:
         return PipelineResult(
             episode_id=episode_id,
             claims=claims_with_quotes,
-            stats=stats
+            stats=stats,
+            saved_claim_ids=saved_claim_ids if unique_claims_for_db else [],
+            duplicate_details=duplicate_details
         )
 
     def _load_episode(self, episode_id: int) -> PodcastEpisode:
@@ -409,6 +556,12 @@ class ExtractionPipeline:
             claims_with_quotes=0,
             quotes_before_dedup=0,
             quotes_after_dedup=0,
+            quotes_before_entailment=0,
+            quotes_after_entailment=0,
+            entailment_filtered_quotes=0,
+            database_duplicates_found=0,
+            claims_saved=0,
+            quotes_saved=0,
             total_quotes=0,
             avg_quotes_per_claim=0.0,
             processing_time_seconds=processing_time

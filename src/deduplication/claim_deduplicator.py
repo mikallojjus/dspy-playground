@@ -13,16 +13,40 @@ Usage:
     print(f"Deduplicated: {len(claims_with_quotes)} → {len(deduplicated)}")
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
+from dataclasses import dataclass
+from sqlalchemy.orm import Session
 
 from src.extraction.quote_finder import ClaimWithQuotes
 from src.infrastructure.embedding_service import EmbeddingService
 from src.infrastructure.reranker_service import RerankerService
 from src.deduplication.quote_deduplicator import QuoteDeduplicator
+from src.database.models import Claim
 from src.config.settings import settings
 from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class DatabaseDeduplicationResult:
+    """
+    Result from database-level deduplication check.
+
+    Attributes:
+        is_duplicate: Whether claim is duplicate of existing claim
+        existing_claim_id: ID of existing claim if duplicate
+        existing_claim_text: Text of existing claim if duplicate
+        similarity_score: L2 distance from pgvector search
+        reranker_score: Reranker verification score
+        should_merge_quotes: Whether to add new quotes to existing claim
+    """
+    is_duplicate: bool
+    existing_claim_id: Optional[int] = None
+    existing_claim_text: Optional[str] = None
+    similarity_score: Optional[float] = None
+    reranker_score: Optional[float] = None
+    should_merge_quotes: bool = False
 
 
 class ClaimDeduplicator:
@@ -338,3 +362,136 @@ class ClaimDeduplicator:
         )
 
         return merged
+
+    async def deduplicate_against_database(
+        self,
+        claim_text: str,
+        claim_embedding: List[float],
+        episode_id: int,
+        db_session: Session
+    ) -> DatabaseDeduplicationResult:
+        """
+        Check if claim is duplicate of existing claims in database.
+
+        Uses pgvector similarity search + reranker verification.
+
+        Algorithm:
+        1. pgvector search: Find top 10 similar claims (L2 distance < 0.15)
+        2. Exclude claims from current episode (already handled by batch dedup)
+        3. Reranker verify: Check each candidate (score > 0.9 = duplicate)
+        4. If duplicate found: return info for quote merging
+        5. If unique: return not duplicate
+
+        Args:
+            claim_text: The claim text to check
+            claim_embedding: The claim's embedding vector (768 dims)
+            episode_id: Current episode ID (to exclude from search)
+            db_session: Database session for querying
+
+        Returns:
+            DatabaseDeduplicationResult with duplicate info
+
+        Example:
+            ```python
+            deduplicator = ClaimDeduplicator(embedder, reranker)
+
+            # Check against database
+            result = await deduplicator.deduplicate_against_database(
+                claim_text="Bitcoin reached $69,000",
+                claim_embedding=embedding_vector,
+                episode_id=123,
+                db_session=session
+            )
+
+            if result.is_duplicate:
+                print(f"Duplicate of claim {result.existing_claim_id}")
+                print(f"Reranker score: {result.reranker_score:.3f}")
+                print(f"Should merge quotes: {result.should_merge_quotes}")
+            else:
+                print("Unique claim, will insert as new")
+            ```
+        """
+        logger.info(f"Checking database for duplicates of: {claim_text[:60]}...")
+
+        # 1. pgvector similarity search
+        # L2 distance < 0.15 ≈ cosine similarity > 0.85
+        try:
+            similar_claims = (
+                db_session.query(Claim)
+                .filter(
+                    Claim.episode_id != episode_id,  # Exclude current episode
+                    Claim.embedding.l2_distance(claim_embedding) < settings.vector_distance_threshold
+                )
+                .order_by(Claim.embedding.l2_distance(claim_embedding))
+                .limit(10)
+                .all()
+            )
+
+            if not similar_claims:
+                logger.info("No similar claims found in database (unique claim)")
+                return DatabaseDeduplicationResult(is_duplicate=False)
+
+            logger.info(
+                f"Found {len(similar_claims)} similar claims in database, "
+                f"verifying with reranker..."
+            )
+
+            # 2. Reranker verification
+            for i, existing_claim in enumerate(similar_claims, 1):
+                # Calculate L2 distance for logging
+                l2_distance = self.embedder.l2_distance(claim_embedding, existing_claim.embedding)
+
+                # Verify with reranker
+                reranked = await self.reranker.rerank_quotes(
+                    claim_text,
+                    [existing_claim.claim_text],
+                    top_k=1
+                )
+
+                if not reranked:
+                    logger.warning(
+                        f"Reranker returned no results for claim {existing_claim.id}"
+                    )
+                    continue
+
+                reranker_score = reranked[0]["score"]
+
+                logger.debug(
+                    f"Candidate {i}/{len(similar_claims)}: "
+                    f"claim_id={existing_claim.id}, "
+                    f"l2_distance={l2_distance:.3f}, "
+                    f"reranker_score={reranker_score:.3f}"
+                )
+
+                # Check if duplicate
+                if reranker_score >= self.reranker_threshold:
+                    logger.info(
+                        f"✅ Duplicate found! Existing claim ID: {existing_claim.id}, "
+                        f"reranker score: {reranker_score:.3f}"
+                    )
+
+                    return DatabaseDeduplicationResult(
+                        is_duplicate=True,
+                        existing_claim_id=existing_claim.id,
+                        existing_claim_text=existing_claim.claim_text,
+                        similarity_score=l2_distance,
+                        reranker_score=reranker_score,
+                        should_merge_quotes=True  # Always merge quotes for duplicates
+                    )
+                else:
+                    logger.debug(
+                        f"Not duplicate: reranker score {reranker_score:.3f} "
+                        f"< threshold {self.reranker_threshold}"
+                    )
+
+            # No duplicates found
+            logger.info("No duplicates verified by reranker (unique claim)")
+            return DatabaseDeduplicationResult(is_duplicate=False)
+
+        except Exception as e:
+            logger.error(
+                f"Error in database deduplication: {e}",
+                exc_info=True
+            )
+            # On error, assume unique to avoid blocking processing
+            return DatabaseDeduplicationResult(is_duplicate=False)

@@ -1,0 +1,83 @@
+{
+  "description": "Validation set for entailment validation (30% of manual review)",
+  "total_examples": 11,
+  "examples": [
+    {
+      "claim": "Binance Smart Chain launched in September 2020",
+      "quote": "Binance Smart Chain, now known as BNB Chain, went live in September 2020",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote confirms BSC launch with correct date",
+      "confidence": 1.0
+    },
+    {
+      "claim": "Cardano's Alonzo upgrade enabled smart contracts in September 2021",
+      "quote": "Cardano implemented the Alonzo upgrade in September 2021, bringing smart contract functionality to the network",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote directly confirms the upgrade, its purpose, and timing",
+      "confidence": 1.0
+    },
+    {
+      "claim": "The DAO hack resulted in the loss of $60 million in Ethereum",
+      "quote": "The DAO hack led to a contentious hard fork of Ethereum",
+      "relationship": "RELATED",
+      "reasoning": "Discusses consequences of the hack but doesn't validate the loss amount",
+      "confidence": 0.85
+    },
+    {
+      "claim": "Ethereum transitioned to proof-of-stake in September 2022",
+      "quote": "Proof-of-stake is more energy efficient than proof-of-work",
+      "relationship": "RELATED",
+      "reasoning": "Discusses the mechanisms mentioned in claim but doesn't validate the transition event",
+      "confidence": 0.95
+    },
+    {
+      "claim": "MicroStrategy purchased $425 million worth of Bitcoin in August 2020",
+      "quote": "MicroStrategy CEO Michael Saylor is a vocal Bitcoin advocate",
+      "relationship": "RELATED",
+      "reasoning": "Related to MicroStrategy's Bitcoin involvement but doesn't validate the specific purchase",
+      "confidence": 0.85
+    },
+    {
+      "claim": "Tesla acquired $1.5 billion worth of Bitcoin in February 2021",
+      "quote": "Tesla announced it purchased $1.5 billion in Bitcoin in early 2021",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote confirms the purchase amount and timeframe",
+      "confidence": 0.95
+    },
+    {
+      "claim": "OpenSea processed $14 billion in trading volume in 2021",
+      "quote": "OpenSea handled over $14 billion worth of NFT transactions throughout 2021",
+      "relationship": "SUPPORTS",
+      "reasoning": "Quote directly confirms OpenSea's trading volume for 2021",
+      "confidence": 1.0
+    },
+    {
+      "claim": "Coinbase went public in April 2021 via direct listing",
+      "quote": "Coinbase is one of the largest cryptocurrency exchanges in the United States",
+      "relationship": "RELATED",
+      "reasoning": "Describes Coinbase but doesn't mention the public offering",
+      "confidence": 0.9
+    },
+    {
+      "claim": "The SEC rejected multiple Bitcoin ETF applications in 2017",
+      "quote": "Bitcoin ETFs have been a topic of discussion for years",
+      "relationship": "RELATED",
+      "reasoning": "General statement about ETF discussions, doesn't validate specific rejections",
+      "confidence": 0.8
+    },
+    {
+      "claim": "Bitcoin reached $69,000 in November 2021",
+      "quote": "Cryptocurrency markets were extremely volatile throughout 2021",
+      "relationship": "RELATED",
+      "reasoning": "Topically related to crypto and 2021, but doesn't mention Bitcoin's price",
+      "confidence": 0.9
+    },
+    {
+      "claim": "FTX collapsed in November 2022",
+      "quote": "The crypto industry faced multiple challenges in 2022",
+      "relationship": "RELATED",
+      "reasoning": "General statement about industry challenges, doesn't specifically validate FTX collapse",
+      "confidence": 0.85
+    }
+  ]
+}

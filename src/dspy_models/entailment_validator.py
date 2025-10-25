@@ -1,9 +1,10 @@
 """
-DSPy Entailment Validator Model (Placeholder for Sprint 4).
+DSPy Entailment Validator Model.
 
-Will validate whether quotes support claims (SUPPORTS/RELATED/NEUTRAL/CONTRADICTS).
+Validates whether quotes support claims (SUPPORTS/RELATED/NEUTRAL/CONTRADICTS).
+Uses optimized DSPy model trained with LLM-as-judge metric.
 
-Usage (Sprint 4):
+Usage:
     from src.dspy_models.entailment_validator import EntailmentValidatorModel
 
     validator = EntailmentValidatorModel()
@@ -11,11 +12,12 @@ Usage (Sprint 4):
         claim="Bitcoin reached $69,000 in November 2021",
         quote="Bitcoin hit its all-time high of $69,000..."
     )
-    print(result.relationship)  # "SUPPORTS"
+    print(result["relationship"])  # "SUPPORTS"
+    print(result["confidence"])    # 0.95
 """
 
 import dspy
-from typing import Literal
+from typing import Literal, List, Dict
 from pathlib import Path
 
 from src.config.settings import settings
@@ -46,53 +48,72 @@ class EntailmentValidation(dspy.Signature):
 
 class EntailmentValidatorModel:
     """
-    DSPy-based entailment validator (PLACEHOLDER FOR SPRINT 4).
+    DSPy-based entailment validator using optimized model.
 
-    This is a placeholder implementation. In Sprint 4, we will:
-    1. Create entailment training dataset
-    2. Build LLM-as-judge metric
-    3. Optimize with BootstrapFewShot
-    4. Save to models/entailment_validator_v1.json
-    5. Load the optimized model here
+    Loads optimized model from models/entailment_validator_v1.json.
+    Falls back to baseline (zero-shot) if optimized model not found.
 
-    For now, this returns a simple baseline validation.
+    Attributes:
+        model: DSPy ChainOfThought module (with few-shot examples if optimized)
+        optimized: Whether using optimized model (True) or baseline (False)
     """
 
     def __init__(self, model_path: str = "models/entailment_validator_v1.json"):
         """
-        Initialize the entailment validator (PLACEHOLDER).
+        Initialize the entailment validator.
 
         Args:
-            model_path: Path to the optimized model (will be created in Sprint 4)
+            model_path: Path to the optimized DSPy model
+
+        Example:
+            ```python
+            validator = EntailmentValidatorModel()
+            result = validator.validate("Bitcoin reached $69,000", "BTC hit $69k")
+            print(result["relationship"])  # "SUPPORTS"
+            ```
         """
         self.model_path = Path(model_path)
 
-        logger.warning(
-            "EntailmentValidatorModel is a PLACEHOLDER. "
-            "Full implementation coming in Sprint 4."
-        )
-
-        # Check if optimized model exists (Sprint 4+)
+        # Check if optimized model exists
         if self.model_path.exists():
             logger.info(f"Loading optimized entailment validator from {model_path}")
+
+            # Configure DSPy
             lm = dspy.LM(
                 f"ollama/{settings.ollama_model}",
                 api_base=settings.ollama_url
             )
             dspy.configure(lm=lm)
 
+            # Load optimized model
             self.model = dspy.ChainOfThought(EntailmentValidation)
             self.model.load(str(self.model_path))
             self.optimized = True
 
+            # Log few-shot examples
             if hasattr(self.model, 'demos') and self.model.demos:
                 logger.info(f"Loaded model with {len(self.model.demos)} few-shot examples")
+            else:
+                logger.info("Loaded model (zero-shot)")
         else:
-            logger.info("Optimized model not found. Using baseline (zero-shot) entailment.")
-            self.optimized = False
-            self.model = None
+            logger.warning(
+                f"Optimized model not found at {model_path}. "
+                "Using baseline (zero-shot) validation. "
+                "Run src/experiments/exp_4_1_optimize_entailment.py to create optimized model."
+            )
 
-    def validate(self, claim: str, quote: str) -> dict:
+            # Configure DSPy for baseline
+            lm = dspy.LM(
+                f"ollama/{settings.ollama_model}",
+                api_base=settings.ollama_url
+            )
+            dspy.configure(lm=lm)
+
+            # Create baseline model
+            self.model = dspy.ChainOfThought(EntailmentValidation)
+            self.optimized = False
+
+    def validate(self, claim: str, quote: str) -> Dict[str, any]:
         """
         Validate whether a quote supports a claim.
 
@@ -117,66 +138,126 @@ class EntailmentValidatorModel:
             # }
             ```
         """
-        if self.optimized and self.model:
-            # Sprint 4+: Use optimized model
-            try:
-                result = self.model(claim=claim, quote=quote)
-                return {
-                    "relationship": result.relationship,
-                    "reasoning": result.reasoning,
-                    "confidence": result.confidence,
-                }
-            except Exception as e:
-                logger.error(f"Error in entailment validation: {e}", exc_info=True)
-                return self._baseline_validation(claim, quote)
-        else:
-            # Sprint 1-3: Baseline placeholder
-            return self._baseline_validation(claim, quote)
+        try:
+            result = self.model(claim=claim, quote=quote)
 
-    def _baseline_validation(self, claim: str, quote: str) -> dict:
+            return {
+                "relationship": result.relationship,
+                "reasoning": result.reasoning,
+                "confidence": float(result.confidence) if hasattr(result, 'confidence') else 0.8,
+            }
+        except Exception as e:
+            logger.error(f"Error in entailment validation: {e}", exc_info=True)
+            # Return neutral on error
+            return {
+                "relationship": "NEUTRAL",
+                "reasoning": f"Error during validation: {str(e)}",
+                "confidence": 0.0,
+            }
+
+    def validate_batch(
+        self,
+        claim_quote_pairs: List[tuple[str, str]]
+    ) -> List[Dict[str, any]]:
         """
-        Simple baseline validation (PLACEHOLDER).
-
-        This is a very simple heuristic. Will be replaced with optimized
-        DSPy model in Sprint 4.
+        Validate multiple claim-quote pairs.
 
         Args:
-            claim: The claim text
-            quote: The quote text
+            claim_quote_pairs: List of (claim, quote) tuples
 
         Returns:
-            Validation result dict
+            List of validation result dicts
+
+        Example:
+            ```python
+            validator = EntailmentValidatorModel()
+            pairs = [
+                ("Bitcoin reached $69,000", "BTC hit $69k in Nov 2021"),
+                ("Ethereum uses proof-of-stake", "ETH migrated to PoS in 2022"),
+            ]
+            results = validator.validate_batch(pairs)
+            # Returns: [
+            #     {"relationship": "SUPPORTS", "reasoning": "...", "confidence": 0.95},
+            #     {"relationship": "SUPPORTS", "reasoning": "...", "confidence": 0.92}
+            # ]
+            ```
         """
-        claim_lower = claim.lower()
-        quote_lower = quote.lower()
+        logger.info(f"Validating {len(claim_quote_pairs)} claim-quote pairs")
 
-        # Simple keyword overlap heuristic
-        claim_words = set(claim_lower.split())
-        quote_words = set(quote_lower.split())
+        results = []
+        for i, (claim, quote) in enumerate(claim_quote_pairs, 1):
+            result = self.validate(claim, quote)
+            results.append(result)
 
-        overlap = len(claim_words & quote_words)
-        overlap_ratio = overlap / len(claim_words) if claim_words else 0
+            logger.debug(
+                f"Pair {i}/{len(claim_quote_pairs)}: {result['relationship']} "
+                f"(confidence: {result['confidence']:.2f})"
+            )
 
-        if overlap_ratio > 0.7:
-            relationship = "SUPPORTS"
-            reasoning = "High keyword overlap suggests support"
-            confidence = 0.7
-        elif overlap_ratio > 0.3:
-            relationship = "RELATED"
-            reasoning = "Some keyword overlap, topically related"
-            confidence = 0.5
-        else:
-            relationship = "NEUTRAL"
-            reasoning = "Low keyword overlap"
-            confidence = 0.3
-
-        logger.debug(
-            f"Baseline entailment: {relationship} "
-            f"(overlap={overlap_ratio:.2f}, confidence={confidence:.2f})"
+        # Log summary
+        supports_count = sum(1 for r in results if r['relationship'] == 'SUPPORTS')
+        logger.info(
+            f"Batch validation complete: {supports_count}/{len(results)} SUPPORTS"
         )
 
-        return {
-            "relationship": relationship,
-            "reasoning": reasoning,
-            "confidence": confidence,
-        }
+        return results
+
+    def filter_supporting_quotes(
+        self,
+        claim: str,
+        quotes: List[str]
+    ) -> List[tuple[str, Dict[str, any]]]:
+        """
+        Filter quotes to keep only those that SUPPORT the claim.
+
+        This is the primary use case for the entailment validator in the pipeline.
+
+        Args:
+            claim: The claim to validate
+            quotes: List of quote texts
+
+        Returns:
+            List of (quote, validation_result) tuples for SUPPORTS relationships only
+
+        Example:
+            ```python
+            validator = EntailmentValidatorModel()
+            claim = "Bitcoin reached $69,000"
+            quotes = [
+                "BTC hit $69k in November 2021",  # SUPPORTS
+                "Crypto was volatile in 2021",    # RELATED
+                "Weather was nice yesterday"      # NEUTRAL
+            ]
+
+            supporting = validator.filter_supporting_quotes(claim, quotes)
+            # Returns: [
+            #     ("BTC hit $69k in November 2021", {"relationship": "SUPPORTS", ...})
+            # ]
+            ```
+        """
+        if not quotes:
+            logger.debug(f"No quotes to filter for claim: {claim[:50]}...")
+            return []
+
+        logger.info(f"Filtering {len(quotes)} quotes for claim: {claim[:60]}...")
+
+        # Validate all quotes
+        pairs = [(claim, quote) for quote in quotes]
+        results = self.validate_batch(pairs)
+
+        # Filter to SUPPORTS only
+        supporting_quotes = [
+            (quote, result)
+            for quote, result in zip(quotes, results)
+            if result['relationship'] == 'SUPPORTS'
+        ]
+
+        filtered_count = len(quotes) - len(supporting_quotes)
+        if filtered_count > 0:
+            logger.info(
+                f"Filtered {filtered_count} non-supporting quotes "
+                f"({len(supporting_quotes)} remaining)"
+            )
+
+        return supporting_quotes
+
