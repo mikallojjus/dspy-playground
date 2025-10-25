@@ -346,3 +346,4 @@ We do not have to replicate the old architecture immediately, but it should prov
 - Remove obsolete code as you go
 - Ensure no unused code is left
 - We should spend time to evaluate our ideas, not blindly follow the rules
+- Use logger in src\infrastructure\logger.py for all logging purposes
