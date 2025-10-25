@@ -15,6 +15,7 @@ Usage:
         print(f"Quotes: {len(claim.quotes)}")
 """
 
+import re
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -41,6 +42,7 @@ class Quote:
         entailment_score: Entailment confidence score (0.0-1.0), if validated
         entailment_relationship: SUPPORTS/RELATED/NEUTRAL/CONTRADICTS, if validated
     """
+
     quote_text: str
     relevance_score: float
     start_position: int
@@ -64,11 +66,12 @@ class ClaimWithQuotes:
         confidence_components: Confidence score components (set by ConfidenceCalculator)
         metadata: Additional metadata (for merge tracking, etc.)
     """
+
     claim_text: str
     source_chunk_id: int
     quotes: List[Quote]
     confidence: float = 1.0
-    confidence_components: Optional['ConfidenceComponents'] = None
+    confidence_components: Optional["ConfidenceComponents"] = None
     metadata: Optional[dict] = field(default_factory=dict)
 
 
@@ -98,17 +101,32 @@ class QuoteFinder:
 
     # Question words (case-insensitive)
     QUESTION_WORDS = {
-        "who", "what", "when", "where", "why", "how",
-        "is", "are", "was", "were", "do", "does", "did",
-        "can", "could", "will", "would", "should"
+        "who",
+        "what",
+        "when",
+        "where",
+        "why",
+        "how",
+        "is",
+        "are",
+        "was",
+        "were",
+        "do",
+        "does",
+        "did",
+        "can",
+        "could",
+        "will",
+        "would",
+        "should",
     }
 
     def __init__(
         self,
         search_index: TranscriptSearchIndex,
-        reranker: 'RerankerService',
+        reranker: "RerankerService",
         max_quotes_per_claim: int = None,
-        initial_candidates: int = 30
+        initial_candidates: int = 30,
     ):
         """
         Initialize the quote finder.
@@ -130,8 +148,7 @@ class QuoteFinder:
         )
 
     async def find_quotes_for_claims(
-        self,
-        claims: List[ExtractedClaim]
+        self, claims: List[ExtractedClaim]
     ) -> List[ClaimWithQuotes]:
         """
         Find supporting quotes for all claims.
@@ -168,7 +185,7 @@ class QuoteFinder:
                 claim_text=claim.claim_text,
                 source_chunk_id=claim.source_chunk_id,
                 quotes=quotes,
-                confidence=claim.confidence
+                confidence=claim.confidence,
             )
 
             claims_with_quotes.append(claim_with_quotes)
@@ -176,7 +193,8 @@ class QuoteFinder:
             logger.debug(
                 f"Claim {i}/{len(claims)}: found {len(quotes)} quotes "
                 f"(relevance: {quotes[0].relevance_score:.3f}-{quotes[-1].relevance_score:.3f})"
-                if quotes else f"Claim {i}/{len(claims)}: no quotes found"
+                if quotes
+                else f"Claim {i}/{len(claims)}: no quotes found"
             )
 
         total_quotes = sum(len(c.quotes) for c in claims_with_quotes)
@@ -189,10 +207,7 @@ class QuoteFinder:
 
         return claims_with_quotes
 
-    async def _find_quotes_for_claim(
-        self,
-        claim: ExtractedClaim
-    ) -> List[Quote]:
+    async def _find_quotes_for_claim(self, claim: ExtractedClaim) -> List[Quote]:
         """
         Find supporting quotes for a single claim.
 
@@ -203,17 +218,16 @@ class QuoteFinder:
             List of quotes (up to max_quotes)
         """
         candidates = await self.search_index.find_quotes_for_claim(
-            claim.claim_text,
-            top_k=self.initial_candidates
+            claim.claim_text, top_k=self.initial_candidates
         )
 
         if not candidates:
             logger.warning(f"No candidates found for claim: {claim.claim_text[:60]}...")
             return []
 
+        # Filter questions
         filtered_candidates = [
-            c for c in candidates
-            if not self._is_question(c.quote_text)
+            c for c in candidates if not self._is_question(c.quote_text)
         ]
 
         if len(filtered_candidates) < len(candidates):
@@ -228,17 +242,35 @@ class QuoteFinder:
             )
             return []
 
+        # Filter low-quality quotes (disclaimers, ad copy)
+        quality_filtered = [
+            c for c in filtered_candidates if self._is_valid_quote(c.quote_text)
+        ]
+
+        if len(quality_filtered) < len(filtered_candidates):
+            logger.debug(
+                f"Filtered {len(filtered_candidates) - len(quality_filtered)} low-quality quotes "
+                f"({len(quality_filtered)} remaining)"
+            )
+
+        if not quality_filtered:
+            logger.warning(
+                f"All candidates filtered for claim: {claim.claim_text[:60]}..."
+            )
+            return []
+
+        filtered_candidates = quality_filtered
+
         reranked = await self.reranker.rerank_quotes(
             claim.claim_text,
             [c.quote_text for c in filtered_candidates],
-            top_k=self.max_quotes
+            top_k=self.max_quotes,
         )
 
         # Filter by minimum relevance threshold
         quotes_before_threshold = len(reranked)
         reranked_above_threshold = [
-            r for r in reranked
-            if r["score"] >= settings.min_quote_relevance
+            r for r in reranked if r["score"] >= settings.min_quote_relevance
         ]
 
         if len(reranked_above_threshold) < quotes_before_threshold:
@@ -257,7 +289,7 @@ class QuoteFinder:
                 start_position=candidate.start_position,
                 end_position=candidate.end_position,
                 speaker=candidate.speaker,
-                timestamp_seconds=candidate.timestamp_seconds
+                timestamp_seconds=candidate.timestamp_seconds,
             )
             quotes.append(quote)
 
@@ -307,9 +339,59 @@ class QuoteFinder:
 
         return False
 
+    def _is_valid_quote(self, text: str) -> bool:
+        """
+        Filter disclaimers, ad copy, and low-quality quotes.
+
+        A quote is INVALID if it:
+        - Is too short (<50 characters, likely incomplete/ad snippet)
+        - Contains disclaimer patterns (legal warnings)
+        - Contains ad copy patterns (marketing/promotional content)
+
+        Args:
+            text: Quote text to validate
+
+        Returns:
+            True if quote passes quality checks, False otherwise
+
+        Example:
+            ```python
+            finder = QuoteFinder(search_index)
+
+            assert finder._is_valid_quote("Bitcoin hit $69k in November 2021 setting a new all-time high record")
+            assert not finder._is_valid_quote("Not investment advice. DYOR.")
+            assert not finder._is_valid_quote("Visit kraken.com/bankless today!")
+            ```
+        """
+        # Length check (too short = likely incomplete/ad copy)
+        if len(text) < 50:
+            logger.debug(f"Filtered short quote ({len(text)} chars): {text[:30]}...")
+            return False
+
+        text_lower = text.lower()
+
+        # Ad copy patterns
+        ad_patterns = [
+            r"(visit|go\s+to|check\s+out)\s+\w+\.(com|io|org)",
+            r"(special|exclusive)\s+(deal|offer|discount)",
+            r"use\s+(code|promo)",
+            r"sign\s+up\s+(now|today)",
+            r"subscribe\s+(now|today)",
+            r"hit\s+that\s+subscribe\s+button",
+            r"enable\s+notifications",
+            r"brought\s+to\s+you\s+by",
+            r"our\s+sponsor",
+        ]
+
+        for pattern in ad_patterns:
+            if re.search(pattern, text_lower):
+                logger.debug(f"Filtered ad copy quote: {text[:60]}...")
+                return False
+
+        return True
+
     def get_claims_without_quotes(
-        self,
-        claims_with_quotes: List[ClaimWithQuotes]
+        self, claims_with_quotes: List[ClaimWithQuotes]
     ) -> List[ClaimWithQuotes]:
         """
         Get claims that have no supporting quotes.

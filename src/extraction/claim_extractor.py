@@ -17,6 +17,7 @@ Usage:
 """
 
 import asyncio
+import re
 from dataclasses import dataclass
 from typing import List
 
@@ -38,6 +39,7 @@ class ExtractedClaim:
         source_chunk_id: ID of the chunk this claim came from
         confidence: Initial confidence score (optional, for future use)
     """
+
     claim_text: str
     source_chunk_id: int
     confidence: float = 1.0
@@ -83,9 +85,64 @@ class ClaimExtractor:
 
         logger.info(f"ClaimExtractor ready (batch_size={self.batch_size})")
 
+    def _is_valid_claim(self, claim_text: str) -> bool:
+        """
+        Filter vague/generic claims using heuristic rules.
+
+        A claim is INVALID if it:
+        - Is too short (<5 words) or too long (>40 words)
+        - Matches generic patterns ("crypto is risky", "bitcoin is important")
+        - Lacks specificity (no numbers, names, or dates)
+
+        Args:
+            claim_text: Claim text to validate
+
+        Returns:
+            True if claim passes quality checks, False otherwise
+        """
+        # Length check (5-40 words)
+        word_count = len(claim_text.split())
+        if word_count < 5 or word_count > 40:
+            logger.debug(f"Filtered claim (length={word_count}): {claim_text[:50]}...")
+            return False
+
+        claim_lower = claim_text.lower()
+
+        # Specificity check: must contain at least ONE of:
+        # - Number/percentage (digit)
+        # - Proper noun (capitalized word, but not sentence start)
+        # - Date/year pattern
+        has_number = bool(re.search(r"\d", claim_text))
+
+        # TODO Verify if this does not filter too many valid claims
+        # Check for proper nouns (capitalized words NOT at sentence start)
+        words = claim_text.split()
+        has_proper_noun = False
+        for i, word in enumerate(words):
+            if i > 0 and word and word[0].isupper() and len(word) > 1:
+                # Skip common articles/conjunctions
+                if word.lower() not in ["and", "or", "but", "the", "a", "an"]:
+                    has_proper_noun = True
+                    break
+
+        # Common date patterns
+        has_date = bool(
+            re.search(
+                r"\b(19|20)\d{2}\b|"  # Year
+                r"\b(january|february|march|april|may|june|july|august|september|october|november|december)\b|"  # Month
+                r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b",  # Month abbreviation
+                claim_lower,
+            )
+        )
+
+        if not (has_number or has_proper_noun or has_date):
+            logger.debug(f"Filtered non-specific claim: {claim_text[:50]}...")
+            return False
+
+        return True
+
     async def extract_from_chunks(
-        self,
-        chunks: List[TextChunk]
+        self, chunks: List[TextChunk]
     ) -> List[ExtractedClaim]:
         """
         Extract claims from transcript chunks in parallel.
@@ -136,7 +193,7 @@ class ClaimExtractor:
             # Process batch in parallel
             batch_results = await asyncio.gather(
                 *[self._extract_from_chunk(chunk) for chunk in batch],
-                return_exceptions=True
+                return_exceptions=True,
             )
 
             # Collect results (handle exceptions)
@@ -144,7 +201,7 @@ class ClaimExtractor:
                 if isinstance(result, Exception):
                     logger.error(
                         f"Error extracting claims from chunk {chunk.chunk_id}: {result}",
-                        exc_info=result
+                        exc_info=result,
                     )
                     continue
 
@@ -175,24 +232,34 @@ class ClaimExtractor:
         """
         try:
             # Run DSPy model in thread pool (it's synchronous)
-            claim_texts = await asyncio.to_thread(
-                self.model.extract_claims,
-                chunk.text
-            )
+            claim_texts = await asyncio.to_thread(self.model.extract_claims, chunk.text)
 
-            # Convert to ExtractedClaim objects, filtering out empty claims
-            claims = [
-                ExtractedClaim(
-                    claim_text=claim_text.strip(),
-                    source_chunk_id=chunk.chunk_id,
-                    confidence=1.0  # Initial confidence (before scoring)
-                )
-                for claim_text in claim_texts
-                if claim_text and claim_text.strip()  # Filter empty/whitespace-only claims
-            ]
+            # Convert to ExtractedClaim objects, filtering out invalid claims
+            claims_before_filter = []
+            claims = []
+
+            for claim_text in claim_texts:
+                # Skip empty/whitespace-only claims
+                if not claim_text or not claim_text.strip():
+                    continue
+
+                claims_before_filter.append(claim_text.strip())
+
+                # Apply quality filter
+                if self._is_valid_claim(claim_text.strip()):
+                    claims.append(
+                        ExtractedClaim(
+                            claim_text=claim_text.strip(),
+                            source_chunk_id=chunk.chunk_id,
+                            confidence=1.0,  # Initial confidence (before scoring)
+                        )
+                    )
+
+            filtered_count = len(claims_before_filter) - len(claims)
 
             logger.debug(
                 f"Chunk {chunk.chunk_id}: extracted {len(claims)} claims "
+                f"({filtered_count} filtered by quality) "
                 f"({len(chunk.text)} chars)"
             )
 
@@ -201,13 +268,12 @@ class ClaimExtractor:
         except Exception as e:
             logger.error(
                 f"Failed to extract claims from chunk {chunk.chunk_id}: {e}",
-                exc_info=True
+                exc_info=True,
             )
             return []
 
     def get_claims_by_chunk(
-        self,
-        claims: List[ExtractedClaim]
+        self, claims: List[ExtractedClaim]
     ) -> dict[int, List[ExtractedClaim]]:
         """
         Group claims by source chunk ID.
