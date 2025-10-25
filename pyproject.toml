@@ -1,0 +1,11 @@
+[project]
+name = "dspy-playground"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dspy-ai>=3.0.3",
+    "jupyterlab>=4.4.10",
+    "python-dotenv>=1.1.1",
+]
