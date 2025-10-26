@@ -37,14 +37,12 @@ class DatabaseDeduplicationResult:
         is_duplicate: Whether claim is duplicate of existing claim
         existing_claim_id: ID of existing claim if duplicate
         existing_claim_text: Text of existing claim if duplicate
-        similarity_score: L2 distance from pgvector search
         reranker_score: Reranker verification score
         should_merge_quotes: Whether to add new quotes to existing claim
     """
     is_duplicate: bool
     existing_claim_id: Optional[int] = None
     existing_claim_text: Optional[str] = None
-    similarity_score: Optional[float] = None
     reranker_score: Optional[float] = None
     should_merge_quotes: bool = False
 
@@ -438,9 +436,6 @@ class ClaimDeduplicator:
 
             # 2. Reranker verification
             for i, existing_claim in enumerate(similar_claims, 1):
-                # Calculate L2 distance for logging
-                l2_distance = self.embedder.l2_distance(claim_embedding, existing_claim.embedding)
-
                 # Verify with reranker
                 reranked = await self.reranker.rerank_quotes(
                     claim_text,
@@ -459,7 +454,6 @@ class ClaimDeduplicator:
                 logger.debug(
                     f"Candidate {i}/{len(similar_claims)}: "
                     f"claim_id={existing_claim.id}, "
-                    f"l2_distance={l2_distance:.3f}, "
                     f"reranker_score={reranker_score:.3f}"
                 )
 
@@ -474,7 +468,6 @@ class ClaimDeduplicator:
                         is_duplicate=True,
                         existing_claim_id=existing_claim.id,
                         existing_claim_text=existing_claim.claim_text,
-                        similarity_score=l2_distance,
                         reranker_score=reranker_score,
                         should_merge_quotes=True  # Always merge quotes for duplicates
                     )
