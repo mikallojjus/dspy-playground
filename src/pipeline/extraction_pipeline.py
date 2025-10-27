@@ -269,10 +269,10 @@ class ExtractionPipeline:
             if not claim.quotes:
                 continue
 
-            # Validate ALL quotes and attach entailment data
+            # Validate ALL quotes in parallel using dspy.asyncify
             quote_texts = [q.quote_text for q in claim.quotes]
             pairs = [(claim.claim_text, quote_text) for quote_text in quote_texts]
-            validation_results = self.entailment_validator.validate_batch(pairs)
+            validation_results = await self.entailment_validator.validate_batch_parallel(pairs)
 
             # Attach entailment data to Quote objects
             for quote, result in zip(claim.quotes, validation_results):

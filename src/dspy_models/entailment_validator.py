@@ -115,6 +115,11 @@ class EntailmentValidatorModel:
             self.model = dspy.ChainOfThought(EntailmentValidation)
             self.optimized = False
 
+        # Create async wrapper using dspy.asyncify for parallel processing
+        # This captures the current DSPy configuration context
+        self._async_model = dspy.asyncify(self.model)
+        logger.debug("Created async wrapper for parallel entailment validation")
+
     def validate(
         self, claim: str, quote: str, retry_count: int = 2, retry_delay: float = 2.0
     ) -> Dict[str, any]:
@@ -194,6 +199,63 @@ class EntailmentValidatorModel:
             "reasoning": "All retries exhausted",
             "confidence": 0.0,
         }
+
+    async def validate_async(
+        self, claim: str, quote: str
+    ) -> Dict[str, any]:
+        """
+        Validate whether a quote supports a claim (asynchronous using dspy.asyncify).
+
+        This method uses dspy.asyncify to run the DSPy model in a worker thread
+        while properly propagating the DSPy configuration context. This enables
+        true parallel processing of multiple validation calls.
+
+        Args:
+            claim: The claim to validate
+            quote: The quote to check
+
+        Returns:
+            Dict with keys: relationship, reasoning, confidence
+
+        Example:
+            ```python
+            validator = EntailmentValidatorModel()
+            result = await validator.validate_async(
+                claim="Bitcoin reached $69,000 in November 2021",
+                quote="Bitcoin hit its all-time high of $69,000 in November"
+            )
+            # Returns: {
+            #     "relationship": "SUPPORTS",
+            #     "reasoning": "Quote directly states the claim",
+            #     "confidence": 0.95
+            # }
+            ```
+
+        Note:
+            This method is preferred over validate() when processing multiple
+            claim-quote pairs in parallel, as it properly handles DSPy's
+            thread-local configuration.
+        """
+        try:
+            result = await self._async_model(claim=claim, quote=quote)
+
+            return {
+                "relationship": result.relationship,
+                "reasoning": result.reasoning,
+                "confidence": (
+                    float(result.confidence)
+                    if hasattr(result, "confidence")
+                    else 0.8
+                ),
+            }
+        except Exception as e:
+            logger.error(f"Error in async entailment validation: {e}", exc_info=True)
+            # Return neutral on error
+            return {
+                "relationship": "NEUTRAL",
+                "reasoning": f"Error during validation: {str(e)[:100]}",
+                "confidence": 0.0,
+            }
 
     def validate_batch(
         self, claim_quote_pairs: List[tuple[str, str]]
@@ -302,3 +364,77 @@ class EntailmentValidatorModel:
             )
 
         return supporting_quotes
+
+    async def validate_batch_parallel(
+        self,
+        claim_quote_pairs: List[tuple[str, str]],
+        max_concurrency: int = None
+    ) -> List[Dict[str, any]]:
+        """
+        Validate multiple claim-quote pairs in parallel using dspy.asyncify.
+
+        This method processes validation calls concurrently using a semaphore to
+        limit GPU load. It properly propagates DSPy configuration to worker threads.
+
+        Args:
+            claim_quote_pairs: List of (claim, quote) tuples
+            max_concurrency: Maximum concurrent LLM calls (default from settings)
+
+        Returns:
+            List of validation result dicts
+
+        Example:
+            ```python
+            validator = EntailmentValidatorModel()
+            pairs = [
+                ("Bitcoin reached $69,000", "BTC hit $69k in Nov 2021"),
+                ("Ethereum uses proof-of-stake", "ETH migrated to PoS in 2022"),
+            ]
+            results = await validator.validate_batch_parallel(pairs)
+            # Returns: [
+            #     {"relationship": "SUPPORTS", "reasoning": "...", "confidence": 0.95},
+            #     {"relationship": "SUPPORTS", "reasoning": "...", "confidence": 0.92}
+            # ]
+            ```
+
+        Note:
+            - Uses semaphore to prevent GPU overload
+            - Default concurrency from settings.max_entailment_concurrency
+            - Falls back gracefully on errors
+            - Significantly faster than validate_batch() for large batches
+        """
+        if not claim_quote_pairs:
+            return []
+
+        # Get max concurrency from settings if not specified
+        if max_concurrency is None:
+            from src.config.settings import settings
+            max_concurrency = settings.max_entailment_concurrency
+
+        logger.info(
+            f"Validating {len(claim_quote_pairs)} claim-quote pairs in parallel "
+            f"(max_concurrency={max_concurrency})"
+        )
+
+        # Semaphore to limit concurrent GPU calls
+        semaphore = asyncio.Semaphore(max_concurrency)
+
+        async def validate_with_limit(claim: str, quote: str) -> Dict[str, any]:
+            """Validate with semaphore to control concurrency."""
+            async with semaphore:
+                return await self.validate_async(claim, quote)
+
+        # Execute all validations in parallel (controlled by semaphore)
+        results = await asyncio.gather(
+            *[validate_with_limit(claim, quote) for claim, quote in claim_quote_pairs],
+            return_exceptions=False  # Let errors propagate to validate_async
+        )
+
+        # Log summary
+        supports_count = sum(1 for r in results if r["relationship"] == "SUPPORTS")
+        logger.info(
+            f"Parallel validation complete: {supports_count}/{len(results)} SUPPORTS "
+            f"(processed {len(results)} pairs with concurrency={max_concurrency})"
+        )
+
+        return results

@@ -85,9 +85,14 @@ class ClaimExtractorModel:
         else:
             logger.info("Loaded model (zero-shot)")
 
+        # Create async wrapper using dspy.asyncify for parallel processing
+        # This captures the current DSPy configuration context
+        self._async_model = dspy.asyncify(self.model)
+        logger.debug("Created async wrapper for parallel claim extraction")
+
     def extract_claims(self, transcript_chunk: str) -> List[str]:
         """
-        Extract claims from a transcript chunk.
+        Extract claims from a transcript chunk (synchronous).
 
         Args:
             transcript_chunk: Text from podcast transcript
@@ -118,6 +123,46 @@ class ClaimExtractorModel:
 
         except Exception as e:
             logger.error(f"Error extracting claims: {e}", exc_info=True)
+            return []
+
+    async def extract_claims_async(self, transcript_chunk: str) -> List[str]:
+        """
+        Extract claims from a transcript chunk (asynchronous using dspy.asyncify).
+
+        This method uses dspy.asyncify to run the DSPy model in a worker thread
+        while properly propagating the DSPy configuration context. This enables
+        true parallel processing of multiple chunks.
+
+        Args:
+            transcript_chunk: Text from podcast transcript
+
+        Returns:
+            List of extracted claim strings
+
+        Example:
+            ```python
+            extractor = ClaimExtractorModel()
+            claims = await extractor.extract_claims_async(
+                "Bitcoin reached $69,000 in November 2021."
+            )
+            # Returns: ["Bitcoin reached $69,000 in November 2021"]
+            ```
+
+        Note:
+            This method is preferred over extract_claims() when processing
+            multiple chunks in parallel, as it properly handles DSPy's
+            thread-local configuration.
+        """
+        try:
+            result = await self._async_model(transcript_chunk=transcript_chunk)
+            claims = result.claims if hasattr(result, 'claims') else []
+
+            logger.debug(f"Extracted {len(claims)} claims from chunk ({len(transcript_chunk)} chars)")
+
+            return claims
+
+        except Exception as e:
+            logger.error(f"Error in async claim extraction: {e}", exc_info=True)
             return []
 
     def extract_claims_batch(self, transcript_chunks: List[str]) -> List[List[str]]:

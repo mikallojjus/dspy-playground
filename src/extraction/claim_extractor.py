@@ -80,10 +80,10 @@ class ClaimExtractor:
         # Load DSPy model
         self.model = ClaimExtractorModel(model_path=model_path)
 
-        # Get parallel batch size from settings
-        self.batch_size = settings.parallel_batch_size
+        # Get max concurrency from settings
+        self.batch_size = settings.max_claim_extraction_concurrency
 
-        logger.info(f"ClaimExtractor ready (batch_size={self.batch_size})")
+        logger.info(f"ClaimExtractor ready (max_concurrency={self.batch_size})")
 
     def _is_valid_claim(self, claim_text: str) -> bool:
         """
@@ -175,7 +175,7 @@ class ClaimExtractor:
 
         logger.info(
             f"Starting claim extraction from {len(chunks)} chunks "
-            f"(batch_size={self.batch_size})"
+            f"(max_concurrency={self.batch_size})"
         )
 
         all_claims: List[ExtractedClaim] = []
@@ -226,13 +226,14 @@ class ClaimExtractor:
             List of claims from this chunk
 
         Note:
-            This is async to allow parallel processing, but the actual
-            DSPy model call is synchronous. We use asyncio.to_thread
-            to avoid blocking.
+            This method uses dspy.asyncify (via model.extract_claims_async)
+            to run the DSPy model in a worker thread while properly propagating
+            the DSPy configuration context. This enables safe parallel processing
+            of multiple chunks.
         """
         try:
-            # Run DSPy model in thread pool (it's synchronous)
-            claim_texts = await asyncio.to_thread(self.model.extract_claims, chunk.text)
+            # Use async DSPy model with dspy.asyncify for proper context propagation
+            claim_texts = await self.model.extract_claims_async(chunk.text)
 
             # Convert to ExtractedClaim objects, filtering out invalid claims
             claims_before_filter = []

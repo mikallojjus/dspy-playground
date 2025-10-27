@@ -73,10 +73,14 @@ class Settings(BaseSettings):
         description="Overlap between chunks in characters"
     )
 
-    # Processing
-    parallel_batch_size: int = Field(
+    # Processing (DSPy asyncify concurrency limits)
+    max_claim_extraction_concurrency: int = Field(
         default=3,
-        description="Number of chunks to process in parallel"
+        description="Maximum concurrent claim extraction calls (DSPy asyncify)"
+    )
+    max_entailment_concurrency: int = Field(
+        default=10,
+        description="Maximum concurrent entailment validation calls (DSPy asyncify)"
     )
 
     # Deduplication Thresholds
