@@ -1,0 +1,25 @@
+{
+  "examples": [
+    {
+      "claim": "Bitcoin reached $69,000 in November 2021",
+      "transcript_chunks": "\n                Speaker 1 (0s): Let's talk about Bitcoin's price history.\n\n                Speaker 2 (15s): In November 2021, Bitcoin hit its all-time high of $69,000.\n                This was a historic moment for cryptocurrency.\n\n                Speaker 1 (45s): After that peak, the market experienced a significant correction.\n                ",
+      "gold_quotes": [
+        "In November 2021, Bitcoin hit its all-time high of $69,000"
+      ]
+    },
+    {
+      "claim": "Ethereum transitioned to proof-of-stake in September 2022",
+      "transcript_chunks": "\n                Speaker 1 (0s): What about Ethereum's recent changes?\n\n                Speaker 2 (20s): Ethereum successfully transitioned from proof-of-work to\n                proof-of-stake consensus in September 2022. This was called \"The Merge\"\n                and reduced energy consumption by 99%.\n\n                Speaker 1 (60s): That's a massive improvement for sustainability.\n                ",
+      "gold_quotes": [
+        "Ethereum successfully transitioned from proof-of-work to proof-of-stake consensus in September 2022"
+      ]
+    },
+    {
+      "claim": "NFTs became mainstream in 2021",
+      "transcript_chunks": "\n                Speaker 1 (0s): NFTs exploded in popularity during 2021.\n\n                Speaker 2 (15s): Yes, 2021 was the year NFTs went mainstream.\n                We saw collections like Bored Ape Yacht Club selling for millions.\n                Major brands started experimenting with NFTs.\n\n                Speaker 1 (45s): The market was absolutely wild back then.\n                ",
+      "gold_quotes": [
+        "2021 was the year NFTs went mainstream"
+      ]
+    }
+  ]
+}

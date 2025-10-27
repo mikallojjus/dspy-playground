@@ -31,10 +31,15 @@ class Settings(BaseSettings):
         description="PostgreSQL connection string"
     )
 
-    # Ollama
+    # Ollama - Dual Instance Configuration
+    # Separate instances prevent pinned memory conflicts when switching models
     ollama_url: str = Field(
         default="http://localhost:11434",
-        description="Ollama API endpoint"
+        description="Ollama API endpoint for LLM (Qwen 2.5 7B)"
+    )
+    ollama_embedding_url: str = Field(
+        default="http://localhost:11435",
+        description="Ollama API endpoint for embeddings (nomic-embed-text) - separate instance"
     )
     ollama_model: str = Field(
         default="qwen2.5:7b-instruct-q4_0",
@@ -43,6 +48,10 @@ class Settings(BaseSettings):
     ollama_embedding_model: str = Field(
         default="nomic-embed-text",
         description="Embedding model (768 dimensions)"
+    )
+    ollama_num_ctx: int = Field(
+        default=16384,
+        description="Context window size in tokens (8192=~5GB VRAM, 16384=~6GB VRAM, 32768=~7.6GB VRAM per instance)"
     )
 
     # Reranker
@@ -115,6 +124,50 @@ class Settings(BaseSettings):
     cache_ttl_hours: int = Field(
         default=1,
         description="Cache entry time-to-live in hours"
+    )
+
+    # Quote Optimization (Coarse Chunking + DSPy)
+    coarse_chunk_size: int = Field(
+        default=3000,
+        description="Coarse chunk size in tokens for quote finding (reduces embeddings by 50x)"
+    )
+    coarse_chunk_overlap: int = Field(
+        default=500,
+        description="Overlap between coarse chunks in tokens"
+    )
+    top_k_chunks: int = Field(
+        default=4,
+        description="Number of top relevant chunks to retrieve per claim"
+    )
+    quote_verification_min_confidence: float = Field(
+        default=0.90,
+        description="Minimum confidence threshold for quote verification (0.0-1.0)"
+    )
+    quote_finder_model_path: str = Field(
+        default="models/quote_finder_v1.json",
+        description="Path to optimized DSPy QuoteFinder model (set to empty string to use zero-shot baseline)"
+    )
+    enable_entailment_validation: bool = Field(
+        default=True,
+        description="Enable entailment validation to filter non-SUPPORTS quotes (disable for debugging)"
+    )
+
+    # DSPy Optimization (shared across all training: claims, entailment, quotes)
+    dspy_max_bootstrapped_demos: int = Field(
+        default=4,
+        description="Number of bootstrapped few-shot examples to include in DSPy prompts"
+    )
+    dspy_max_labeled_demos: int = Field(
+        default=2,
+        description="Number of seed examples to include in DSPy prompts (internally set to match bootstrapped_demos)"
+    )
+    dspy_max_rounds: int = Field(
+        default=3,
+        description="Number of DSPy optimization rounds (more rounds = better quality, longer time)"
+    )
+    dspy_max_errors: int = Field(
+        default=5,
+        description="Maximum errors tolerated during DSPy optimization before failing"
     )
 
     # Logging

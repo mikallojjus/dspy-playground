@@ -18,6 +18,7 @@ Usage:
 
 import asyncio
 import re
+import dspy
 from dataclasses import dataclass
 from typing import List
 
@@ -79,6 +80,10 @@ class ClaimExtractor:
 
         # Load DSPy model
         self.model = ClaimExtractorModel(model_path=model_path)
+
+        # Create async-compatible version using dspy.asyncify for thread safety
+        # This ensures proper DSPy context propagation across threads
+        self.async_extract = dspy.asyncify(self.model.extract_claims)
 
         # Get parallel batch size from settings
         self.batch_size = settings.parallel_batch_size
@@ -205,6 +210,8 @@ class ClaimExtractor:
                     )
                     continue
 
+                # Type assertion: result is List[ExtractedClaim] here (not Exception)
+                assert isinstance(result, list), "result should be a list after exception check"
                 if result:
                     all_claims.extend(result)
 
@@ -226,13 +233,13 @@ class ClaimExtractor:
             List of claims from this chunk
 
         Note:
-            This is async to allow parallel processing, but the actual
-            DSPy model call is synchronous. We use asyncio.to_thread
-            to avoid blocking.
+            This is async to allow parallel processing. The DSPy model call
+            is synchronous but wrapped with dspy.asyncify() for thread-safe
+            execution with proper context propagation.
         """
         try:
-            # Run DSPy model in thread pool (it's synchronous)
-            claim_texts = await asyncio.to_thread(self.model.extract_claims, chunk.text)
+            # Run DSPy model asynchronously with proper context propagation
+            claim_texts = await self.async_extract(chunk.text)
 
             # Convert to ExtractedClaim objects, filtering out invalid claims
             claims_before_filter = []

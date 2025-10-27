@@ -13,7 +13,7 @@ Usage:
     print(f"Deduplicated: {len(claims_with_quotes)} → {len(deduplicated)}")
 """
 
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, cast
 from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
@@ -77,8 +77,8 @@ class ClaimDeduplicator:
         self,
         embedder: EmbeddingService,
         reranker: RerankerService,
-        embedding_threshold: float = None,
-        reranker_threshold: float = None
+        embedding_threshold: Optional[float] = None,
+        reranker_threshold: Optional[float] = None
     ):
         """
         Initialize the claim deduplicator.
@@ -439,7 +439,7 @@ class ClaimDeduplicator:
                 # Verify with reranker
                 reranked = await self.reranker.rerank_quotes(
                     claim_text,
-                    [existing_claim.claim_text],
+                    [cast(str, existing_claim.claim_text)],
                     top_k=1
                 )
 
@@ -466,8 +466,8 @@ class ClaimDeduplicator:
 
                     return DatabaseDeduplicationResult(
                         is_duplicate=True,
-                        existing_claim_id=existing_claim.id,
-                        existing_claim_text=existing_claim.claim_text,
+                        existing_claim_id=cast(int, existing_claim.id),
+                        existing_claim_text=cast(str, existing_claim.claim_text),
                         reranker_score=reranker_score,
                         should_merge_quotes=True  # Always merge quotes for duplicates
                     )

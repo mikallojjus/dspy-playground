@@ -48,8 +48,8 @@ class EmbeddingService:
 
     def __init__(
         self,
-        cache_max_size: int = None,
-        cache_ttl_hours: int = None,
+        cache_max_size: Optional[int] = None,
+        cache_ttl_hours: Optional[int] = None,
         batch_size: int = 5,
     ):
         """
@@ -60,7 +60,8 @@ class EmbeddingService:
             cache_ttl_hours: Cache TTL in hours (default from settings)
             batch_size: Number of texts to process in parallel (default: 5)
         """
-        self.ollama_url = settings.ollama_url
+        # Use dedicated embedding instance to prevent model switching conflicts
+        self.ollama_url = settings.ollama_embedding_url
         self.model = settings.ollama_embedding_model
         self.batch_size = batch_size
 
@@ -183,6 +184,9 @@ class EmbeddingService:
                 else:
                     logger.error(f"All {retry_count} attempts failed for embedding generation")
                     raise
+
+        # This line should never be reached, but satisfies type checker
+        raise RuntimeError("Embedding generation failed - all retries exhausted")
 
     async def embed_texts(self, texts: List[str]) -> List[List[float]]:
         """

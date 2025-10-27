@@ -44,8 +44,8 @@ class RerankerService:
 
     def __init__(
         self,
-        cache_max_size: int = None,
-        cache_ttl_hours: int = None
+        cache_max_size: Optional[int] = None,
+        cache_ttl_hours: Optional[int] = None
     ):
         """
         Initialize the reranker service.
@@ -246,6 +246,9 @@ class RerankerService:
                     raise RuntimeError(
                         f"Reranker API call failed after 3 attempts: {e}"
                     ) from e
+
+        # This line should never be reached, but satisfies type checker
+        raise RuntimeError("Reranker failed - all retries exhausted")
 
     def get_cache_stats(self) -> dict:
         """

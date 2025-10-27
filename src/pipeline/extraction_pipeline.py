@@ -19,7 +19,7 @@ Usage:
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, cast
 import time
 
 from src.config.settings import settings
@@ -29,8 +29,8 @@ from src.database.claim_repository import ClaimRepository
 from src.preprocessing.transcript_parser import TranscriptParser
 from src.preprocessing.chunking_service import ChunkingService
 from src.extraction.claim_extractor import ClaimExtractor
-from src.search.transcript_search_index import TranscriptSearchIndex
-from src.extraction.quote_finder import QuoteFinder, ClaimWithQuotes, Quote
+from src.search.quote_pipeline import QuoteFindingPipeline
+from src.extraction.quote_finder import ClaimWithQuotes, Quote
 from src.infrastructure.embedding_service import EmbeddingService
 from src.infrastructure.reranker_service import RerankerService
 from src.deduplication.quote_deduplicator import QuoteDeduplicator
@@ -200,10 +200,9 @@ class ExtractionPipeline:
 
         episode = self._load_episode(episode_id)
 
-        if not episode.transcript:
+        transcript = cast(str, episode.transcript)
+        if not transcript:
             raise ValueError(f"Episode {episode_id} has no transcript")
-
-        transcript = episode.transcript
         transcript_length = len(transcript)
 
         logger.info(
@@ -232,16 +231,37 @@ class ExtractionPipeline:
                 time.time() - start_time
             )
 
-        logger.info("Step 4/9: Building search index...")
-        search_index = await TranscriptSearchIndex.build_from_transcript(
+        logger.info("Step 4/9: Building quote pipeline...")
+        quote_pipeline = await QuoteFindingPipeline.build_from_transcript(
             parsed_transcript,
             self.embedder
         )
-        logger.info(f"  ✓ Indexed {search_index.get_segment_count()} segments")
+        logger.info(f"  ✓ Built {quote_pipeline.get_chunk_count()} coarse chunks")
 
         logger.info("Step 5/13: Finding quotes for claims...")
-        quote_finder = QuoteFinder(search_index, self.reranker)
-        claims_with_quotes = await quote_finder.find_quotes_for_claims(claims)
+        claims_with_quotes = []
+
+        for i, claim in enumerate(claims, 1):
+            quotes = await quote_pipeline.find_quotes_for_claim(
+                claim.claim_text,
+                top_k_chunks=settings.top_k_chunks
+            )
+
+            claim_with_quotes = ClaimWithQuotes(
+                claim_text=claim.claim_text,
+                source_chunk_id=claim.source_chunk_id,
+                quotes=quotes,
+                confidence=claim.confidence,
+            )
+
+            claims_with_quotes.append(claim_with_quotes)
+
+            logger.debug(
+                f"Claim {i}/{len(claims)}: found {len(quotes)} verified quotes"
+                if quotes
+                else f"Claim {i}/{len(claims)}: no quotes found"
+            )
+
         logger.info(f"  ✓ Found quotes for {len(claims_with_quotes)} claims")
 
         # Step 6: Deduplicate quotes BEFORE validation (NEW - Sprint 4)
@@ -262,36 +282,48 @@ class ExtractionPipeline:
         # Step 7: Entailment validation on FINAL deduplicated quotes (NEW - Sprint 4)
         # We validate after deduplication to ensure the actual text being saved
         # to the database has been validated (not an intermediate text that gets replaced)
-        logger.info("Step 7/13: Validating entailment (filtering non-SUPPORTS quotes)...")
-        quotes_before_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+        if settings.enable_entailment_validation:
+            logger.info("Step 7/13: Validating entailment (filtering non-SUPPORTS quotes)...")
+            quotes_before_entailment = sum(len(c.quotes) for c in claims_with_quotes)
 
-        for claim in claims_with_quotes:
-            if not claim.quotes:
-                continue
+            for claim in claims_with_quotes:
+                if not claim.quotes:
+                    continue
 
-            # Validate ALL quotes and attach entailment data
-            quote_texts = [q.quote_text for q in claim.quotes]
-            pairs = [(claim.claim_text, quote_text) for quote_text in quote_texts]
-            validation_results = self.entailment_validator.validate_batch(pairs)
+                # Validate ALL quotes and attach entailment data
+                quote_texts = [q.quote_text for q in claim.quotes]
+                pairs = [(claim.claim_text, quote_text) for quote_text in quote_texts]
+                validation_results = self.entailment_validator.validate_batch(pairs)
 
-            # Attach entailment data to Quote objects
-            for quote, result in zip(claim.quotes, validation_results):
-                quote.entailment_score = result.get('confidence', 0.0)
-                quote.entailment_relationship = result.get('relationship', 'UNKNOWN')
+                # Attach entailment data to Quote objects
+                for quote, result in zip(claim.quotes, validation_results):
+                    quote.entailment_score = result.get('confidence', 0.0)
+                    quote.entailment_relationship = result.get('relationship', 'UNKNOWN')
 
-            # Filter to keep only SUPPORTS quotes
-            claim.quotes = [
-                q for q in claim.quotes
-                if q.entailment_relationship == 'SUPPORTS'
-            ]
+                # Filter to keep only SUPPORTS quotes
+                claim.quotes = [
+                    q for q in claim.quotes
+                    if q.entailment_relationship == 'SUPPORTS'
+                ]
 
-        quotes_after_entailment = sum(len(c.quotes) for c in claims_with_quotes)
-        entailment_filtered = quotes_before_entailment - quotes_after_entailment
+            quotes_after_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+            entailment_filtered = quotes_before_entailment - quotes_after_entailment
 
-        logger.info(
-            f"  ✓ {quotes_before_entailment} → {quotes_after_entailment} quotes "
-            f"({entailment_filtered} non-SUPPORTS filtered)"
-        )
+            logger.info(
+                f"  ✓ {quotes_before_entailment} → {quotes_after_entailment} quotes "
+                f"({entailment_filtered} non-SUPPORTS filtered)"
+            )
+        else:
+            logger.info("Step 7/13: Skipping entailment validation (disabled)")
+            # Still attach placeholder entailment data
+            quotes_before_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+            quotes_after_entailment = quotes_before_entailment
+            entailment_filtered = 0
+
+            for claim in claims_with_quotes:
+                for quote in claim.quotes:
+                    quote.entailment_score = 1.0
+                    quote.entailment_relationship = 'SUPPORTS'
 
         logger.info("Step 8/13: Deduplicating claims (batch level)...")
         deduplicated_claims = await self.claim_deduplicator.deduplicate_batch(
@@ -310,7 +342,6 @@ class ExtractionPipeline:
         logger.info(f"  ✓ Calculated confidence for {len(deduplicated_claims)} claims")
 
         logger.info("Step 10/13: Filtering low-confidence claims...")
-        from src.config.settings import settings
         high_confidence_claims = [
             c for c in deduplicated_claims
             if c.confidence >= settings.min_confidence
@@ -352,6 +383,8 @@ class ExtractionPipeline:
 
                 if dedup_result.is_duplicate:
                     # Found duplicate - merge quotes to existing claim
+                    assert dedup_result.existing_claim_id is not None, "existing_claim_id must be set when is_duplicate is True"
+
                     duplicate_details.append({
                         "claim_text": claim.claim_text,
                         "existing_claim_id": dedup_result.existing_claim_id,

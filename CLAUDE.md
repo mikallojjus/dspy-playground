@@ -342,3 +342,4 @@ We do not have to replicate the old architecture immediately, but it should prov
 - Ensure no unused code is left
 - We should spend time to evaluate our ideas, not blindly follow the rules
 - Use logger in src\infrastructure\logger.py for all logging purposes
+- Confidence scores and various threshold should be configurable via settings.py

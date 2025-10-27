@@ -10,7 +10,7 @@ Usage:
     claim_ids = await repo.save_claims(claims_with_quotes, episode_id)
 """
 
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, cast
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -120,17 +120,18 @@ class ClaimRepository:
                 self.session.add(claim)
                 self.session.flush()  # Get ID without committing
 
-                claim_ids.append(claim.id)
+                claim_id = cast(int, claim.id)
+                claim_ids.append(claim_id)
 
                 logger.debug(
-                    f"Saved claim {i}/{len(claims_with_quotes)}: ID={claim.id}, "
+                    f"Saved claim {i}/{len(claims_with_quotes)}: ID={claim_id}, "
                     f"text='{claim.claim_text[:60]}...'"
                 )
 
                 # Save quotes and create links
                 if claim_with_quotes.quotes:
                     await self._save_quotes_and_links(
-                        claim.id,
+                        claim_id,
                         claim_with_quotes.quotes,
                         episode_id
                     )

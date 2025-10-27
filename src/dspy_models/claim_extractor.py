@@ -70,9 +70,11 @@ class ClaimExtractorModel:
         logger.info(f"Configuring DSPy with Ollama at {settings.ollama_url}")
         lm = dspy.LM(
             f"ollama/{settings.ollama_model}",
-            api_base=settings.ollama_url
+            api_base=settings.ollama_url,
+            num_ctx=settings.ollama_num_ctx
         )
         dspy.configure(lm=lm)
+        logger.info(f"Configured LM with context size: {settings.ollama_num_ctx} tokens")
 
         # Load optimized model
         logger.info(f"Loading optimized claim extractor from {model_path}")
@@ -81,7 +83,8 @@ class ClaimExtractorModel:
 
         # Log few-shot examples count
         if hasattr(self.model, 'demos') and self.model.demos:
-            logger.info(f"Loaded model with {len(self.model.demos)} few-shot examples")
+            demos = getattr(self.model, 'demos', [])
+            logger.info(f"Loaded model with {len(demos)} few-shot examples")
         else:
             logger.info("Loaded model (zero-shot)")
 

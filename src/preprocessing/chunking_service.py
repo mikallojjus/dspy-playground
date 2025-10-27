@@ -15,7 +15,7 @@ Usage:
 
 import re
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from src.config.settings import settings
 from src.infrastructure.logger import get_logger
@@ -69,8 +69,8 @@ class ChunkingService:
 
     def __init__(
         self,
-        max_chunk_size: int = None,
-        overlap: int = None,
+        max_chunk_size: Optional[int] = None,
+        overlap: Optional[int] = None,
         boundary_margin: int = 500
     ):
         """

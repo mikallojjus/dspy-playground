@@ -2,7 +2,7 @@
 Regenerate train/val splits from manual review datasets.
 
 This script:
-1. Loads entailment_manual_review.json and claims_manual_review.json
+1. Loads *_manual_review.json files (entailment, claims, quote_finding)
 2. Shuffles examples randomly
 3. Splits 70% train / 30% validation
 4. Saves to *_train.json and *_val.json
@@ -18,7 +18,7 @@ from pathlib import Path
 
 # Fix encoding for Windows console
 if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stdout.reconfigure(encoding='utf-8')  # type: ignore
 
 def regenerate_entailment_splits():
     """Regenerate entailment train/val splits."""
@@ -124,9 +124,59 @@ def regenerate_claims_splits():
     print()
 
 
+def regenerate_quote_finding_splits():
+    """Regenerate quote finding train/val splits."""
+    print("=" * 80)
+    print("Regenerating Quote Finding Splits")
+    print("=" * 80)
+    print()
+
+    # Check if manual review file exists
+    manual_review_path = Path('evaluation/quote_finding_manual_review.json')
+    if not manual_review_path.exists():
+        print("⚠ Quote finding manual review file not found")
+        print(f"  Expected: {manual_review_path}")
+        print("  Skipping quote finding splits...")
+        print()
+        return
+
+    # Load manual review
+    with open(manual_review_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    examples = data['examples']
+
+    print(f"Total examples: {len(examples)}")
+    print()
+
+    # Shuffle and split 70/30
+    random.seed(42)  # For reproducibility
+    shuffled = examples.copy()
+    random.shuffle(shuffled)
+
+    split_idx = int(len(shuffled) * 0.7)
+    train = shuffled[:split_idx]
+    val = shuffled[split_idx:]
+
+    # Save splits
+    train_data = {"examples": train}
+    val_data = {"examples": val}
+
+    with open('evaluation/quote_finding_train.json', 'w', encoding='utf-8') as f:
+        json.dump(train_data, f, indent=2)
+
+    with open('evaluation/quote_finding_val.json', 'w', encoding='utf-8') as f:
+        json.dump(val_data, f, indent=2)
+
+    print(f"✓ Train set: {len(train)} examples → evaluation/quote_finding_train.json")
+    print(f"✓ Val set: {len(val)} examples → evaluation/quote_finding_val.json")
+    print()
+
+
 if __name__ == '__main__':
     regenerate_entailment_splits()
     regenerate_claims_splits()
+    regenerate_quote_finding_splits()
 
     print("=" * 80)
     print("✓ All splits regenerated successfully!")

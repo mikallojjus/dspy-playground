@@ -19,7 +19,7 @@ Usage:
 import dspy
 import time
 import asyncio
-from typing import Literal, List, Dict
+from typing import Literal, List, Dict, Any
 from pathlib import Path
 
 from src.config.settings import settings
@@ -82,9 +82,12 @@ class EntailmentValidatorModel:
 
             # Configure DSPy
             lm = dspy.LM(
-                f"ollama/{settings.ollama_model}", api_base=settings.ollama_url
+                f"ollama/{settings.ollama_model}",
+                api_base=settings.ollama_url,
+                num_ctx=settings.ollama_num_ctx
             )
             dspy.configure(lm=lm)
+            logger.info(f"Configured LM with context size: {settings.ollama_num_ctx} tokens")
 
             # Load optimized model
             self.model = dspy.ChainOfThought(EntailmentValidation)
@@ -93,8 +96,9 @@ class EntailmentValidatorModel:
 
             # Log few-shot examples
             if hasattr(self.model, "demos") and self.model.demos:
+                demos = getattr(self.model, "demos", [])
                 logger.info(
-                    f"Loaded model with {len(self.model.demos)} few-shot examples"
+                    f"Loaded model with {len(demos)} few-shot examples"
                 )
             else:
                 logger.info("Loaded model (zero-shot)")
@@ -107,9 +111,12 @@ class EntailmentValidatorModel:
 
             # Configure DSPy for baseline
             lm = dspy.LM(
-                f"ollama/{settings.ollama_model}", api_base=settings.ollama_url
+                f"ollama/{settings.ollama_model}",
+                api_base=settings.ollama_url,
+                num_ctx=settings.ollama_num_ctx
             )
             dspy.configure(lm=lm)
+            logger.info(f"Configured LM with context size: {settings.ollama_num_ctx} tokens")
 
             # Create baseline model
             self.model = dspy.ChainOfThought(EntailmentValidation)
@@ -117,7 +124,7 @@ class EntailmentValidatorModel:
 
     def validate(
         self, claim: str, quote: str, retry_count: int = 2, retry_delay: float = 2.0
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         Validate whether a quote supports a claim with retry logic for GPU errors.
 
@@ -197,7 +204,7 @@ class EntailmentValidatorModel:
 
     def validate_batch(
         self, claim_quote_pairs: List[tuple[str, str]]
-    ) -> List[Dict[str, any]]:
+    ) -> List[Dict[str, Any]]:
         """
         Validate multiple claim-quote pairs sequentially.
 
@@ -248,7 +255,7 @@ class EntailmentValidatorModel:
 
     def filter_supporting_quotes(
         self, claim: str, quotes: List[str]
-    ) -> List[tuple[str, Dict[str, any]]]:
+    ) -> List[tuple[str, Dict[str, Any]]]:
         """
         Filter quotes to keep only those that SUPPORT the claim.
 

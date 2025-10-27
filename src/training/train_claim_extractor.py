@@ -14,7 +14,9 @@ Optional arguments:
     --train-path PATH     Path to training dataset (default: evaluation/claims_positive_only.json)
     --val-path PATH       Path to validation dataset (default: evaluation/claims_val.json)
     --output PATH         Path to save model (default: models/claim_extractor_llm_judge_v1.json)
-    --max-demos INT       Max bootstrapped demos (default: 4)
+    --max-demos INT       Max bootstrapped demos (default: from settings)
+    --max-rounds INT      Max optimization rounds (default: from settings)
+    --max-errors INT      Max errors tolerated (default: from settings)
 """
 
 import dspy
@@ -28,7 +30,7 @@ from pathlib import Path
 
 # Fix encoding for Windows console
 if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stdout.reconfigure(encoding='utf-8')  # type: ignore
 
 from src.metrics_llm_judge import llm_judge_metric
 from src.config.settings import settings
@@ -105,8 +107,12 @@ def main():
                         help='Path to validation dataset (mixed good/bad)')
     parser.add_argument('--output', default='models/claim_extractor_llm_judge_v1.json',
                         help='Path to save trained model')
-    parser.add_argument('--max-demos', type=int, default=4,
-                        help='Maximum bootstrapped demos')
+    parser.add_argument('--max-demos', type=int, default=None,
+                        help='Maximum bootstrapped demos (default: from settings)')
+    parser.add_argument('--max-rounds', type=int, default=None,
+                        help='Maximum optimization rounds (default: from settings)')
+    parser.add_argument('--max-errors', type=int, default=None,
+                        help='Maximum errors tolerated (default: from settings)')
 
     args = parser.parse_args()
 
@@ -157,23 +163,32 @@ def main():
     print("Starting BootstrapFewShot Optimization")
     print("=" * 80)
     print()
+
+    max_demos = args.max_demos or settings.dspy_max_bootstrapped_demos
+    max_rounds = args.max_rounds or settings.dspy_max_rounds
+    max_labeled_demos = max_demos  # Use same value
+    max_errors = args.max_errors or settings.dspy_max_errors
+
     print(f"Configuration:")
     print(f"  Metric: LLM-as-judge (claim quality evaluation)")
-    print(f"  Max bootstrapped demos: {args.max_demos}")
-    print(f"  Max labeled demos: {args.max_demos}")
+    print(f"  Max bootstrapped demos: {max_demos}")
+    print(f"  Max labeled demos: {max_labeled_demos}")
+    print(f"  Max rounds: {max_rounds}")
+    print(f"  Max errors: {max_errors}")
     print(f"  Training on: Positive examples only ({len(trainset)} good claims)")
     print()
 
     optimizer = BootstrapFewShot(
         metric=llm_judge_metric,
-        max_bootstrapped_demos=args.max_demos,
-        max_labeled_demos=args.max_demos
+        max_bootstrapped_demos=max_demos,
+        max_labeled_demos=max_labeled_demos,
+        max_rounds=max_rounds,
+        max_errors=max_errors
     )
 
     optimized = optimizer.compile(
         baseline,
-        trainset=trainset,
-        valset=valset
+        trainset=trainset
     )
 
     print()
@@ -182,9 +197,9 @@ def main():
 
     # Evaluate optimized model
     print("Evaluating optimized model on validation set...")
-    optimized_score = evaluator(optimized)
+    optimized_score = evaluator(optimized)  # type: ignore
     print(f"Optimized quality score: {optimized_score:.3f}")
-    print(f"Improvement: {optimized_score - baseline_score:+.3f}")
+    print(f"Improvement: {optimized_score - baseline_score:+.3f}")  # type: ignore
     print()
 
     # Save model
@@ -222,7 +237,7 @@ def main():
     print()
     print(f"Baseline quality score: {baseline_score:.3f}")
     print(f"Optimized quality score: {optimized_score:.3f}")
-    print(f"Improvement: {optimized_score - baseline_score:+.3f}")
+    print(f"Improvement: {optimized_score - baseline_score:+.3f}")  # type: ignore
     print()
     print(f"Model saved to: {args.output}")
     print()
