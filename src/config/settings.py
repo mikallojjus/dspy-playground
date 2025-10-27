@@ -34,7 +34,11 @@ class Settings(BaseSettings):
     # Ollama
     ollama_url: str = Field(
         default="http://localhost:11434",
-        description="Ollama API endpoint"
+        description="Ollama API endpoint for LLM operations (qwen)"
+    )
+    ollama_embedding_url: str = Field(
+        default="http://localhost:11435",
+        description="Ollama API endpoint for embedding operations"
     )
     ollama_model: str = Field(
         default="qwen2.5:7b-instruct-q4_0",

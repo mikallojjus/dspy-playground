@@ -60,7 +60,7 @@ class EmbeddingService:
             cache_ttl_hours: Cache TTL in hours (default from settings)
             batch_size: Number of texts to process in parallel (default: 5)
         """
-        self.ollama_url = settings.ollama_url
+        self.ollama_url = settings.ollama_embedding_url
         self.model = settings.ollama_embedding_model
         self.batch_size = batch_size
 
