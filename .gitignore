@@ -15,3 +15,5 @@ wheels/
 logs/
 
 notes.md
+
+*.bk
