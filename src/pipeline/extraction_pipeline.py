@@ -37,6 +37,7 @@ from src.deduplication.quote_deduplicator import QuoteDeduplicator
 from src.deduplication.claim_deduplicator import ClaimDeduplicator, DatabaseDeduplicationResult
 from src.scoring.confidence_calculator import ConfidenceCalculator
 from src.dspy_models.entailment_validator import EntailmentValidatorModel
+from src.dspy_models.ad_classifier import AdClassifierModel
 from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
@@ -52,6 +53,8 @@ class PipelineStats:
         transcript_length: Original transcript character count
         chunks_count: Number of chunks created
         claims_extracted: Number of claims extracted (before filtering)
+        claims_after_ad_filter: Number of claims after ad filtering (if enabled)
+        ad_claims_filtered: Number of advertisement claims filtered out
         claims_after_dedup: Number of claims after deduplication
         claims_with_quotes: Number of claims that have at least one quote
         quotes_before_dedup: Number of quotes before deduplication
@@ -70,6 +73,8 @@ class PipelineStats:
     transcript_length: int
     chunks_count: int
     claims_extracted: int
+    claims_after_ad_filter: int
+    ad_claims_filtered: int
     claims_after_dedup: int
     claims_with_quotes: int
     quotes_before_dedup: int
@@ -160,6 +165,21 @@ class ExtractionPipeline:
         self.confidence_calculator = ConfidenceCalculator()
         self.entailment_validator = EntailmentValidatorModel()
 
+        # Initialize ad classifier (only if enabled and model exists)
+        self.ad_classifier = None
+        if settings.filter_advertisement_claims:
+            try:
+                self.ad_classifier = AdClassifierModel(settings.ad_classifier_model_path)
+                logger.info(
+                    f"Ad classifier enabled (threshold: {settings.ad_classification_threshold})"
+                )
+            except FileNotFoundError:
+                logger.warning(
+                    "Ad filtering enabled but model not found. "
+                    "Run src/training/train_ad_classifier.py to create model. "
+                    "Proceeding without ad filtering."
+                )
+
         logger.info("ExtractionPipeline ready")
 
     async def process_episode(
@@ -219,9 +239,10 @@ class ExtractionPipeline:
         chunks = self.chunker.chunk_text(parsed_transcript.full_text)
         logger.info(f"  ✓ Created {len(chunks)} chunks")
 
-        logger.info("Step 3/9: Extracting claims from chunks...")
+        logger.info("Step 3/13: Extracting claims from chunks...")
         claims = await self.claim_extractor.extract_from_chunks(chunks)
-        logger.info(f"  ✓ Extracted {len(claims)} claims")
+        claims_extracted_count = len(claims)  # Track original count before filtering
+        logger.info(f"  ✓ Extracted {claims_extracted_count} claims")
 
         if not claims:
             logger.warning("No claims extracted, ending pipeline")
@@ -232,7 +253,55 @@ class ExtractionPipeline:
                 time.time() - start_time
             )
 
-        logger.info("Step 4/9: Building search index...")
+        # Step 4: Filter advertisement claims (if enabled)
+        claims_after_ad_filter = claims_extracted_count
+        ad_claims_filtered = 0
+
+        if self.ad_classifier is not None:
+            logger.info("Step 4/13: Filtering advertisement claims...")
+            claim_texts = [c.claim_text for c in claims]
+
+            # Classify all claims in parallel
+            classification_results = await self.ad_classifier.classify_batch_parallel(
+                claim_texts,
+                max_concurrency=settings.max_ad_classification_concurrency
+            )
+
+            # Filter out ads above threshold
+            content_claims = []
+            for claim, result in zip(claims, classification_results):
+                is_ad = result["is_advertisement"]
+                confidence = result["confidence"]
+
+                if is_ad and confidence >= settings.ad_classification_threshold:
+                    ad_claims_filtered += 1
+                    logger.debug(
+                        f"Filtered ad claim (confidence={confidence:.2f}): "
+                        f"{claim.claim_text[:60]}..."
+                    )
+                else:
+                    content_claims.append(claim)
+
+            claims = content_claims
+            claims_after_ad_filter = len(claims)
+
+            logger.info(
+                f"  ✓ {len(claim_texts)} → {claims_after_ad_filter} claims "
+                f"({ad_claims_filtered} advertisements filtered)"
+            )
+
+            if not claims:
+                logger.warning("No claims remaining after ad filtering, ending pipeline")
+                return self._create_empty_result(
+                    episode_id,
+                    transcript_length,
+                    len(chunks),
+                    time.time() - start_time
+                )
+        else:
+            logger.info("Step 4/13: Skipping ad filtering (disabled or model not found)")
+
+        logger.info("Step 5/13: Building search index...")
         search_index = await TranscriptSearchIndex.build_from_transcript(
             parsed_transcript,
             self.embedder
@@ -433,7 +502,9 @@ class ExtractionPipeline:
             episode_id=episode_id,
             transcript_length=transcript_length,
             chunks_count=len(chunks),
-            claims_extracted=len(claims),
+            claims_extracted=claims_extracted_count,
+            claims_after_ad_filter=claims_after_ad_filter,
+            ad_claims_filtered=ad_claims_filtered,
             claims_after_dedup=len(deduplicated_claims),
             claims_with_quotes=len(claims_with_quotes),
             quotes_before_dedup=quotes_before_dedup,
@@ -596,6 +667,8 @@ class ExtractionPipeline:
             transcript_length=transcript_length,
             chunks_count=chunks_count,
             claims_extracted=0,
+            claims_after_ad_filter=0,
+            ad_claims_filtered=0,
             claims_after_dedup=0,
             claims_with_quotes=0,
             quotes_before_dedup=0,

@@ -19,121 +19,116 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore"
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
     )
 
     # Database
     database_url: str = Field(
         default="postgresql://user:password@localhost:5432/podcast_db",
-        description="PostgreSQL connection string"
+        description="PostgreSQL connection string",
     )
 
     # Ollama
     ollama_url: str = Field(
         default="http://localhost:11434",
-        description="Ollama API endpoint for LLM operations (qwen)"
+        description="Ollama API endpoint for LLM operations (qwen)",
     )
     ollama_embedding_url: str = Field(
         default="http://localhost:11435",
-        description="Ollama API endpoint for embedding operations"
+        description="Ollama API endpoint for embedding operations",
     )
     ollama_model: str = Field(
         default="qwen2.5:7b-instruct-q4_0",
-        description="LLM model for claim extraction and entailment"
+        description="LLM model for claim extraction and entailment",
     )
     ollama_embedding_model: str = Field(
-        default="nomic-embed-text",
-        description="Embedding model (768 dimensions)"
+        default="nomic-embed-text", description="Embedding model (768 dimensions)"
     )
 
     # Reranker
     enable_reranker: bool = Field(
-        default=True,
-        description="Enable reranker service for high-precision scoring"
+        default=True, description="Enable reranker service for high-precision scoring"
     )
     reranker_url: str = Field(
-        default="http://localhost:8080",
-        description="Reranker service endpoint"
+        default="http://localhost:8080", description="Reranker service endpoint"
     )
     reranker_timeout: int = Field(
-        default=5000,
-        description="Reranker request timeout in milliseconds"
+        default=5000, description="Reranker request timeout in milliseconds"
     )
 
     # Chunking
     chunk_size: int = Field(
-        default=16000,
-        description="Maximum chunk size in characters"
+        default=16000, description="Maximum chunk size in characters"
     )
     chunk_overlap: int = Field(
-        default=1000,
-        description="Overlap between chunks in characters"
+        default=1000, description="Overlap between chunks in characters"
     )
 
     # Processing (DSPy asyncify concurrency limits)
     max_claim_extraction_concurrency: int = Field(
         default=3,
-        description="Maximum concurrent claim extraction calls (DSPy asyncify)"
+        description="Maximum concurrent claim extraction calls (DSPy asyncify)",
     )
     max_entailment_concurrency: int = Field(
         default=10,
-        description="Maximum concurrent entailment validation calls (DSPy asyncify)"
+        description="Maximum concurrent entailment validation calls (DSPy asyncify)",
+    )
+    max_ad_classification_concurrency: int = Field(
+        default=10,
+        description="Maximum concurrent ad classification calls (DSPy asyncify)",
+    )
+
+    # Ad Classification
+    filter_advertisement_claims: bool = Field(
+        default=True,
+        description="Enable advertisement claim filtering in extraction pipeline",
+    )
+    ad_classifier_model_path: str = Field(
+        default="models/ad_classifier_v1.json",
+        description="Path to trained ad classification model",
+    )
+    ad_classification_threshold: float = Field(
+        default=0.7, description="Minimum confidence to classify claim as advertisement"
     )
 
     # Deduplication Thresholds
     embedding_similarity_threshold: float = Field(
-        default=0.85,
-        description="Cosine similarity threshold for claim deduplication"
+        default=0.85, description="Cosine similarity threshold for claim deduplication"
     )
     reranker_verification_threshold: float = Field(
-        default=0.9,
-        description="Reranker score threshold for duplicate verification"
+        default=0.9, description="Reranker score threshold for duplicate verification"
     )
     string_similarity_threshold: float = Field(
-        default=0.95,
-        description="Jaccard similarity threshold for quote deduplication"
+        default=0.95, description="Jaccard similarity threshold for quote deduplication"
     )
     vector_distance_threshold: float = Field(
-        default=0.15,
-        description="pgvector L2 distance threshold for database search"
+        default=0.15, description="pgvector L2 distance threshold for database search"
     )
 
     # Scoring
     min_confidence: float = Field(
-        default=0.3,
-        description="Minimum confidence score to save claims"
+        default=0.3, description="Minimum confidence score to save claims"
     )
     max_quotes_per_claim: int = Field(
-        default=10,
-        description="Maximum number of quotes to link per claim"
+        default=10, description="Maximum number of quotes to link per claim"
     )
     min_quote_relevance: float = Field(
-        default=0.85,
-        description="Minimum relevance score to link quote to claim"
+        default=0.85, description="Minimum relevance score to link quote to claim"
     )
 
     # Caching
     cache_max_size: int = Field(
-        default=10000,
-        description="Maximum number of entries in LRU caches"
+        default=10000, description="Maximum number of entries in LRU caches"
     )
     cache_ttl_hours: int = Field(
-        default=1,
-        description="Cache entry time-to-live in hours"
+        default=1, description="Cache entry time-to-live in hours"
     )
 
     # Logging
     log_level: str = Field(
-        default="INFO",
-        description="Logging level (DEBUG, INFO, WARNING, ERROR)"
+        default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR)"
     )
-    log_file: str = Field(
-        default="logs/extraction.log",
-        description="Log file path"
-    )
+    log_file: str = Field(default="logs/extraction.log", description="Log file path")
 
 
 # Global settings instance

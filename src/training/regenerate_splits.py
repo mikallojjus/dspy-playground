@@ -2,8 +2,8 @@
 Regenerate train/val splits from manual review datasets.
 
 This script:
-1. Loads entailment_manual_review.json and claims_manual_review.json
-2. Shuffles examples randomly
+1. Loads manual review datasets (entailment, claims, ad classification)
+2. Shuffles examples randomly with fixed seed for reproducibility
 3. Splits 70% train / 30% validation
 4. Saves to *_train.json and *_val.json
 
@@ -114,9 +114,56 @@ def regenerate_claims_splits():
     print()
 
 
+def regenerate_ad_splits():
+    """Regenerate ad classification train/val splits."""
+    print("=" * 80)
+    print("Regenerating Ad Classification Splits")
+    print("=" * 80)
+    print()
+
+    # Load manual review
+    with open('evaluation/ad_manual_review.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    examples = data['examples']
+
+    print(f"Total examples: {len(examples)}")
+
+    # Count distribution
+    ads = sum(1 for ex in examples if ex['is_advertisement'])
+    content = sum(1 for ex in examples if not ex['is_advertisement'])
+
+    print(f"Distribution: ADVERTISEMENT={ads}, CONTENT={content}")
+    print()
+
+    # Shuffle and split 70/30
+    random.seed(42)  # For reproducibility
+    shuffled = examples.copy()
+    random.shuffle(shuffled)
+
+    split_idx = int(len(shuffled) * 0.7)
+    train = shuffled[:split_idx]
+    val = shuffled[split_idx:]
+
+    # Save splits
+    train_data = {"examples": train}
+    val_data = {"examples": val}
+
+    with open('evaluation/ad_train.json', 'w', encoding='utf-8') as f:
+        json.dump(train_data, f, indent=2)
+
+    with open('evaluation/ad_val.json', 'w', encoding='utf-8') as f:
+        json.dump(val_data, f, indent=2)
+
+    print(f"✓ Train set: {len(train)} examples → evaluation/ad_train.json")
+    print(f"✓ Val set: {len(val)} examples → evaluation/ad_val.json")
+    print()
+
+
 if __name__ == '__main__':
     regenerate_entailment_splits()
     regenerate_claims_splits()
+    regenerate_ad_splits()
 
     print("=" * 80)
     print("✓ All splits regenerated successfully!")

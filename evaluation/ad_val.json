@@ -1,0 +1,74 @@
+{
+  "examples": [
+    {
+      "claim_text": "VPNs can help protect privacy online",
+      "is_advertisement": false,
+      "notes": "General technology benefit, not specific product"
+    },
+    {
+      "claim_text": "Metamask is a browser extension for interacting with Ethereum",
+      "is_advertisement": false,
+      "notes": "Neutral tool description"
+    },
+    {
+      "claim_text": "The podcast's theme music is by Jim Brumberg and Ben Landsberg of Wanderly",
+      "is_advertisement": true
+    },
+    {
+      "claim_text": "Vitalik Buterin proposed the Ethereum network in 2013",
+      "is_advertisement": false,
+      "notes": "Historical fact"
+    },
+    {
+      "claim_text": "Hardware wallets store private keys offline",
+      "is_advertisement": false,
+      "notes": "General technology explanation"
+    },
+    {
+      "claim_text": "Wix provides tools for creating websites with AI assistance",
+      "is_advertisement": true
+    },
+    {
+      "claim_text": "The Bitcoin halving occurs approximately every four years",
+      "is_advertisement": false,
+      "notes": "Protocol mechanism"
+    },
+    {
+      "claim_text": "If your revenues are at least in the seven figures, you can download the free ebook 'Navigating Global Trade' from netsuite.com/nyt",
+      "is_advertisement": true
+    },
+    {
+      "claim_text": "Use code BANKLESS for 20% off your first Athletic Greens order",
+      "is_advertisement": true,
+      "notes": "Explicit promo code with discount offer"
+    },
+    {
+      "claim_text": "Check out the link in the description for a special deal on Ledger devices",
+      "is_advertisement": true,
+      "notes": "Call to action for promotional link"
+    },
+    {
+      "claim_text": "This episode is sponsored by ExpressVPN - protect your online privacy today",
+      "is_advertisement": true,
+      "notes": "Sponsor mention with product pitch"
+    },
+    {
+      "claim_text": "Sign up at aave.com with code BANKLESS to get premium features",
+      "is_advertisement": true,
+      "notes": "Registration CTA with promo code"
+    },
+    {
+      "claim_text": "Since 2017, Disney has nearly doubled its spending on film and television content",
+      "is_advertisement": false
+    },
+    {
+      "claim_text": "Amazon presents a commercial for Kelly's purchase of a sleep machine weighted blanket and noise canceling earbuds to address her roommate's deviated septum",
+      "is_advertisement": true
+    },
+    {
+      "claim_text": "Crypto lending platforms offer interest on deposits",
+      "is_advertisement": false,
+      "notes": "General industry observation, not specific promotion"
+    }
+  ]
+}
