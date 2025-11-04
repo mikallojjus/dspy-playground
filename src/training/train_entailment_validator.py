@@ -136,7 +136,7 @@ def main():
     )
 
     baseline_score = evaluator(baseline)
-    baseline_score_value = float(baseline_score) if hasattr(baseline_score, '__float__') else baseline_score
+    baseline_score_value = float(baseline_score)
     print(f"Baseline score: {baseline_score_value:.3f}")
     print()
 
@@ -181,7 +181,7 @@ def main():
     # Evaluate optimized model
     print("Evaluating optimized model on validation set...")
     optimized_score = evaluator(optimized)
-    optimized_score_value = float(optimized_score) if hasattr(optimized_score, '__float__') else optimized_score
+    optimized_score_value = float(optimized_score)
     print(f"Optimized score: {optimized_score_value:.3f}")
     print(f"Improvement: {optimized_score_value - baseline_score_value:+.3f}")
     print()

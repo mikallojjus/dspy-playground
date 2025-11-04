@@ -113,16 +113,6 @@ def regenerate_claims_splits():
     print(f"✓ Val set: {len(val)} examples → evaluation/claims_val.json")
     print()
 
-    # Also create positive-only dataset for claim training
-    positive_only = [ex for ex in examples if ex['quality'] == 'good']
-    positive_data = {"examples": positive_only}
-
-    with open('evaluation/claims_positive_only.json', 'w', encoding='utf-8') as f:
-        json.dump(positive_data, f, indent=2)
-
-    print(f"✓ Positive-only set: {len(positive_only)} examples → evaluation/claims_positive_only.json")
-    print()
-
 
 if __name__ == '__main__':
     regenerate_entailment_splits()

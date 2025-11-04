@@ -11,7 +11,7 @@ Usage:
     python -m src.training.train_claim_extractor
 
 Optional arguments:
-    --train-path PATH     Path to training dataset (default: evaluation/claims_positive_only.json)
+    --train-path PATH     Path to training dataset (default: evaluation/claims_train.json)
     --val-path PATH       Path to validation dataset (default: evaluation/claims_val.json)
     --output PATH         Path to save model (default: models/claim_extractor_llm_judge_v1.json)
     --max-demos INT       Max bootstrapped demos (default: 4)
@@ -75,21 +75,6 @@ def load_dataset(filepath):
     return examples
 
 
-def load_positive_only_dataset(filepath):
-    """Load only positive (good quality) examples for training."""
-    with open(filepath, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-
-    examples = []
-    for item in data['examples']:
-        if item['quality'] == 'good':
-            example = dspy.Example(
-                transcript_chunk=item['transcript_chunk'],
-                claims=[item['claim']]
-            ).with_inputs('transcript_chunk')
-            examples.append(example)
-
-    return examples
 
 
 def print_metrics(dataset, dataset_name):
@@ -99,8 +84,8 @@ def print_metrics(dataset, dataset_name):
 
 def main():
     parser = argparse.ArgumentParser(description='Train claim extraction model')
-    parser.add_argument('--train-path', default='evaluation/claims_positive_only.json',
-                        help='Path to training dataset (positive examples only)')
+    parser.add_argument('--train-path', default='evaluation/claims_train.json',
+                        help='Path to training dataset (mixed good/bad examples)')
     parser.add_argument('--val-path', default='evaluation/claims_val.json',
                         help='Path to validation dataset (mixed good/bad)')
     parser.add_argument('--output', default='models/claim_extractor_llm_judge_v1.json',
@@ -126,11 +111,11 @@ def main():
 
     # Load datasets
     print("Loading datasets...")
-    trainset = load_positive_only_dataset(args.train_path)
+    trainset = load_dataset(args.train_path)
     valset = load_dataset(args.val_path)
     print()
 
-    print_metrics(trainset, "Training set (positive only)")
+    print_metrics(trainset, "Training set (mixed)")
     print_metrics(valset, "Validation set (mixed)")
     print()
 
@@ -149,7 +134,7 @@ def main():
     )
 
     baseline_score = evaluator(baseline)
-    baseline_score_value = float(baseline_score) if hasattr(baseline_score, '__float__') else baseline_score
+    baseline_score_value = float(baseline_score)
     print(f"Baseline quality score: {baseline_score_value:.3f}")
     print()
 
@@ -162,7 +147,7 @@ def main():
     print(f"  Metric: LLM-as-judge (claim quality evaluation)")
     print(f"  Max bootstrapped demos: {args.max_demos}")
     print(f"  Max labeled demos: {args.max_demos}")
-    print(f"  Training on: Positive examples only ({len(trainset)} good claims)")
+    print(f"  Training on: Mixed examples ({len(trainset)} examples)")
     print()
 
     optimizer = BootstrapFewShot(
@@ -183,7 +168,7 @@ def main():
     # Evaluate optimized model
     print("Evaluating optimized model on validation set...")
     optimized_score = evaluator(optimized)
-    optimized_score_value = float(optimized_score) if hasattr(optimized_score, '__float__') else optimized_score
+    optimized_score_value = float(optimized_score)
     print(f"Optimized quality score: {optimized_score_value:.3f}")
     print(f"Improvement: {optimized_score_value - baseline_score_value:+.3f}")
     print()
