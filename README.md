@@ -54,13 +54,7 @@ Before starting, ensure you have:
 
 #### **Windows**
 
-Using PowerShell:
-
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-Or using pip:
+Using pip:
 
 ```bash
 pip install uv
@@ -74,21 +68,9 @@ Using Homebrew:
 brew install uv
 ```
 
-Or using curl:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
 #### **Linux**
 
-Using curl:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-Or using pip:
+Using pip:
 
 ```bash
 pip install uv
@@ -189,28 +171,6 @@ docker-compose logs -f
 curl http://localhost:11434/api/tags  # ollama-qwen
 curl http://localhost:11435/api/tags  # ollama-embedding
 curl http://localhost:8080/health      # reranker
-```
-
-#### **GPU Support (Optional)**
-
-For GPU acceleration, ensure:
-
-1. **NVIDIA drivers** are installed
-2. **NVIDIA Container Toolkit** is installed:
-
-```bash
-# Ubuntu/Debian
-distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
-curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
-curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
-sudo apt-get update && sudo apt-get install -y nvidia-docker2
-sudo systemctl restart docker
-```
-
-3. Verify GPU is available in Docker:
-
-```bash
-docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
 ```
 
 ---
