@@ -31,6 +31,9 @@ if sys.platform == 'win32':
 
 from src.metrics.ad_metrics import ad_classification_llm_judge_metric
 from src.config.settings import settings
+from src.infrastructure.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class AdClassification(dspy.Signature):
@@ -62,11 +65,73 @@ class AdClassification(dspy.Signature):
     - "Bitcoin reached $69,000 in November 2021"
     - "Layer 2 solutions improve transaction throughput"
     - "Mike Neuder thinks the Ethereum roadmap is on track"
+
+    Output format instructions:
+    - For is_advertisement: respond with exactly "True" or "False" (case-sensitive)
+    - For confidence: respond with a decimal number between 0.0 and 1.0
     """
 
     claim_text: str = dspy.InputField(desc="The claim to classify")
-    is_advertisement: bool = dspy.OutputField(desc="True if claim is promotional content")
-    confidence: float = dspy.OutputField(desc="Classification confidence (0.0-1.0)")
+    is_advertisement: str = dspy.OutputField(desc="'True' if claim is promotional content, 'False' otherwise")
+    confidence: str = dspy.OutputField(desc="Classification confidence as string decimal (0.0-1.0)")
+
+
+class AdClassifier(dspy.Module):
+    """Wrapper module that handles string-to-typed-value parsing."""
+
+    def __init__(self):
+        super().__init__()
+        self.predictor = dspy.ChainOfThought(AdClassification)
+
+    def forward(self, claim_text):
+        # Get raw prediction with string outputs
+        raw_pred = self.predictor(claim_text=claim_text)
+
+        # Log raw outputs for debugging (only if values are None)
+        if raw_pred.is_advertisement is None or raw_pred.confidence is None:
+            logger.debug(
+                f"Raw prediction has None values: "
+                f"is_advertisement={raw_pred.is_advertisement}, "
+                f"confidence={raw_pred.confidence}"
+            )
+
+        # Parse string outputs to proper types
+        is_advertisement = self._parse_bool(raw_pred.is_advertisement)
+        confidence = self._parse_float(raw_pred.confidence)
+
+        # Return new prediction with parsed values
+        return dspy.Prediction(
+            is_advertisement=is_advertisement,
+            confidence=confidence,
+            reasoning=raw_pred.reasoning if hasattr(raw_pred, 'reasoning') else None
+        )
+
+    def _parse_bool(self, value):
+        """Parse string to bool, with fallback."""
+        if value is None:
+            logger.warning("is_advertisement is None, defaulting to False")
+            return False
+
+        value_str = str(value).strip().lower()
+        if value_str in ['true', '1', 'yes']:
+            return True
+        elif value_str in ['false', '0', 'no']:
+            return False
+        else:
+            logger.warning(f"Could not parse bool from '{value}', defaulting to False")
+            return False
+
+    def _parse_float(self, value):
+        """Parse string to float, with fallback."""
+        if value is None:
+            logger.warning("confidence is None, defaulting to 0.5")
+            return 0.5
+
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            logger.warning(f"Could not parse float from '{value}', defaulting to 0.5")
+            return 0.5
 
 
 def load_dataset(filepath):
@@ -134,7 +199,7 @@ def main():
 
     # Create baseline model
     print("Creating baseline model (zero-shot)...")
-    baseline = dspy.ChainOfThought(AdClassification)
+    baseline = AdClassifier()
     print()
 
     # Evaluate baseline

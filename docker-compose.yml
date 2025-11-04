@@ -31,7 +31,7 @@ services:
     image: ollama/ollama:latest
     container_name: ollama-embedding
     ports:
-      - "11435:11434"  # Different host port, same container port
+      - "11435:11434" 
     volumes:
       - ollama-embedding-data:/root/.ollama
     environment:

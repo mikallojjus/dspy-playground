@@ -52,11 +52,66 @@ class AdClassification(dspy.Signature):
     - "Bitcoin reached $69,000 in November 2021"
     - "Layer 2 solutions improve transaction throughput"
     - "Mike Neuder thinks the Ethereum roadmap is on track"
+
+    Output format instructions:
+    - For is_advertisement: respond with exactly "True" or "False" (case-sensitive)
+    - For confidence: respond with a decimal number between 0.0 and 1.0
     """
 
     claim_text: str = dspy.InputField(desc="The claim to classify")
-    is_advertisement: bool = dspy.OutputField(desc="True if claim is promotional content")
-    confidence: float = dspy.OutputField(desc="Classification confidence (0.0-1.0)")
+    is_advertisement: str = dspy.OutputField(desc="'True' if claim is promotional content, 'False' otherwise")
+    confidence: str = dspy.OutputField(desc="Classification confidence as string decimal (0.0-1.0)")
+
+
+class AdClassifier(dspy.Module):
+    """
+    Wrapper module that handles string-to-typed-value parsing.
+
+    This matches the training structure in train_ad_classifier.py,
+    allowing the model to be loaded correctly.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.predictor = dspy.ChainOfThought(AdClassification)
+
+    def forward(self, claim_text):
+        # Get raw prediction with string outputs
+        raw_pred = self.predictor(claim_text=claim_text)
+
+        # Parse string outputs to proper types
+        is_advertisement = self._parse_bool(raw_pred.is_advertisement)
+        confidence = self._parse_float(raw_pred.confidence)
+
+        # Return new prediction with parsed values
+        return dspy.Prediction(
+            is_advertisement=is_advertisement,
+            confidence=confidence,
+            reasoning=raw_pred.reasoning if hasattr(raw_pred, 'reasoning') else None
+        )
+
+    def _parse_bool(self, value):
+        """Parse string to bool, with fallback."""
+        if value is None:
+            return False
+
+        value_str = str(value).strip().lower()
+        if value_str in ['true', '1', 'yes']:
+            return True
+        elif value_str in ['false', '0', 'no']:
+            return False
+        else:
+            return False
+
+    def _parse_float(self, value):
+        """Parse string to float, with fallback."""
+        if value is None:
+            return 0.5
+
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return 0.5
 
 
 class AdClassifierModel:
@@ -70,17 +125,20 @@ class AdClassifierModel:
         model: DSPy ChainOfThought module with few-shot examples
     """
 
-    def __init__(self, model_path: str = "models/ad_classifier_v1.json"):
+    def __init__(self, model_path: str = None):
         """
         Initialize the ad classifier model.
 
         Args:
-            model_path: Path to the optimized DSPy model file
+            model_path: Path to the optimized DSPy model file (default from settings)
 
         Raises:
             FileNotFoundError: If model file doesn't exist
             Exception: If DSPy configuration fails
         """
+        if model_path is None:
+            model_path = settings.ad_classifier_model_path
+
         self.model_path = Path(model_path)
 
         if not self.model_path.exists():
@@ -97,14 +155,14 @@ class AdClassifierModel:
         )
         dspy.configure(lm=lm)
 
-        # Load optimized model
+        # Load optimized model (must use AdClassifier wrapper to match training structure)
         logger.info(f"Loading optimized ad classifier from {model_path}")
-        self.model = dspy.ChainOfThought(AdClassification)
+        self.model = AdClassifier()
         self.model.load(str(self.model_path))
 
         # Log few-shot examples count
-        if hasattr(self.model, 'demos') and self.model.demos:
-            logger.info(f"Loaded model with {len(self.model.demos)} few-shot examples")
+        if hasattr(self.model.predictor, 'demos') and self.model.predictor.demos:
+            logger.info(f"Loaded model with {len(self.model.predictor.demos)} few-shot examples")
         else:
             logger.info("Loaded model (zero-shot)")
 

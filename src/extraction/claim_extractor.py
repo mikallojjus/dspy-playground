@@ -68,13 +68,16 @@ class ClaimExtractor:
         ```
     """
 
-    def __init__(self, model_path: str = "models/claim_extractor_llm_judge_v1.json"):
+    def __init__(self, model_path: str = None):
         """
         Initialize the claim extractor.
 
         Args:
-            model_path: Path to optimized DSPy model file
+            model_path: Path to optimized DSPy model file (default from settings)
         """
+        if model_path is None:
+            model_path = settings.claim_extractor_model_path
+
         logger.info("Initializing ClaimExtractor with optimized DSPy model")
 
         # Load DSPy model

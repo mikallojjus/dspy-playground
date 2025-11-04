@@ -115,7 +115,7 @@ class ClaimExtractorModel:
         """
         try:
             result = self.model(transcript_chunk=transcript_chunk)
-            claims = result.claims if hasattr(result, 'claims') else []
+            claims = getattr(result, 'claims', None) or []
 
             logger.debug(f"Extracted {len(claims)} claims from chunk ({len(transcript_chunk)} chars)")
 
@@ -155,7 +155,7 @@ class ClaimExtractorModel:
         """
         try:
             result = await self._async_model(transcript_chunk=transcript_chunk)
-            claims = result.claims if hasattr(result, 'claims') else []
+            claims = getattr(result, 'claims', None) or []
 
             logger.debug(f"Extracted {len(claims)} claims from chunk ({len(transcript_chunk)} chars)")
 

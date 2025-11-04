@@ -135,7 +135,13 @@ def ad_classification_llm_judge_metric(example, pred, trace=None) -> float:
     predicted_is_ad = pred.is_advertisement if hasattr(pred, 'is_advertisement') else None
 
     if predicted_is_ad is None:
-        logger.warning("Prediction missing 'is_advertisement' field")
+        # Log raw LLM output to debug parsing issues
+        raw_completions = pred.completions if hasattr(pred, 'completions') else None
+        logger.warning(
+            f"Prediction missing 'is_advertisement' field. "
+            f"Pred object: {pred}. "
+            f"Raw completions: {raw_completions}"
+        )
         return 0.0
 
     # Create judge

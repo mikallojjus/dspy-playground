@@ -60,12 +60,12 @@ class EntailmentValidatorModel:
         optimized: Whether using optimized model (True) or baseline (False)
     """
 
-    def __init__(self, model_path: str = "models/entailment_validator_v1.json"):
+    def __init__(self, model_path: str = None):
         """
         Initialize the entailment validator.
 
         Args:
-            model_path: Path to the optimized DSPy model
+            model_path: Path to the optimized DSPy model (default from settings)
 
         Example:
             ```python
@@ -74,6 +74,9 @@ class EntailmentValidatorModel:
             print(result["relationship"])  # "SUPPORTS"
             ```
         """
+        if model_path is None:
+            model_path = settings.entailment_validator_model_path
+
         self.model_path = Path(model_path)
 
         # Check if optimized model exists
@@ -158,7 +161,7 @@ class EntailmentValidatorModel:
                     "reasoning": result.reasoning,
                     "confidence": (
                         float(result.confidence)
-                        if hasattr(result, "confidence")
+                        if hasattr(result, "confidence") and result.confidence is not None
                         else 0.8
                     ),
                 }
@@ -244,7 +247,7 @@ class EntailmentValidatorModel:
                 "reasoning": result.reasoning,
                 "confidence": (
                     float(result.confidence)
-                    if hasattr(result, "confidence")
+                    if hasattr(result, "confidence") and result.confidence is not None
                     else 0.8
                 ),
             }

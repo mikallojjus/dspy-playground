@@ -15,32 +15,36 @@
       "is_advertisement": true
     },
     {
-      "claim_text": "Vitalik Buterin proposed the Ethereum network in 2013",
+      "claim_text": "Mike Neuder believes the Ethereum roadmap is on track",
       "is_advertisement": false,
-      "notes": "Historical fact"
+      "notes": "Guest opinion about technology"
     },
     {
-      "claim_text": "Hardware wallets store private keys offline",
+      "claim_text": "Ledger is a company that makes hardware wallets",
       "is_advertisement": false,
-      "notes": "General technology explanation"
+      "notes": "Neutral company description, not promotional"
     },
     {
       "claim_text": "Wix provides tools for creating websites with AI assistance",
       "is_advertisement": true
     },
     {
-      "claim_text": "The Bitcoin halving occurs approximately every four years",
+      "claim_text": "Smart contracts on Ethereum are executed by the Ethereum Virtual Machine",
       "is_advertisement": false,
-      "notes": "Protocol mechanism"
+      "notes": "Technical fact"
     },
     {
       "claim_text": "If your revenues are at least in the seven figures, you can download the free ebook 'Navigating Global Trade' from netsuite.com/nyt",
       "is_advertisement": true
     },
     {
-      "claim_text": "Use code BANKLESS for 20% off your first Athletic Greens order",
+      "claim_text": "The podcast has a new YouTube channel at subscribe@youtube.com slash aty. The Interview podcast",
+      "is_advertisement": true
+    },
+    {
+      "claim_text": "Ledger hardware wallets support over 5,500 cryptocurrencies",
       "is_advertisement": true,
-      "notes": "Explicit promo code with discount offer"
+      "notes": "Product specification from sponsor segment"
     },
     {
       "claim_text": "Check out the link in the description for a special deal on Ledger devices",
@@ -48,14 +52,9 @@
       "notes": "Call to action for promotional link"
     },
     {
-      "claim_text": "This episode is sponsored by ExpressVPN - protect your online privacy today",
+      "claim_text": "Try Nexo today and earn up to 16% interest on your crypto deposits",
       "is_advertisement": true,
-      "notes": "Sponsor mention with product pitch"
-    },
-    {
-      "claim_text": "Sign up at aave.com with code BANKLESS to get premium features",
-      "is_advertisement": true,
-      "notes": "Registration CTA with promo code"
+      "notes": "Call to action with promotional rate"
     },
     {
       "claim_text": "Since 2017, Disney has nearly doubled its spending on film and television content",
@@ -66,9 +65,9 @@
       "is_advertisement": true
     },
     {
-      "claim_text": "Crypto lending platforms offer interest on deposits",
+      "claim_text": "Athletic Greens was founded in 2010",
       "is_advertisement": false,
-      "notes": "General industry observation, not specific promotion"
+      "notes": "Historical fact about company, not promotional"
     }
   ]
 }

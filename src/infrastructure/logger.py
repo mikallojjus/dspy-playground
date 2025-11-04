@@ -19,27 +19,37 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-
-# ANSI color codes for console output
-COLORS = {
-    "DEBUG": "\033[36m",  # Cyan
-    "INFO": "\033[32m",  # Green
-    "WARNING": "\033[33m",  # Yellow
-    "ERROR": "\033[31m",  # Red
-    "CRITICAL": "\033[35m",  # Magenta
-}
-RESET = "\033[0m"
+from rich.logging import RichHandler
+from rich.console import Console
 
 
-class ColoredFormatter(logging.Formatter):
-    """Custom formatter with colors for console output."""
+# Shared console instance for coordinating rich output (Progress, logging, etc.)
+# This ensures all rich components write to the same console and don't overlap
+_shared_console = Console()
 
-    def format(self, record: logging.LogRecord) -> str:
-        """Format log record with colors for console."""
-        levelname = record.levelname
-        if levelname in COLORS:
-            record.levelname = f"{COLORS[levelname]}{levelname}{RESET}"
-        return super().format(record)
+
+def get_shared_console() -> Console:
+    """
+    Get the shared Console instance used by logger and other rich components.
+
+    This should be used by Progress bars and other rich displays to ensure
+    proper coordination with logging output.
+
+    Returns:
+        Shared Console instance
+
+    Example:
+        ```python
+        from src.infrastructure.logger import get_shared_console
+        from rich.progress import Progress
+
+        console = get_shared_console()
+        with Progress(console=console) as progress:
+            # Progress bar and logging are now coordinated
+            task = progress.add_task("Processing...")
+        ```
+    """
+    return _shared_console
 
 
 # Initialize logging on module import
@@ -79,13 +89,18 @@ def _init_logging():
     file_handler.setFormatter(file_formatter)
     root_logger.addHandler(file_handler)
 
-    # Console handler - same level as file handler
-    console_formatter = ColoredFormatter(
-        fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s", datefmt="%H:%M:%S"
+    # Console handler - use RichHandler with shared console to coordinate with rich Progress displays
+    console_handler = RichHandler(
+        level=configured_level,
+        console=_shared_console,  # Use shared console for coordination
+        show_time=True,
+        show_level=True,
+        show_path=True,
+        markup=False,
+        rich_tracebacks=True,
+        tracebacks_show_locals=False,
     )
-    console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(configured_level)
-    console_handler.setFormatter(console_formatter)
     root_logger.addHandler(console_handler)
 
     # Log initialization

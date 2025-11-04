@@ -91,6 +91,16 @@ class Settings(BaseSettings):
         default=0.7, description="Minimum confidence to classify claim as advertisement"
     )
 
+    # DSPy Model Paths
+    claim_extractor_model_path: str = Field(
+        default="models/claim_extractor_llm_judge_v1.json",
+        description="Path to trained claim extraction model",
+    )
+    entailment_validator_model_path: str = Field(
+        default="models/entailment_validator_v1.json",
+        description="Path to trained entailment validation model",
+    )
+
     # Deduplication Thresholds
     embedding_similarity_threshold: float = Field(
         default=0.85, description="Cosine similarity threshold for claim deduplication"
@@ -129,6 +139,16 @@ class Settings(BaseSettings):
         default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR)"
     )
     log_file: str = Field(default="logs/extraction.log", description="Log file path")
+
+    # MIPROv2 Optimization (optional cloud model for instruction proposal)
+    mipro_prompt_model: str | None = Field(
+        default=None,
+        description="Anthropic model for MIPROv2 instruction proposal (e.g., 'anthropic/claude-3-5-sonnet-20241022')"
+    )
+    anthropic_api_key: str | None = Field(
+        default=None,
+        description="Anthropic API key for Claude models"
+    )
 
 
 # Global settings instance

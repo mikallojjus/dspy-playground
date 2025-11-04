@@ -68,6 +68,43 @@ class EpisodeQueryService:
         if self._owns_session and hasattr(self, "session"):
             self.session.close()
 
+    def get_episode_by_id(self, episode_id: int) -> Optional[PodcastEpisode]:
+        """
+        Get a specific episode by ID.
+
+        Args:
+            episode_id: Episode ID to fetch
+
+        Returns:
+            PodcastEpisode object or None if not found
+
+        Raises:
+            ValueError: If episode doesn't have a transcript
+
+        Example:
+            ```python
+            episode = service.get_episode_by_id(123)
+            if episode:
+                print(f"Found: {episode.name}")
+            ```
+        """
+        logger.info(f"Fetching episode {episode_id}")
+
+        episode = self.session.query(PodcastEpisode).filter(
+            PodcastEpisode.id == episode_id
+        ).first()
+
+        if episode is None:
+            logger.error(f"Episode {episode_id} not found")
+            return None
+
+        if episode.transcript is None:
+            logger.error(f"Episode {episode_id} has no transcript")
+            raise ValueError(f"Episode {episode_id} has no transcript")
+
+        logger.info(f"Found episode {episode_id}: {episode.name}")
+        return episode
+
     def get_episodes_to_process(
         self, podcast_id: Optional[int] = None, limit: int = 0, force: bool = False
     ) -> List[PodcastEpisode]:

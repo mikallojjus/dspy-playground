@@ -8,8 +8,11 @@ Usage:
     # Process all podcasts, all unprocessed episodes
     uv run python -m src.cli.process_episodes
 
+    # Process specific episode by ID
+    uv run python -m src.cli.process_episodes --episode-id 123
+
     # Process specific podcast, limit to 5 episodes
-    uv run python -m src.cli.process_episodes --podcast-id 123 --limit 5
+    uv run python -m src.cli.process_episodes --podcast-id 9 --limit 5
 
     # Continue processing on errors
     uv run python -m src.cli.process_episodes --continue-on-error
@@ -18,6 +21,9 @@ Usage:
     uv run python -m src.cli.process_episodes --force
 
 Examples:
+    # Process a specific episode
+    uv run python -m src.cli.process_episodes --episode-id 456
+
     # Process latest 10 episodes from Bankless podcast
     uv run python -m src.cli.process_episodes --podcast-id 1 --limit 10
 
@@ -48,10 +54,10 @@ from rich import box
 from src.pipeline.extraction_pipeline import ExtractionPipeline, PipelineResult
 from src.cli.episode_query import EpisodeQueryService
 from src.database.models import PodcastEpisode
-from src.infrastructure.logger import get_logger
+from src.infrastructure.logger import get_logger, get_shared_console
 
 logger = get_logger(__name__)
-console = Console()
+console = get_shared_console()  # Use shared console to coordinate with logging
 
 
 @dataclass
@@ -84,6 +90,9 @@ Examples:
   # Process all podcasts, all unprocessed episodes
   %(prog)s
 
+  # Process a specific episode by ID
+  %(prog)s --episode-id 456
+
   # Process specific podcast, limit to 5 episodes
   %(prog)s --podcast-id 123 --limit 5
 
@@ -103,6 +112,13 @@ Examples:
         type=int,
         default=None,
         help="Process episodes from specific podcast ID (default: all podcasts)"
+    )
+
+    parser.add_argument(
+        "--episode-id",
+        type=int,
+        default=None,
+        help="Process a specific episode by ID (overrides --podcast-id and --limit)"
     )
 
     parser.add_argument(
@@ -136,6 +152,7 @@ Examples:
 def display_summary(
     episodes: List[PodcastEpisode],
     podcast_id: Optional[int],
+    episode_id: Optional[int],
     force: bool
 ):
     """Display processing summary before starting."""
@@ -146,10 +163,14 @@ def display_summary(
     table.add_column("Setting", style="cyan")
     table.add_column("Value", style="green")
 
-    table.add_row("Podcast ID", str(podcast_id) if podcast_id else "All podcasts")
+    if episode_id is not None:
+        table.add_row("Episode ID", str(episode_id))
+    else:
+        table.add_row("Podcast ID", str(podcast_id) if podcast_id else "All podcasts")
+        table.add_row("Order", "Newest first")
+
     table.add_row("Episodes to process", str(len(episodes)))
     table.add_row("Mode", "Reprocess all" if force else "Skip processed")
-    table.add_row("Order", "Newest first")
 
     console.print(table)
     console.print()
@@ -391,14 +412,27 @@ async def main():
 
     # Get episodes to process
     console.print("[cyan]Querying episodes...[/cyan]")
-    episodes = query_service.get_episodes_to_process(
-        podcast_id=args.podcast_id,
-        limit=args.limit,
-        force=args.force
-    )
+
+    # If episode_id is specified, process that specific episode
+    if args.episode_id is not None:
+        try:
+            episode = query_service.get_episode_by_id(args.episode_id)
+            if episode is None:
+                console.print(f"[bold red]Error: Episode {args.episode_id} not found[/bold red]")
+                return 1
+            episodes = [episode]
+        except ValueError as e:
+            console.print(f"[bold red]Error: {e}[/bold red]")
+            return 1
+    else:
+        episodes = query_service.get_episodes_to_process(
+            podcast_id=args.podcast_id,
+            limit=args.limit,
+            force=args.force
+        )
 
     # Display summary
-    should_continue = display_summary(episodes, args.podcast_id, args.force)
+    should_continue = display_summary(episodes, args.podcast_id, args.episode_id, args.force)
     if not should_continue:
         return 0
 

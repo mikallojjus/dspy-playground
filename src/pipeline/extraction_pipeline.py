@@ -169,7 +169,7 @@ class ExtractionPipeline:
         self.ad_classifier = None
         if settings.filter_advertisement_claims:
             try:
-                self.ad_classifier = AdClassifierModel(settings.ad_classifier_model_path)
+                self.ad_classifier = AdClassifierModel()
                 logger.info(
                     f"Ad classifier enabled (threshold: {settings.ad_classification_threshold})"
                 )
@@ -379,7 +379,6 @@ class ExtractionPipeline:
         logger.info(f"  ✓ Calculated confidence for {len(deduplicated_claims)} claims")
 
         logger.info("Step 10/13: Filtering low-confidence claims...")
-        from src.config.settings import settings
         high_confidence_claims = [
             c for c in deduplicated_claims
             if c.confidence >= settings.min_confidence
