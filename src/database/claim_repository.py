@@ -299,7 +299,7 @@ class ClaimRepository:
                     quote_id=quote_id,
                     relevance_score=quote_obj.relevance_score,
                     match_confidence=quote_obj.relevance_score,
-                    match_type="reranked_crossepisode",
+                    match_type="cross_ep_rerank",
                     entailment_score=quote_obj.entailment_score,
                     entailment_relationship=quote_obj.entailment_relationship
                 )

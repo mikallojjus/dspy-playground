@@ -149,7 +149,8 @@ def main():
     )
 
     baseline_score = evaluator(baseline)
-    print(f"Baseline quality score: {baseline_score:.3f}")
+    baseline_score_value = float(baseline_score) if hasattr(baseline_score, '__float__') else baseline_score
+    print(f"Baseline quality score: {baseline_score_value:.3f}")
     print()
 
     # Optimize with BootstrapFewShot
@@ -172,8 +173,7 @@ def main():
 
     optimized = optimizer.compile(
         baseline,
-        trainset=trainset,
-        valset=valset
+        trainset=trainset
     )
 
     print()
@@ -183,8 +183,9 @@ def main():
     # Evaluate optimized model
     print("Evaluating optimized model on validation set...")
     optimized_score = evaluator(optimized)
-    print(f"Optimized quality score: {optimized_score:.3f}")
-    print(f"Improvement: {optimized_score - baseline_score:+.3f}")
+    optimized_score_value = float(optimized_score) if hasattr(optimized_score, '__float__') else optimized_score
+    print(f"Optimized quality score: {optimized_score_value:.3f}")
+    print(f"Improvement: {optimized_score_value - baseline_score_value:+.3f}")
     print()
 
     # Save model
@@ -220,18 +221,18 @@ def main():
     print("Training Summary")
     print("=" * 80)
     print()
-    print(f"Baseline quality score: {baseline_score:.3f}")
-    print(f"Optimized quality score: {optimized_score:.3f}")
-    print(f"Improvement: {optimized_score - baseline_score:+.3f}")
+    print(f"Baseline quality score: {baseline_score_value:.3f}")
+    print(f"Optimized quality score: {optimized_score_value:.3f}")
+    print(f"Improvement: {optimized_score_value - baseline_score_value:+.3f}")
     print()
     print(f"Model saved to: {args.output}")
     print()
 
     # Check if we met goals
-    if optimized_score > 0.85:
+    if optimized_score_value > 0.85:
         print("✓ Goal achieved: Quality score > 0.85")
     else:
-        print(f"⚠ Goal not met: Quality score {optimized_score:.3f} (target: >0.85)")
+        print(f"⚠ Goal not met: Quality score {optimized_score_value:.3f} (target: >0.85)")
 
     print()
 

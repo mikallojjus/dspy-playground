@@ -2,111 +2,10 @@
   "examples": [
     {
       "episode_id": null,
-      "transcript_chunk": "Cancer screenings, surgeries needed to be rescheduled. It was difficult to get care for certain individuals who were having heart attacks because there were so much pressure on the emergency 9 1 1 dispatch system. Even my, and within my hospital, we had to dedicate a new ward specifically for patients with lung issues, mostly related to COVID-19.",
-      "claim": "During the first wave of COVID-19, hospitals and emergency rooms were overwhelmed, elective care was rescheduled, and there was pressure on the dispatch system.",
+      "transcript_chunk": "Circle\u2019s USD Coin (USDC) has managed to stay in operation in the EU after gaining approval to roll out a euro-pegged stablecoin, EURC. In addition, Circle scaled back USDC offerings in the region due to MiCA, with some EU exchanges also delisting USDC.",
+      "claim": "Circle has received MiCA approval and issues its euro-pegged stablecoin EURC but has scaled back operations of its USD-pegged USDC in the EU",
       "quality": "good",
-      "issues": [],
-      "notes": "Factual, specific description of COVID-19 impact on healthcare"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "And agriculture also has all these other problems, right? It's, it uses 70% of our fresh water. It's the leading driver of water pollution and deforestation and wetlands, drainage.",
-      "claim": "Agriculture uses 70% of the world's fresh water.",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific statistic, verifiable"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "DeFi is revolutionary, man. It's changing everything. Like, this is the future of finance. Everyone's talking about it.",
-      "claim": "DeFi is revolutionary",
-      "quality": "bad",
-      "issues": [
-        "vague",
-        "opinion"
-      ],
-      "notes": "Generic opinion without specific facts, metrics, or concrete examples"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "It became left verse right, which then ended up flipping, interestingly enough, because when the pandemic first started and the vaccine was being developed, this was operation warp speed headed by President Trump. Then we saw a few years later, as mandates were being forced perhaps where they didn't need to be, where recommendations were being made about boosters that weren't a hundred percent accurate. We started seeing a flipping of the left and right parties.",
-      "claim": "President Trump headed Operation Warp Speed",
-      "quality": "good",
-      "issues": [],
-      "notes": "Clear factual statement - names the person and the program"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "NFTs are interesting. Some people think they're the future of art and digital ownership. Others think it's all a fad. Time will tell.",
-      "claim": "NFTs are interesting",
-      "quality": "bad",
-      "issues": [
-        "vague",
-        "opinion"
-      ],
-      "notes": "Completely vague - 'interesting' is subjective and provides no factual information"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "It has, as we stated in the article, about a $40 billion budget, which is 1% of, of the federal budget. And it does a lot of great work when people like Mr. Musk say, Hey, we've gotta feed it into the wood chipper and get rid of it. What they're talking about is aid and assistance and democracy building and disease prevention and infrastructure creation in all of the nations where U-S-A-I-D is located.",
-      "claim": "USAID has a $40 billion budget, which is 1% of the federal budget",
-      "quality": "good",
-      "issues": [],
-      "notes": "Specific financial figures, factual"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "Layer 2 solutions are important for scaling Ethereum. They help reduce gas fees and make transactions faster. Everyone's building on Layer 2 now.",
-      "claim": "Layer 2 solutions are important",
-      "quality": "bad",
-      "issues": [
-        "vague",
-        "generic"
-      ],
-      "notes": "Generic statement - no specific solutions named, no metrics provided"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "Bitcoin's price is volatile. It goes up and down all the time. That's just how crypto works.",
-      "claim": "Bitcoin is volatile",
-      "quality": "bad",
-      "issues": [
-        "vague",
-        "generic"
-      ],
-      "notes": "Generic truism - no specific volatility metrics, timeframes, or data"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "So, you know, he, he had this, he had this charge and he had actually come, he's been in the US for 12 years. He had come in 2013, he had applied for asylum. It was denied, but they sort of let him out to do these yearly ice check-ins.",
-      "claim": "He applied for asylum, which was denied",
-      "quality": "bad",
-      "issues": [
-        "pronoun",
-        "missing_context"
-      ],
-      "notes": "Who is 'he'? No subject identified"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "And there was a mantra that was born about at that time from our channel called Stay Alert, not anxious. Because I saw even for myself, how easy it is to become anxious given the fact that we have this new virus, it's spreading so rapidly, there's information that's spreading rapidly that could be true or untrue. Everyone was confused.",
-      "claim": "There was a mantra called 'Stay Alert, not anxious' during the pandemic.",
-      "quality": "bad",
-      "issues": [
-        "vague",
-        "missing_context"
-      ],
-      "notes": "Vague, useless claim - unclear significance and which channel/organization created it"
-    },
-    {
-      "episode_id": null,
-      "transcript_chunk": "Quince has closet staples you'll want to reach for over and over like cozy, cashmere and cotton sweaters for just under $50. Breathable, flow knit polos and comfortable lightweight pants that somehow work for both Weekend hangs and dressed up dinners. Best part, everything with Quince is half the cost of similar brands by working directly with top artisans and cutting out the middleman.",
-      "claim": "Quince offers high-quality basics for a fraction of the cost compared to similar brands",
-      "quality": "bad",
-      "issues": [
-        "advertisement"
-      ],
-      "notes": "This is an ad - commercial content, not factual claim worthy of extraction"
+      "issues": []
     },
     {
       "episode_id": null,
@@ -121,14 +20,813 @@
     },
     {
       "episode_id": null,
-      "transcript_chunk": "You should do your own research before investing in crypto. Never invest more than you can afford to lose. This is not financial advice.",
-      "claim": "You should do your own research",
+      "transcript_chunk": "Rathi oversaw the introduction of the consumer duty as well as initiating the advice guidance boundary review and now looking to streamline the FCA\u2019s handbook",
+      "claim": "The FCA, under Nikhil Rathi\u2019s leadership, introduced the consumer duty, initiated the advice guidance boundary review, and began work on streamlining its regulatory handbook",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "A companion bill, SB1373, which would authorize the state treasurer to allocate up to 10% of Arizona\u2019s rainy-day fund into digital assets like Bitcoin, has not yet reached a final vote.",
+      "claim": "A companion bill SB1373 to vetoed Bill 1025, which would authorize the Arizona state to invest up to 10% of the rainy-day fund in digital assets such as Bitcoin, has been advancing through committee but has not yet received final legislative approval",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "What people are missing about the SBR is that it\u2019s not implemented only via executive action or via legislation\u2026 we want both. The executive action clears the political lane and tells Congress this is a priority,\u201d Bailey stated",
+      "claim": "Industry leaders view Trump\u2019s executive order as a stepping stone for congressional Bitcoin legislation. The Bitcoin Act, if passed, would solidify Bitcoin as part of U.S. financial policy, marking a significant shift in the federal approach to digital assets.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "\u201cThe DS will be interoperable with other payment systems, allowing users to receive or pay in digital shekel even if the other party to the payment does not use the digital shekel.\u201d",
+      "claim": "The Bank of Israel intends to design the digital shekel as programmable and interoperable with existing payment systems and digital asset networks.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The exploit was detected within 16 minutes and 45 seconds by multiple security monitoring systems, including CertiK, Phalcon, and others.",
+      "claim": "The $12 million exploit on Cork Protocol was detected within 16 minutes and 45 seconds by multiple blockchain security platforms including CertiK and Phalcon.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "On Monday, the startup announced that it had raised $30 million in a Series B funding round led by Bain Capital Crypto. Other investors included Sequoia Capital, Lightspeed Faction, Galaxy Ventures,  Wintermute, and Variant.",
+      "claim": "Turnkey, a New-York based crypto wallet infrastructure company announced it had raised $30 million in a Series B funding round on June 9, 2025.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Blockworks founder Jason Yanowitz noted that Trump's appearance marked the first time a sitting president has spoken to a crypto conference",
+      "claim": "President Donald Trump addressed the Blockworks Digital Asset Summit in a pre-recorded statement",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "\u2018Critics think mining is wasteful because they don\u2019t believe bitcoin has value,\u2019 Rochard said. \u2018But it\u2019s about monetary sovereignty \u2014 the ability to control your own money.\u2019",
+      "claim": "Pierre Rochard emphasized Bitcoin\u2019s role as a tool for monetary sovereignty and a legitimate global macro asset, framing it as core financial infrastructure rather than a speculative novelty.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Maxine Waters, the ranking Democrat on the committee who'd demanding this extracurricular hearing after the panel met earlier in the week on the same topic, pointed to Trump's various crypto efforts in her opening statement, saying her goal was to stop Trump from profiting off of his crypto ventures to the extent he has been.",
+      "claim": "Maxine Waters, the Democrat on the House Financial Services Committee, criticized the Republican-led Digital asset market structure bill, the Clarity Act, for excluding provisions that would bar President Donald Trump from profiting off of his crypto ventures while in office",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Since President Trump returned to office, the regulator has adopted a softer approach to the industry, dropping a number of high-profile lawsuits and probes.",
+      "claim": "The SEC\u2019s withdrawal of its lawsuit against Binance in May 2025 reflects a broader policy shift under the Trump administration, which has led to the dismissal of multiple high-profile crypto enforcement cases initiated in previous years.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Consensys\u2019 SERVO, a solution designed to defend users against maximum extractable value (MEV) attacks.",
+      "claim": "Consensys\u2019 SERVO is a maximum extractable value (MEV) protection system designed to safeguard users from front-running and other malicious strategies used by MEV bots",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "US State Wyoming is Launching its Own Stablecoin Called WYST",
+      "claim": "LayerZero is a prominent interoperability protocol, and it will issue Wyoming\u2019s proposed stablecoin. The state is weighing nine potential blockchains, including Solana, Ethereum, and Polygon, to host it.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "his marks a pivotal moment for Pakistan. We\u2019re sending a clear signal that Pakistan welcomes innovation and is serious about building a future-ready digital economy.",
+      "claim": "Finance Minister Muhammad Aurangzeb described CZ\u2019s appointment as a pivotal moment that signals Pakistan\u2019s commitment to innovation and building a future-ready digital economy",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Expanding into equities is a natural step for us and paves the way for the tokenization of assets.",
+      "claim": "Kraken\u2019s move into equities trading is a strategic step toward asset tokenization and complements its acquisition of NinjaTrader and IPO ambitions.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Phala, a Polkadot-based parachain and computation platform, has launched a new Layer 2 network on Ethereum. The launch took place in collaboration with infrastructure providers Succinct Labs and Conduit.",
+      "claim": "Polkadot-based parachain and computation platform Phala Network launched an Op-Succinct Layer 2 rollup on Ethereum in partnership with Succinct Labs and Conduit",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "NFTs are interesting. Some people think they're the future of art and digital ownership. Others think it's all a fad. Time will tell.",
+      "claim": "NFTs are interesting",
       "quality": "bad",
       "issues": [
-        "advice",
-        "generic"
+        "vague",
+        "opinion"
       ],
-      "notes": "Generic advice, not a factual claim - common disclaimer language"
+      "notes": "Completely vague - 'interesting' is subjective and provides no factual information"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The proposal was introduced by Synonym CEO John Carvalho last month and is known as BIP 177.",
+      "claim": "BIP 177 is a Bitcoin Improvement Proposal introduced by Synonym CEO John Carvalho that seeks to replace the satoshi denomination with a new unit called \u201cbits\u201d.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Acting Chairman Caroline Pham and Commissioner Kristin Johnson \u2014 are planning their exits.",
+      "claim": "Acting CFTC Chair Caroline Pham is expected to resign once Brian Quintenz is confirmed, deepening the agency\u2019s leadership vacuum amid regulatory transition",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Zhao praised Trump's 'business-like' diplomacy as more transparent than conventional politics.",
+      "claim": "Changpeng Zhao (CZ) praised Donald Trump\u2019s leadership style during a podcast interview, describing it as business-like, strategically transparent and preferable to traditional political approaches",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "At the time of writing, it is unclear what attack method was used by Gonjeshke Darande to conduct the exploit.",
+      "claim": "The exact method used by hacker group Gonjeshke Darande (Predatory Sparrow) to compromise Nobitex\u2019s systems and drain its wallets remains unknown as of June 18, 2025.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Its goal is to promote the growth and awareness of the Sei protocol and other open source software initiatives",
+      "claim": "The Foundation\u2019s focus includes promoting the growth of the Sei protocol, supporting open-source development and advancing US crypto entrepreneurship",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Trump Family-Backed American Bitcoin to Go Public via Merger With Gryphon Digital. Pre-market spikes follow news of strategic stock-for-stock transaction.",
+      "claim": "Gryphon Digital Mining announced it will acquire American Bitcoin Corp. in a stock-for-stock merger that will take American Bitcoin public.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "A draft Bitcoin Improvement Proposal (BIP) titled Quantum-Resistant Address Migration Protocol (QRAMP) has been introduced by developer Agustin Cruz. It outlines a plan to enforce a network-wide migration of BTC from legacy wallets to ones secured by post-quantum cryptography.",
+      "claim": "Bitcoin developer Agustin Cruz proposed the Quantum-Resistant Address Migration Protocol, a draft Bitcoin Improvement Proposal (BIP) in April 2025 to protect Bitcoin wallets from potential quantum computing attacks",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "According to Eriksen, a backdoor was inserted into recently released versions of a software-development kit used to build applications and interact with the XRP Ledger.",
+      "claim": "JavaScript library xrpl.js, was compromised in April 2025 by attackers who inserted a backdoor enabling potential theft of private keys and unauthorized access to wallets",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Governments and regulatory bodies across the world have imposed a slew of rules to fight financial crime. The European Union has adopted stricter AML rules under its Markets in Crypto-Assets (MiCA) framework. One notable rule requires crypto providers to collect and verify identity information for even unhosted wallets.  The FATF Travel Rule mandates financial institutions and crypto exchanges to share sender and receiver information for transactions above a certain threshold. Non-compliance often leads to freezes.",
+      "claim": "Sui\u2019s emergency freeze echoed established practices in traditional finance, where transactional holds are both standard and mandatory in response to fraud events",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The crypto market maker provides liquidity to over 85 centralized and decentralized trading venues globally. The firm has 170 employees and operates across 37 countries.",
+      "claim": "Keyrock as a crypto market maker provides liquidity to over 85 centralized and decentralized trading venues worldwide",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "If the electorate doesn't hold congress accountable to reducing the deficit, and start paying down the debt, Bitcoin is going to take over as reserve currency.",
+      "claim": "Brian Armstrong in his post called on voters to pressure Congress into reducing the national debt to avoid Bitcoin becoming the global reserve currency.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "ZEC is currently trading at $31.26 having dropped by 3.1% over the past 24 hours.",
+      "claim": "Zcash experienced a price decline within 24 hours, following the announcement of its listing on Binance\u2019s delisting vote, reflecting market concern",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The US Securities and Exchange Commission (SEC) has dismissed a lawsuit against Nova Labs, developer of decentralized wireless network Helium, for allegedly issuing unregistered securities, Helium stated in an April 10 blog post.",
+      "claim": "Nova Labs in its April 10, 2025 blogpost  informed that the U.S. Securities and Exchange Commission has dismissed its lawsuit accusing the company of selling unregistered securities and will not be able to bring these charges in the future",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Wintermute said that while EIP-7702 expands Ethereum\u2019s capabilities, a lack of verification makes it more difficult to distinguish legitimate infrastructure from malicious exploitation, particularly for new users.",
+      "claim": "Wintermute warned that although Ethereum\u2019s EIP-7702 expands functionality, the lack of contract verification mechanisms makes it difficult for users to identify malicious delegations.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "On January 8, 2025, StarkWare announced the SN Stack, a developer tool that lets projects create custom blockchains (appchains) on Starknet",
+      "claim": "On January 8, 2025, StarkWare announced the SN Stack, a developer tool that lets projects create custom blockchains (appchains) on Starknet",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "there are incentives basically to manipulate the price to over $5 billion fully diluted value and then dump on retail for shared profit,\u201d concluded Zaki Manian, a veteran crypto founder who reviewed the documents.",
+      "claim": "Movement Labs\u2019 market-making agreement reportedly allowed Rentech to liquidate its MOVE tokens if the cryptocurrency\u2019s fully diluted valuation surpassed $5 billion, triggering a 50-50 profit split with the Movement Foundation, a structure Zaki Manian warned could incentivise retail price manipulation",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "And that is, and so that's ge Georgie Maloff, right? So Maloff was Stalin's deputy premier, and so Stalin dies and Maloff was just like, well, I guess I have to be premier. And Maloff was, was Vance like, and he's just a schlub.",
+      "claim": "Georgi Maloff was Stalin's deputy premier",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific, factual, self-contained - names the person and their role clearly"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "\u201cPrivate enough\u201d and \u201cresilient enough\u201d aren\u2019t buzzwords here, said Vitalik, adding that he\u2019s pushing Ethereum to become a fallback that works even when nothing else does.",
+      "claim": "Vitalik Buterin urged Ethereum\u2019s developers and community to make resilience and privacy a development priority",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Celestia\u2019s   TIA +12.66%  token recently hit an all-time low of $1.32, extending a 93% slide from its $20 peak last year.",
+      "claim": "Celestia\u2019s TIA token is trading more than 90% below its all-time high",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Mayer Mizrachi, the mayor of Panama City, Panama, announced today that the city government will accept payments in crypto. It will accept Bitcoin, Ethereum, and two stablecoins for taxes, permits, fees, etc.",
+      "claim": "Mayer Mizrachi, Mayor of Panama City, announced that the city will accept Bitcoin, Ethereum, USDC, and USDT for payments such as taxes, permits, and other fees.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Analysts indicate that better security infrastructure like Web3SOC may make new sources of capital available by reducing one of the primary disincentives for institutions to participate: security threats.",
+      "claim": "Analysts believe Web3SOC lowers security barriers and unlocks new institutional capital",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "This unexpected turn has fueled speculation that the original hacker and the phishing scammers might be connected, though no proof has surfaced to support that theory.",
+      "claim": "No evidence has emerged linking the zkLend hacker from the February 2025 exploit to the operators of the phishing site that stole the laundered ETH.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "As fallout deepened, Binance froze $38 million in proceeds and offboarded the offending market maker, accusing it of flooding the platform with sell orders and little buy support",
+      "claim": "Binance, reacting to the controversial sale of 66 million Movement tokens by market maker Web3Port shortly after the token\u2019s listing, offboarded the market maker and suspended $38 million in sale proceeds",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Anyone with a Mac or PC can download the Tari Universe application at www.tari.com, install it in minutes, and earn rewards by harnessing their computer\u2019s processing power to mine Tari tokens (XTM),\u201d according to the release.",
+      "claim": "The Tari Universe desktop app enables users to mine Tari\u2019s native XTM token through a gamified interface with simplified onboarding designed for consumer-grade devices",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Maven 11\u2019s third fund is slightly smaller than its second fund, which closed at $120 million, as per the announcement in December 2021.  According to the announcement, the Maven 11 Fund III will be deployed over the next 3-4 years and will cover projects, including new deals, pre-seed and seed, as well as Series A and follow-on investments.",
+      "claim": "Maven 11 intends to deploy its third fund over the next 3-4 years, investing in seed, pre-seed, Series A, and follow-on rounds",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The upgrade allows projects such as Maple Finance, Shiba Inu, and Backed Finance to expand tokenized assets into Solana\u2019s ecosystem using Chainlink\u2019s Cross-Chain Token (CCT) standard. Collectively, these tokens represent over $19 billion in market value. CCIP\u2019s v1.6 update also reduces transaction costs and streamlines architecture for scaling across hundreds of blockchains.",
+      "claim": "Chainlink\u2019s CCIP enables over\u00a0$19\u202fbillion worth of tokenized assets to flow into Solana through its Cross\u2011Chain Token (CCT) standard",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Malta\u2019s Financial Intelligence Analysis Unit (FIAU) fined Okcoin Europe \u2014 OKX\u2019s Europe-based arm \u2014 1.1 million euros ($1.2 million) after detecting multiple AML failures on the platform in 2023, the authority announced on April 3.",
+      "claim": "Malta\u2019s regulator fined OKX $1.2 million for serious and systematic breaches of anti-money laundering regulations identified during it's 2023 compliance inspection",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Hong Kong's Legislative Council passed the long-anticipated stablecoin bill today, establishing a licensing regime for stablecoin issuers.  In a council meeting Wednesday, lawmakers passed the \"Stablecoins Bill\" in its third reading, which mandates licensing from the Hong Kong Monetary Authority for issuers of fiat-referenced stablecoins.",
+      "claim": "Hong Kong's Legislative Council has passed the Stablecoins Bill establishing a licensing regime under the Hong Kong Monetary Authority for fiat-referenced stablecoin issuers to support the city\u2019s ambition to become a global Web3 hub",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "\"I have traveled the world, meeting with other jurisdictions' regulators and government officials where I learned what they have attempted to do, what they have left to do, and what has worked well or poorly,\" Quintenz said, adding that he would share such insights with the CFTC and the Congress in shaping crypto regulatory frameworks.",
+      "claim": "Brian Quintenz, during his nomination hearings for CFTC Chair, emphasized his global experience in crypto regulation, pledging to share insights with Congress and the CFTC",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Avalon\u2019s journey began in Season 8 of the Most Valuable Builder (MVB) accelerator\u2014run in partnership with BNB Chain, CoinMarketCap, and YZi Labs.",
+      "claim": "Avalon Labs was founded during Season 8 of the Most Valuable Builder (MVB) accelerator, which was organized in partnership with BNB Chain, CoinMarketCap, and YZi Labs",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Right to Erasure: Immutable ledgers cannot delete data; controllers must keep personal data off-chain and store only pointers on-chain. Deleting the off-chain record \u201cunlinks\u201d the on-chain pointer.",
+      "claim": "Ethereum Foundation, as part of a GDPR compliance initiative, supports GDPR\u2019s right to erasure within an immutable ledger system by enabling unlinkable pointer mechanisms",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The BNB Chain has introduced the BNB Good Will Alliance which unites core members of the BNB community to implement initiatives that serve the interests of the BNB ecosystem. The alliance\u2019s first effort is a push to reduce malicious MEV [maximum extractable value] like sandwich attacks on the chain.",
+      "claim": "BNB Chain launched the Good Will Alliance to unite infrastructure builders, validators, and community members to establish ethical standards, implement best practices, and enhance security within the BNB ecosystem",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Gemini has accused the CFTC of waging a seven-year \u201clawfare\u201d campaign driven by career ambitions, not consumer protection.",
+      "claim": "Gemini claimed that CFTC prosecutors misused millions in taxpayer dollars to score a high-profile win",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "During a migration window, users would still be able to move funds freely. The BIP calls for wallet developers, block explorers and \u201cother infrastructure\u201d to build tools and warnings to help users comply.",
+      "claim": "Quantum-Resistant Address Migration Protocol proposes a countdown window during which users must move funds from legacy to quantum-resistant wallets",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Binance said the market maker profited $38 million before it was removed from the exchange\u2019s platform last month. The company is banned moving forward, Binance said, adding that its profits had been frozen \u201cfor the purpose of compensating users.\u201d",
+      "claim": "Binance banned Web3Port, the market maker involved in the MOVE token launch, after it liquidated $38M worth of tokens in December 2024. The profits were frozen for user compensation, and the Movement Foundation launched a buyback plan with plans to use those funds.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The termination process begins on March 17 by turning off rewards for period 6. This results in an early end to the Ignite rewards campaign, which was initially planned to run for nine months with three seasons, starting with season 1 from January to March.",
+      "claim": "Season 1 of Zksyn\u2019s Ignite program began on January 6, 2025, and was originally scheduled to run through March 31. However, due to financial constraints, the program ended early, with the final payout scheduled for March 17.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Using Predicate, the Paxos liquidity pool on Uniswap enforces a custom policy enforced via frontend IP gating or onchain attestations.",
+      "claim": "Predicate hooks enable the USDL liquidity pool on Uniswap to enforce Paxos\u2019s custom compliance policy via front-end IP gating or on-chain attestations, while a second hook automatically wraps USDL into a non-rebasing token so it remains compatible with Uniswap\u2019s accounting model and broader DeFi composability.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Protocols passing governance votes can integrate their smart contracts into Berachain\u2019s liquidity pool, attracting liquidity at reduced costs and driving capital efficiency",
+      "claim": "Berachain\u2019s proof-of-liquidity mechanism ensures network rewards are reinvested into the ecosystem, enhancing liquidity and efficiency",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "On Thursday, United Arab Emirates based Aqua 1 Foundation said it bought $100 million of World Liberty tokens, the second Middle East-based investor to put money into the platform. The investment will make the little known crypto fund the largest individual investor of the Trump-backed digital asset project, surpassing crypto entrepreneur Justin Sun, who\u2019s also an adviser to World Liberty.",
+      "claim": "UAE-based Aqua 1 Foundation became the largest individual investor in World Liberty Financial by purchasing $100 million worth of its tokens, surpassing previous high-profile backers like Justin Sun, an advisor at World Liberty.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Customers earn up to 4.1% APY on their USDC, putting your funds to work while retaining the flexibility to use them anytime.",
+      "claim": "Coinbase Business customers earn up to 4.1% APY on USDC holdings, putting funds to work while retaining the flexibility to use them anytime",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The WLD token price momentarily spiked to $1.25, before pulling back to $1.15 according to CoinMarketCap data, after the announcement",
+      "claim": "The WLD token price reportedly rose by about 14%, momentarily spiking before settling after the $135 million token sale announcement",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The dashboard aims to help companies monitor the dollar value of their Bitcoin holdings through a user-friendly interface designed for both finance teams and executives. It integrates real-time pricing data via an open source BTC/USD quote API, with future plans for quarter-end historical lookup features to support financial reporting. Block has invited feedback and feature requests from the open source community via GitHub Issues.",
+      "claim": "Block's Bitcoin treasury dashboard features a simple interface for finance teams and executives, with real-time price data and plans to add time-stamped historical value lookup functionality for quarter-end reporting",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Cetus has since patched the vulnerability and resumed trading, working closely with the Sui Foundation and cybersecurity firm Hacken.",
+      "claim": "The coordinated emergency response by Cetus, Sui validators, and cybersecurity firm Hacken following the largest DeFi exploit in Sui\u2019s history enabled the recovery of most of the stolen assets and minimized systemic fallout.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The framework aims to address fragmented compliance processes that currently burden institutional investors. It incorporates GLEIF\u2019s digital identities into its identity framework, which is designed to be privacy preserving.",
+      "claim": "Chainlink\u2019s ACE framework addresses fragmented compliance processes by integrating GLEIF\u2019s digital identities while enabling privacy-preserving, rule-based, cross-chain settlement.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Robinhood, whose customers in the European Union only have access to trading cryptocurrencies, obtained a brokerage license in Lithuania last month, allowing it to offer investment services like stock trading across the bloc.",
+      "claim": "Robinhood is expanding its investment services across the European Union by securing a brokerage license in Lithuania and acquiring Bitstamp to enable crypto-linked derivatives trading.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The release follows successful internal testing phases that included over 100 sequencers.",
+      "claim": "Aztec completed internal testing phases that included over 100 sequencers before launching its Layer 2 public testnet",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Fraudsters have used false claims to lure victims into scams involving fake promotions, phishing, and unauthorized \"conversions.\"",
+      "claim": "The People's Bank of China (PBOC) warned the public against scams involving fake promotions and phishing",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "\"Through partnering with ApeBond, CrossFi will be able to offer best-in-class fundraising and token issuance options for projects building within its ecosystem.\"",
+      "claim": "CrossFi\u2019s partnership with ApeBond, a multi-chain bonding protocol, aims to facilitate projects to raise capital via token issuance in a more transparent way",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Voters, 31% more likely to hear negative economic news than positive economic news. Right? The worst gap since May of 2023, which is funny 'cause in May of 2023 things were okay, but that's all right.",
+      "claim": "Voters are 31% more likely to hear negative economic news than positive economic news",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific statistic, factual claim"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Mode launches Synth 'subnet' on Bittensor to build decentralized AI that predicts crypto prices",
+      "claim": "Mode introduced an AI-powered tool called Synth, designed to predict cryptocurrency price movements",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Spark has announced that BlackRock, Superstate, and Centrifuge are the winners of its Tokenization Grand Prix. The goal is to allocate $1 billion in tokenized assets, with BlackRock\u2019s BUIDL fund set to receive half of it.",
+      "claim": "BlackRock\u2019s BUIDL is the largest tokenized money fund with a market cap exceeding $1.2 billion as of March 18 and is set to receive a $500 million allocation from Spark",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "OFAC sanctioned Tornado Cash in August 2022 after claiming cybercriminals, particularly those tied to North Korea and its hacker ring, the Lazarus Group, used the platform to launder cryptocurrency procured from illicit activity",
+      "claim": "Tornado Cash was originally sanctioned in August 2022 amid allegations that it facilitated the laundering of over $7 billion in illicit funds, according to the US Treasury, primarily linked to North Korea\u2019s Lazarus Group and high-profile crypto exploits",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Owners of Ledger Flex and Ledger Stax, the world-first secure touchscreen devices, can use the larger screens to view transaction information at a glance",
+      "claim": "Ledger devices like the Flex and Stax offer improved user experience with larger screens for clear transaction information, making Ledger the ultimate digital assets protection solution",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "And every time those groups prove them false, just as trans service members have over these nine years of us serving openly and authentically. And there are so many disconnects between any of the logic presented by the government that when these policies did become challenged in court, again, you had two district court judges basically flatly rejecting them on the face of it saying, there is nothing here but animus. It is in fact the service records of the members that were the plaintiffs.",
+      "claim": "Service records of the plaintiffs in court cases challenged these claims as evidence that the policies were false",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "missing_context"
+      ],
+      "notes": "What claims were challenged and what policies were false? Too many unclear references"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "They don't want to share their security, they want to build their own security vertical and their own alignment, just using us",
+      "claim": "Misha Putiatin, co-founder of Symbiotic, said that the project is expanding beyond restaking to support protocols that want to build their own security models rather than share security",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "\"Napster revolutionized digital music in the nineties, and now, with Infinite Reality, we're ready to do it again,\" Vlassopulos said. \"The internet has evolved from desktop to mobile, from mobile to social, and now we are entering the immersive era. Yet, music streaming has remained largely the same. It\u2019s time to reimagine what\u2019s possible.\u201d",
+      "claim": "Napster CEO Jon Vlassopulos will remain in his position after Infinite Reality\u2019s acquisition of Napster, and he expressed that the partnership with Infinite Reality will support the platform\u2019s shift toward more immersive digital content.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "He went after a reporter from Australia saying it might affect diplomatic relations with the country because they asked a question that he didn't like. So it's bleeding into the other politics as well. And the one upside of this, and I'll stop talking after this, is that when Pam Bondi did utter her comments trying to distinguish between free speech and hate speech, there's a torrent to pushback from people on the right who said, that's absurd.",
+      "claim": "Pam Bondi's comments about pursuing hate speech were met with pushback from people on the right",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific person, specific action, specific response - factual and self-contained"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Last Friday, Donald Trump Jr. and Chase Herro attended the Ondo Finance Summit as a keynote speaker, and hinted at WLFI\u2019s plan to create a digital currency reserve.",
+      "claim": "Donald Trump Jr. and Chase Herro attended an Ondo Finance Summit, hinting at WLFI\u2019s intent to create a digital currency reserve",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Ethereum core devs will spin up a \u201cshadow network\u201d to prevent delaying research into the Pectra hard fork, after a mishap on the Holesky testnet last month.",
+      "claim": "Ethereum developers decided to launch a temporary \"shadow fork\" of the Holesky testnet in March 2025 to continue research on the delayed Pectra upgrade",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Rather than moving funds directly, the network functions as a coordination layer that connects banks, payment companies, and other institutions. It is structured to support programmable and compliant transactions.",
+      "claim": "Circle\u2019s network wants to link banks, fintechs, and payment providers to establish direct settlement pathways across borders",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The launch comes as Kinexys continues to grow its blockchain-based services. Since its debut in 2019, the platform has processed more than $1.5 trillion in total transaction volume, with average daily activity exceeding $2 billion and payments volume growing tenfold year over year, JPMorgan said. That's still just a small fraction of the roughly $10 trillion in daily transactions that JPMorgan's payments division handles.",
+      "claim": "Kinexys processes over $2 billion in daily blockchain transactions, reaching over $1.5 trillion cumulatively since inception",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The long-anticipated launch of Berachain, the proof-of-liquidity blockchain that\u2019s claimed to be identical to the Ethereum Virtual Machine to boost compatibility with existing tools and protocols, will take place on Thursday, February 6",
+      "claim": "Berachain is an Ethereum Virtual Machine (EVM)-compatible Layer-1 blockchain, enabling seamless integration with Ethereum-based applications, expanding its DeFi ecosystem",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "BlackRock has just been approved by the UK\u2019s top financial markets regulator as a crypto asset firm.  That means that the investment giant, which has about $12 trillion of assets under management, can operate its new European Bitcoin exchange-traded product as a UK entity.",
+      "claim": "BlackRock's registration as crypto asset firm within Financial Conduct Authority will enable to distribute it's newly launched European Bitcoin ETP",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Quintenz\u2019s nomination has already drawn attention due to financial disclosures submitted on May 25. The filings reveal he holds $3.4 million in assets, including investments in multiple Andreessen Horowitz crypto funds \u2014 CNK Fund III, CNK Seed 1 Fund, and CNK IV Fund \u2014 as well as stock options in\u00a0Kalshi, a prediction market platform where he serves on the board.",
+      "claim": "Brian Quintenz, according to financial disclosures submitted on May 25, 2025 has $3.4 million in assets, including investments in multiple Andreessen Horowitz crypto funds",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The summit will bring together crypto innovators and influencers to share insights and experiences to chart our path forward - gathering great minds, hearing from keynote speakers, and fostering a cross-pollination of ideas and methods to move the industry in the right direction, both in terms of economic development and opportunities to serve the public using digital assets.",
+      "claim": "The inaugural New York City crypto summit announced by Mayor Adams is intended to create collaboration between public officials and private sector blockchain leaders to drive responsible innovation and improve public services through digital assets.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "However, in April 2025, SoFi CEO Anthony Noto confirmed that the company was looking to re-enter the crypto market.",
+      "claim": "SoFi Chief Executive Officer Anthony Noto had outlined SoFi Technologies\u2019 intention to re-enter the crypto market during its January 2025 earnings call and confirmed this plan publicly in April 2025",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The ETFs are expected to start launching later in 2025, pending regulatory approval. They are expected to be widely available internationally, including in the U.S., Europe and Asia, across existing platforms and brokerages, made available through Crypto.com's broker-dealer Foris Capital US LLC",
+      "claim": "Truth.fi will launch its \u201cMade in America\u201d ETFs in 2025, which will combine digital assets and securities in industries such as the energy sector and be distributed internationally through existing platforms via Crypto.com\u2019s broker-dealer Foris Capital US LLC",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "It may also explain why Bera has made the unusual choice to enshrine native applications \u2014 like its AMM DEX (BEX), money market (Bend) and perps DEX (Berps) at launch \u2014 as opposed to most L1s which outsource these efforts to third-party builders",
+      "claim": "Berachain launched with native DeFi applications, including its own decentralized exchange (BEX), money market (Bend), and perpetuals platform (Berps)",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The network airdropped testnet tokens to nearly 200,000 wallets in 15 seconds to try out testnet applications.",
+      "claim": "MegaETH launched its public testnet by distributing tokens to nearly 200,000 wallets in under 15 seconds, giving users instant access to test applications",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "USDT is currently the world\u2019s largest stablecoin with a market cap of $141 billion according to CoinGecko.",
+      "claim": "Tether\u2019s USDT remains the dominant stablecoin in the market as of February 11, 2025, with a market capitalization exceeding $141 billion and representing over 61% of the total stablecoin supply.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Polygon will continue to operate the sequencer for 12 months and offer grants to \"projects migrating to other environments\" like Polygon PoS.",
+      "claim": "Polygon zkEVM users will receive 12 months of sequencer support, and grants will assist migration to other networks",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "for now, with future changes to be voted on by the community when our DAO voting module launches",
+      "claim": "The ElizaOS community retains full control over modifications to the project's token ticker via DAO governance",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "In a world with a new, open Money Grid that enables instant, seamless transactions, we\u2019re excited to see a global fintech such as Revolut lead the way.\"",
+      "claim": "David Marcus, CEO of Lightspark, described the partnership as a signal of the future of money and highlighted Revolut\u2019s leadership in advancing real-time, borderless transactions",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Additionally, Apex Fusion plans to introduce an on-chain reputation system that will reward verifiable contributions, enhancing trust within the ecosystem.",
+      "claim": "Apex Fusion aims to introduce an on-chain reputation system that rewards verifiable user contributions to enhance trust and transparency within its blockchain ecosystem",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Staking is a system for securing blockchains in exchange for rewards. In staking systems, so-called validators commit callateral \u2014 called \"stake\" \u2014 for a role in processing transactions. \"Restaking\" protocols like Symbiotic let users reuse stake across multiple blockchains at once, offering investors the opportunity to earn extra yield.",
+      "claim": "Staking is a mechanism in which validators commit cryptocurrency to secure blockchains, and restaking protocols like Symbiotic allow that stake to be reused across multiple blockchains.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "CertiK Co-Founder Ronghui Gu stated,  Attackers always target the weakest point\u2026Smart contracts or blockchain code itself was the weakest point, but now the attackers feel like the weakest points may come from human behavior rather than the code.",
+      "claim": "CertiK Co-Founder Ronghui Gu warned that attackers are shifting from exploiting smart contract vulnerabilities to targeting human behavior, a trend reflected in the Cointelegraph and CoinMarketCap June 2025 hacks that relied on deceptive pop-ups and wallet prompts.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The company raised about $310 million from investors as it sold 6 million shares at a price of $52 a piece.",
+      "claim": "eToro raised approximately $310 million in its IPO by selling 6 million shares at $52 each.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "And many of these lawmakers were in states that voted overwhelmingly for Donald John Trump. I'm talking about Alabama and Ohio, where constituents slammed trump's agenda items, things like cuts to Medicaid and the so-called big beautiful bill, his harsh immigration crackdown, the federal takeover of Washington DC and Donald Trump cozying up to dictators. Bottom line, the attendees were loud and clear saying, we do not want this.",
+      "claim": "Town hall attendees expressed dissatisfaction with Trump's agenda items, including cuts to Medicaid, immigration crackdowns, federal takeover of Washington DC, and support for dictators.",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific factual description of town hall events"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Where an issuer is developing or acquiring or intending to develop or acquire a network or application, we have observed issuers tailoring their disclosure to provide a narrative description of the purpose of the network or the application, and its operation, including the following:  Whether the initial development team is developing a network and/or application and/or a crypto asset for the network or application. The current state and timeline for the development of the network and/or application to show how and when the initial development team intends to achieve network maturity or deploy the application. Milestones needed to fully develop the network, application, and/or crypto asset, including an estimated timeline, the estimated costs to reach key milestones, and the source of funds for the development of the network, application, and/or crypto asset. The objectives of the network and how the technology of the network or application functions and accomplishes its objectives, including its architecture, software, cryptographic key management, and functionality. Whether the technology is derived from proprietary or open-sourced software, and a description of any licenses or intellectual property rights relating to the technology. The process for validating transactions, the consensus mechanism, the block size, the transaction speed, the transaction (or \u201cgas\u201d) fees, and reward mechanism, if any. A description of any products and services that will be offered through the network and/or application. The various roles that exist or are intended to exist in connection with the network and/or application, such as users, onchain[12]  and offchain[13] service providers, developers, transaction validators, and governance participants. The process of how network and application upgrades and updates are disclosed, proposed, developed, reviewed, and ultimately deployed. The measures, if any, taken to ensure network and/or application security. A description of the network or application\u2019s governance system, as applicable.",
+      "claim": "SEC, in its guidance on \u201cOfferings and Registrations of Securities in the Crypto Asset Markets\u201d advices issuers where a crypto network or application is involved, to explain its purpose, development milestones, technological functionality, governance structure, and the roles of various participants within the ecosystem",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "On April 14, KiloEx suspended its platform after containing the exploit that led to the $7.5 million in losses.",
+      "claim": "KiloEx suffered a $7.5 million loss on April 15, 2025, due to a price oracle vulnerability that forced the platform to suspend operations.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Landon Zinda has stepped down from his position as policy director of cryptocurrency advocacy organization Coin Center to join the US Securities and Exchange Commission\u2019s Crypto Task Force.",
+      "claim": "Landon Zinda stepped down from his role as policy director at Coin Center in early February 2025",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The task force will be led by Commissioner Hester Peirce, a long-time advocate for the crypto industry, and will work closely with the crypto industry to develop regulations. The task force will also work with Congress, providing \u201ctechnical assistance\u201d as it crafts crypto regulations",
+      "claim": "SEC Crypto Task Force will collaborate with industry, Congress, and global partners",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "JPMorgan (JPM) has added support for British pound-denominated accounts to its blockchain-based payments network Kinexys, as the bank targets a gap left by the stablecoin market\u2019s overwhelming focus on the U.S. dollar.",
+      "claim": "Kinexys' GBP blockchain accounts provide a non-dollar alternative for fast cross-border payments, filling a gap left by USD-dominated stablecoins",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Raising Ethereum\u2019s gas limit would improve censorship resistance, reduce costs when routing assets between L2s, and provide a safety net in case of disasters",
+      "claim": "Vitalik advocated for higher L1 gas limits even in an L2-heavy Ethereum",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Berachain activated its long-anticipated Proof of Liquidity (PoL) system on March 24, a new incentive framework to redefine block rewards distribution.",
+      "claim": "Berachain launched its Proof of Liquidity system, initiating Governance Phase 1.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The latest acquisition will help it win over Canada-based customers. Toronto-listed WonderFi owns and operates Bitbuy and Coinsquare, two leading domestic crypto platforms in the Canadian market. Trading volumes on WonderFi increased 28% to C$3.57 billion in fiscal 2024.",
+      "claim": "WonderFi processed 3.57 billion Canadian dollars in trading volume during fiscal\u00a02024, marking a 28% year\u2011over\u2011year increase",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "His arrest brought to an end what prosecutors described as a global, black market bazaar that for two years starting in 2011 was used by more than 100,000 people to buy and sell $214 million worth of illegal drugs and other illicit services",
+      "claim": "The Silk Road was used by more than 100,000 peoples and facilitated over $200 million in illicit trades",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Banks may work with sub-custodians to store and manage crypto assets. However, they must apply strong risk management when doing so.",
+      "claim": "OCC clarified that banks can engage third-party providers to perform crypto custody and execution services, thereby enabling institutions to leverage external expertise while maintaining regulatory obligations",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "dSheets unlocks crypto-specific functions like querying data from smart contracts and submitting transactions onchain.",
+      "claim": "dSheets enables users to interact directly with onchain protocols by querying smart contracts, making API calls and submitting transactions from within the spreadsheet interface",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Together, we are committed to building a more inclusive and robust digital finance ecosystem",
+      "claim": "MGX\u2019s $2 billion investment in Binance is expected to fuel innovation in AI, blockchain infrastructure and decentralized finance, reinforcing a more robust digital finance ecosystem",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The license, issued under the EU\u2019s Markets in Crypto Assets (MiCA) regulation, allows Coinbase to offer its digital asset services across all 27 EU member states.",
+      "claim": "The EU MiCA license allows Coinbase to offer digital asset services across all 27 EU member states plus Iceland, Liechtenstein and Norway.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Validators receive BGT emissions based on their delegated BGT boost percentage. These emissions are then directed to the reward vaults of the validator\u2019s choosing",
+      "claim": "Berachain\u2019s Proof of Liquidity system works through users staking assets in reward vaults to earn BGT. Validators receive emissions based on how much BGT is delegated to them, and emissions are redirected to vaults that align with their incentives.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "In a company blog post published on Thursday morning, Coinbase revealed that criminals had bribed overseas customer support agents to hand over records, including customer addresses, phone numbers, government IDs and partial details of bank and Social Security records. The company says the stolen data\u2014which did not include log-in credentials or access to wallets\u2014represented fewer than 1% of active monthly transacting customers. Based on Coinbase\u2019s latest earnings report, that means fewer than 84,000 customers were affected.",
+      "claim": "Coinbase has confirmed that less than 1% of its monthly active users were impacted by the data breach, involving customer addresses, phone numbers, government IDs, and partial bank and social security detail",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Hotspot operators will instead continue to earn Helium\u2019s native HNT token through its \u2018usage-based reward system.\u2019",
+      "claim": "The AT&T-Helium partnership enables hotspot operators to earn increased HNT token rewards as subscriber traffic boosts data usage on the network, maintaining Helium\u2019s decentralized, usage-based incentive model rather than shifting to direct payouts from AT&T.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The proposed Wyoming stable token will be fully backed by US Treasuries, cash and repurchase agreements, and maintain a statutory requirement of no less than 102% capitalization. Wyoming plans to generate new revenue streams from what it calls the WYST token through interest income derived from the reserve assets, which the state said can be used to fund education and infrastructure.",
+      "claim": "Wyoming requires a statutory minimum capitalization of 102% for WYST",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Franklin Templeton, which manages $594 million worth of tokenized Treasuries, is an early mover onto Solana, the scalable blockchain that had a breakout year in 2024, largely due to the adoption of memecoins",
+      "claim": "Franklin Templeton\u2019s extension of FOBXX to Solana highlights Solana\u2019s emergence as a leading blockchain for tokenization, driven by high throughput and leadership in new tokens (especially memecoins)",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The addition of USDC significantly strengthens XRPL\u2019s stablecoin ecosystem. Other notable stablecoins on the ledger include Ripple\u2019s RLUSD, StraitsX\u2019s XSGD (Singapore dollar-pegged), Schuman Financial\u2019s EUR\u00d8P (euro-pegged), and Braza Bank\u2019s USDB.",
+      "claim": "XRPL already hosts stablecoins such as Ripple\u2019s RLUSD, StraitsX\u2019s Singapore\u2011dollar\u2011pegged XSGD, Schuman Financial\u2019s EUR\u00d8P, and Braza Bank\u2019s USDB",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "As bots and agents increasingly compete with humans onchain, World ID and PBH are emerging as essential infrastructure for a decentralized, human internet.",
+      "claim": "Priority Blockspace for Humans (PBH) establishes essential, human-first infrastructure on World Chain by creating a priority lane for verified human transactions, amid growing on-chain competition from bots and AI agents",
+      "quality": "good",
+      "issues": []
     },
     {
       "episode_id": null,
@@ -137,6 +835,371 @@
       "quality": "good",
       "issues": [],
       "notes": "Factual claim about Goldman Sachs reputation"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Matt Long, FalconX\u2019s general manager of APAC and Middle East, referred to Standard Chartered as 'one of the most forward-thinking global banks in digital asset adoption.'",
+      "claim": "Matt Long, FalconX\u2019s general manager for APAC and the Middle East, described Standard Chartered as a forward-thinking leader in digital asset adoption and emphasized the value of FalconX\u2019s partnership with Standard Chartered.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The company counts prediction market platform Polymarket, non-fungible token (NFT) marketplace Magic Eden and Stripe-owned stablecoin firm Bridge among its clients.",
+      "claim": "Turnkey\u2019s technology is used by major crypto companies, including prediction market platform Polymarket, NFT marketplace Magic Eden, Stripe-owned stablecoin firm Bridge",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "MetaMask has fewer delegations, around 1,300, but holds more Ethereum in its delegated smart contracts. Judging by this trend, MetaMask users may handle larger transactions or hold more value in their wallets.",
+      "claim": "MetaMask has recorded approximately 1,300 EIP-7702 delegations since the Pectra upgrade.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "AR.IO bills itself as the 'world\u2019s first permanent cloud network.'",
+      "claim": "AR.IO is a decentralized cloud storage network that provides a permanent and censorship-resistant solution for data storage",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The stablecoin is called the Marianas US Dollar (MUSD) and will be backed by cash and US Treasury bills held in reserve by the Tinian Municipal Treasury",
+      "claim": "The Tinian stablecoin, formally called the Marianas US Dollar (MUSD), will be backed by cash and US Treasury bills held in reserve by the Tinian Municipal Treasury",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Pump.fun has faced legal troubles in the United States as well. Two law firms in the U.S. sued the platform over intellectual property infringement, and another case against Pump.fun alleges the platform violates securities laws",
+      "claim": "The Pump.fun mobile app is not available to US users due to legal challenges. In February 2025, lawsuits alleging intellectual property infringement and securities violations prompted US restrictions",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "1.7.10 upgrade allows Chainflip Labs to reject any deposit facilitated by broker operators on its network, including SwapKit and Rango cross-chain DEX aggregator. This version introduces improved screening tools for brokers, enabling them to reject ETH and ERC20 token deposits",
+      "claim": "Chainflip\u2019s protocol\u2019s 1.7.10 upgrade allows operators to block transactions based on risk profiling and association to exploit-linked wallets. It should provide a robust and permanent shield for liquidity providers from illicit funds",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Trump Media is focused on acquiring great assets, and this deal will give us the financial freedom to implement the rest of our strategies,\" Trump Media CEO and Chairman Devin Nunes said",
+      "claim": "Devin Nunes, CEO of\u00a0Trump Media, said the capital raise will provide the company with over $3 billion in liquid assets and the financial freedom to pursue strategic expansion while offering shareholders exposure to Bitcoin",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The team said the fundraise pushes Zama\u2019s total capital raised to over $150 million and values it at over $1 billion, making the firm the first unicorn involved with FHE.",
+      "claim": "Zama Series B round brought its total capital raised to over $150 million and increased its valuation to over $1 billion, making it the first FHE company to reach unicorn status",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "RedStone provides cross-chain data feeds for decentralized finance protocols on Ethereum, Avalanche, and Polygon.",
+      "claim": "RedStone is a blockchain oracle that provides secure price feeds across multiple blockchain networks.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Torab Torabi, who joined Movement Labs in September 2023 as Director of Business Development, will serve as CEO of Move Industries, alongside longtime marketing head Will Gaines as President and CMO.",
+      "claim": "Torab Torabi before becoming Movement Industries new CEO served as Director of Business Development since joining Movement Labs in September 2023",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Bjelic\u2019s move comes about two years after Kanani and Arjun, two other Polygon co-founders, left their active roles on the network.",
+      "claim": "Mihailo Bjelic is the third co-founder to leave Polygon within two years, following the exits of Jaynti Kanani and Anurag Arjun from their respective roles at the company.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The Wall Street firm, which plans to initially make available up to $2 billion in financing for institutional clients, said it closed a tranche of deals with Maple Finance and FalconX.",
+      "claim": "Cantor Fitzgerald aims to make up to $2\u202fbillion available to institutional clients through its \u201cBitcoin Financing Business,\u201d addressing growing demand for reliable, regulated crypto\u2011market access",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Johnson is now the fourth and last commissioner over the past few days announcing that they planned to leave the agency.",
+      "claim": "Kristin Johnson became the fourth commissioner at the CFTC to announce her planned resignation in 2025, following the departure announcements of all her fellow commissioners.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "What is Ethereum R1? Fully donation-funded \u2014 no token, no private sales. Just ETH contributions from the public.  Stage 2 from day one \u2014 permissionless proving, long upgrade delay period with a huge set of multisig with broad representation across the Ethereum ecosystem.  Ethereum public good \u2014 Proportion of base fees go to R&D and app dev until 2030 \u2014 then they\u2019re burned.  Replaceable by design \u2014 no proprietary governance, no branding lock-in, no cult of personality. This is a rollup that belongs to Ethereum, not to a foundation, not to insiders, not to us.",
+      "claim": "Ethereum R1 will launch directly as a Stage 2 rollup, featuring permissionless proving and minimized trust assumptions from day one",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "In partnership with BlueFlare Energy, the facility employs 425 kW of power to deliver over 32 petahashes per second, repurposing uneconomical gas and reducing waste.",
+      "claim": "BlueFlare Energy, in partnership with AgriFORCE Growing Systems, powers the Bitcoin mining facility in Berwyn, Alberta, delivering over 32 petahashes per second of computing capacity using 425 kilowatts of energy derived from uneconomical stranded gas, thereby reducing energy waste",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The US push will be led by newly appointed TON Foundation president and board member Manuel Stotz.",
+      "claim": "Investor Manuel Stotz, founder of Kingsway Capital Partners, was appointed as the new president of the TON Foundation",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Friday's roundtable was the third in a series the agency has held on crypto matters, this time focused on custody in the industry",
+      "claim": "SEC roundtable on crypto custody, titled \"Know Your Custodian: Key Considerations for Crypto Custody,\" was the third of five planned roundtables to gather crypto industry insight, which started under the administration of President Donald Trump",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "By June 20, the developer going by @Sarv_shaktiman had deployed an early-stage fork of Solana v1.18.26.",
+      "claim": "Developers switched on the first Gorbagana testnet less than 24 hours after Solana co-founder Anatoly Yakovenko\u2019s decentralisation tweet on 18 June 2025.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "In reality, the reporting duty falls on banks and fintechs, not on individual savers, and the \u20ac150k penalty applies only to institutions that fail to file the required data.",
+      "claim": "Spain\u2019s Royal Decree 253/2025 assigns the duty to report cash withdrawals over \u20ac3,000 exclusively to banks, fintechs, and card issuers, making only these institutions, and not individual savers liable for fines of up to \u20ac150,000 for failing to comply.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "On April 25, reports revealed that Arbitrum, the Layer 2 network hosting a growing number of decentralized AI platforms, was preparing a major announcement: it had been chosen as the exclusive Ethereum partner for Nvidia\u2019s new Ignition AI Accelerator, a spinoff of the Inception program offering infrastructure credits and mentorship to promising AI startups.",
+      "claim": "Prior to Arbitrum\u2019s announcement of it\u2019s withdrawal from Nvidia Ignition AI Accelerator program, reports indicated that it was chosen as the sole Ethereum partner for the program",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Gemini, the crypto exchange founded by bitcoin billionaire twins Tyler and Cameron Winklevoss, has brought on crypto longtimer Brad Vopni to spearhead its institutional expansion",
+      "claim": "Gemini is US crypto exchange founded by bitcoin billionaire twins Tyler and Cameron Winklevoss",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Zama, the open-source cryptography company building state-of-the-art Fully Homomorphic Encryption (FHE) solutions for blockchain, announced a $57 million Series B funding round co-led by U.S.-based investment firms Blockchange Ventures and Pantera Capital",
+      "claim": "Zama, an open-source cryptography company pioneering fully homomorphic encryption for blockchains, raised $57 million in a Series B funding round to advance its encryption solutions",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "IOG never gave itself 350 million unclaimed ADA. This is a lie. The vast majority was claimed, and the remaining that was forfeited after seven years of waiting was donated to Intersect,\u201d Hoskinson wrote in a May 6 X\u00a0post.",
+      "claim": "Charles Hoskinson rejected the claims, stating that 99.8% of the ADA from the ICO was redeemed by original buyers and the remainder was forfeited after seven years due to unclaimed redemptions",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Prior to joining Gemini, Vopni spent 6 years as head of digital assets at Hudson River Trading, one of the largest global electronic trading firms, where he led the firm\u2019s expansion into the crypto space.",
+      "claim": "Brad Vopni, before joining Gemini as head of institutional spent 6 years at one of the largest electronic trading firms in the U.S Hudson River Trading as head of digital assets at, where he led the firm\u2019s expansion into the crypto space",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "\u201cThe move signals confidence in the long-term potential of Dogecoin and may likely boost liquidity and stability for the meme coin.\u201d",
+      "claim": "The House of Doge\u2019s Dogecoin Reserve intends to boost liquidity and long term potential of the Dogecoin memecoin",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The CEO apologized multiple times throughout the meeting, bowing his head before and after reading his statement.",
+      "claim": "Wemix CEO Kim Seok-hwan publicly apologized multiple times for the delayed announcement of the PlayBridge Bolt hack, bowing his head before and after reading his statement.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The software suite is available in three presets: StarkWare Sequencer, which most closely resembles the public Starknet stack; Madera, a fully customizable, open-source configuration; and Dojo, a mode optimized for gaming.",
+      "claim": "Madara is an open-source, modular framework within the SN Stack that emphasizes flexibility",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Euclid pulls together five main improvements to the protocol, including migrations to a new L2 \"prover\" and state commitment system",
+      "claim": "Scroll\u2019s Euclid upgrade integrates five core protocol enhancements, including new prover architecture, MPT state commitments, and EIP/RIP support.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Layer 2 solutions are important for scaling Ethereum. They help reduce gas fees and make transactions faster. Everyone's building on Layer 2 now.",
+      "claim": "Layer 2 solutions are important",
+      "quality": "bad",
+      "issues": [
+        "vague",
+        "generic"
+      ],
+      "notes": "Generic statement - no specific solutions named, no metrics provided"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The memecoin solution by BNB Chain allows individuals and businesses to easily launch and grow their memecoin projects",
+      "claim": "MEME Solution empowers individuals and businesses to launch and grow meme coin projects without requiring technical expertise",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Telegram recently introduced a policy mandating all Mini Apps and third-party crypto wallets on its platform to exclusively operate on TON, sparking debates about decentralization and preventing multichain expansion.",
+      "claim": "PAWS migrated to Solana because Telegram\u2019s new policy forced Mini Apps to operate exclusively on the TON blockchain, restricting their multichain capabilities.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "After the full protocol restart, all liquidity providers in the affected pools will regain access to their recovered liquidity, while remaining losses will be 'claimable through the compensation contract.'",
+      "claim": "Liquidity providers impacted by the Cetus exploit will regain access to their assets after the protocol restart, and any unrecovered losses will be addressed through a dedicated compensation contract.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "\u201cThis is our first physical presence in the city,\u201d the spokesperson said, noting that \u201cCoinbase\u2019s investment in the local workforce is a nod to Charlotte\u2019s position as a growing financial and tech hub, which makes it an ideal location for this expansion as we scale to meet growing customer and compliance needs.\u201d",
+      "claim": "Coinbase\u2019s move to open its first physical office in Charlotte and hire over 130 local employees reflects a targeted investment in the city\u2019s workforce and economy. According to a company spokesperson, the expansion supports Coinbase\u2019s broader effort to decentralize hiring and grow in emerging U.S. fintech hubs.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "A notable aspect of SpoonOS is its AI Agent Interoperability Protocol, which facilitates coordination among agents across various multi-chain processing (MCP) layers.",
+      "claim": "SpoonOS includes an AI Agent Interoperability Protocol that enables coordination among agents across multi-chain processing layers, allowing them to collaborate, share learning experiences and evolve their capabilities over time",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "It became left verse right, which then ended up flipping, interestingly enough, because when the pandemic first started and the vaccine was being developed, this was operation warp speed headed by President Trump. Then we saw a few years later, as mandates were being forced perhaps where they didn't need to be, where recommendations were being made about boosters that weren't a hundred percent accurate. We started seeing a flipping of the left and right parties.",
+      "claim": "President Trump headed Operation Warp Speed",
+      "quality": "good",
+      "issues": [],
+      "notes": "Clear factual statement - names the person and the program"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "BoLD stands for Bounded Liquidity Delay and is currently deployed on a Arbitrum One, Arbitrum Nova, and Arbitrum Sepolia",
+      "claim": "Offchain Labs, the team behind Arbitrum, launched BoLD on Arbitrum One, Arbitrum Nova, and Arbitrum Sepolia following a governance vote proposed by the Arbitrum DAO on January 10, 2025, and its subsequent approval",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "While Khemani declined to disclose the company's valuation, he noted that Auradine expects to be EBITDA-positive within the next few quarters. EBITDA refers to earnings before interest, taxes, depreciation and amortization",
+      "claim": "Rajiv Khemani, CEO of Auradine, declined to disclose the company\u2019s valuation but stated that they aim to be EBITDA-positive within the next few quarters",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "It removes the circuit capacity checker, which has been a major bottleneck on sequencer throughput.",
+      "claim": "Scroll\u2019s Euclid upgrade significantly improves Scroll\u2019s network throughput and security by removing key bottlenecks like the circuit capacity checker, and optimizing core infrastructure.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "He also referenced Ethereum\u2019s long-term scaling goals, specifically plans to increase the Layer 1 gas limit by 10x to 100x.",
+      "claim": "Vitalik Buterin stated that the Ethereum team hopes to increase the Layer 1 gas limit by 10 to 100 times in order to support real-time proving and enable broader scaling at the base protocol level",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "And even though I was, you know, I wrote about the climate, it's a third of our climate problem, and I knew nothing about it. The main problem really is that, and you know, agriculture is replacing nature and nature stores a lot of carbon. So when you tear down a forest, all that carbon goes into the atmosphere.",
+      "claim": "Deforestation releases carbon stored in forests into the atmosphere.",
+      "quality": "good",
+      "issues": [],
+      "notes": "Scientific fact, clear mechanism explained - factual and verifiable"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Cancer screenings, surgeries needed to be rescheduled. It was difficult to get care for certain individuals who were having heart attacks because there were so much pressure on the emergency 9 1 1 dispatch system. Even my, and within my hospital, we had to dedicate a new ward specifically for patients with lung issues, mostly related to COVID-19.",
+      "claim": "During the first wave of COVID-19, hospitals and emergency rooms were overwhelmed, elective care was rescheduled, and there was pressure on the dispatch system.",
+      "quality": "good",
+      "issues": [],
+      "notes": "Factual, specific description of COVID-19 impact on healthcare"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "\u201cWhy would you donate so much to the seller? Unless you are the seller,\u201d Kevin Heavy, a Mango DAO member, said in an X post on May 2.  Heavy pointed to onchain records that show a connection between Schneider, Kramer, and the wallet that bought the 333 million MNGO from FTX.",
+      "claim": "In April, 2024 Senior Mango DAO contributors were accused of enriching themselves by buying MNGO governance tokens and then orchestrating a proposal to sell them back to the DAO at an inflated price on April 2024",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "CZ responded, \u201cFact: I am not a fixer for anyone. I did NOT \u2018connect Mr. Saqib with the WLF team.\u2019 They had known each other way back, whereas I only met with Mr. Saqib for the first time in Pakistan.",
+      "claim": "Changpeng Zhao (CZ) denied allegations by the WSJ that he facilitated introductions for WLFI, stating he did not connect Bilal bin Saqib with the WLF team, who already knew each other, and that he only met Saqib for the first time during the visit to Pakistan",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Gambaryan was released in October on humanitarian grounds after his health severely deteriorated in custody. He reportedly suffered from malaria, pneumonia, and tonsillitis, while complications from a herniated disk left him wheelchair-bound and requiring urgent medical care outside Nigeria.",
+      "claim": "Tigran Gambaryan was released from Nigerian custody in October 2024 on humanitarian grounds after suffering from multiple severe health issues including malaria, pneumonia, and spinal complications.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Ledger is urging its customers to transition to newer models such as the Nano S Plus, Nano X, Ledger Stax, or the recently introduced Ledger Flex.",
+      "claim": "Ledger is urging users to upgrade from the Nano S to newer models like the Nano S Plus, Nano X, Stax or Flex, which provide more storage and support modern crypto apps",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The Clarity Act provides certainty on digital assets to market participants, fills regulatory gaps at the Commodity Futures Trading Commission and the Securities and Exchange Commission, bolsters American innovation and brings needed customer protections to digital asset related activities and intermediaries,\" said the agriculture panel's chairman, Glenn 'GT' Thompson.",
+      "claim": "The Clarity Act is intended to fill regulatory gaps, support innovation, and enhance consumer protections within the digital asset ecosystem.",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "Crypto.com has launched its \u201cinstitutional-grade venue\u201d in the US a day after the first so-called pro-crypto president was sworn in.  The exchange\u2019s CEO, Kris Marszalek, was perhaps alluding to the start of Trump\u2019s term when beginning a Tuesday X post with \u201cToday is Day 1.\u201d",
+      "claim": "Crypto.com's US institutional crypto platform launch coincided with the second-term inauguration of President Donald Trump",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "\"The vision is to build all the core primitives that are needed for any institution whether it's a crypto institution, DAO foundation, traditional finance investor or individual family office, to interact with DeFi in a way that feels intelligent, that feels safe, that feels secure,\" Jesus Rodriguez, co-founder of IntoTheBlock and now CTO of Sentora, said in an interview with CoinDesk.",
+      "claim": "Sentora CTO Jes\u00fas Rodr\u00edguez highlighted his focus on combining financial market expertise with DeFi technology to instill confidence among institutional investors",
+      "quality": "good",
+      "issues": []
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "However, come before the committee, well wouldn't you know it? The hearing began and they passed it on a voice vote. So that means that they've approved of a motion to subpoena Ghislaine Maxwell.",
+      "claim": "The House Oversight Committee approved a motion to subpoena Ghislaine Maxwell",
+      "quality": "good",
+      "issues": [],
+      "notes": "Specific, factual, verifiable - clear action, subject, and object"
+    },
+    {
+      "episode_id": null,
+      "transcript_chunk": "The proposal pursues the goals of educational clarity, as presenting integers ensures that newcomers do not mistakenly assume that Bitcoin\u2019s nature is decimal-based.",
+      "claim": "Bitcoin Improvement Proposal 177 has sparked a global debate on Bitcoin\u2019s user experience and financial education, though the technical protocol of Bitcoin would remain unchanged if the proposal is adopted.",
+      "quality": "good",
+      "issues": []
     }
   ]
 }
