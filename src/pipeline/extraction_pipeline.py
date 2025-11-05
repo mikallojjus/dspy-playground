@@ -223,7 +223,7 @@ class ExtractionPipeline:
 
         # SQLAlchemy's typing shows Column[str], but at runtime it's actually str | None
         # Use cast to tell the type checker what the actual runtime type is
-        transcript = cast(Optional[str], episode.transcript)
+        transcript = cast(Optional[str], episode.podscribe_transcript)
         if not transcript:
             raise ValueError(f"Episode {episode_id} has no transcript")
 

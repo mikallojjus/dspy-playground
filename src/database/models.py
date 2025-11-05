@@ -55,7 +55,7 @@ class PodcastEpisode(Base):
     season = Column(Text)
     episode_type = Column(Text)
     audio_url = Column(Text)
-    transcript = Column(Text)
+    podscribe_transcript = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

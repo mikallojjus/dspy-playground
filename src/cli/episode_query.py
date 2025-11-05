@@ -98,7 +98,7 @@ class EpisodeQueryService:
             logger.error(f"Episode {episode_id} not found")
             return None
 
-        if episode.transcript is None:
+        if episode.podscribe_transcript is None:
             logger.error(f"Episode {episode_id} has no transcript")
             raise ValueError(f"Episode {episode_id} has no transcript")
 
@@ -145,7 +145,7 @@ class EpisodeQueryService:
 
         # Base query: episodes with transcripts
         query = self.session.query(PodcastEpisode).filter(
-            PodcastEpisode.transcript.isnot(None)
+            PodcastEpisode.podscribe_transcript.isnot(None)
         )
 
         # Filter by podcast_id if provided
@@ -235,7 +235,7 @@ class EpisodeQueryService:
             ```
         """
         # Base filter
-        episode_filter = PodcastEpisode.transcript.isnot(None)
+        episode_filter = PodcastEpisode.podscribe_transcript.isnot(None)
         if podcast_id is not None:
             episode_filter = and_(
                 episode_filter, PodcastEpisode.podcast_id == podcast_id
