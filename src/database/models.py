@@ -6,6 +6,7 @@ All tables use the 'crypto' schema.
 
 Models:
     - PodcastEpisode: Podcast episode with transcript
+    - TranscriptChunk: Transcript chunk with position tracking
     - Claim: Extracted factual claim with embedding
     - Quote: Text excerpt from transcript
     - ClaimQuote: Many-to-many relationship between claims and quotes
@@ -25,7 +26,7 @@ from sqlalchemy import (
     Text,
     DateTime,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
@@ -59,6 +60,9 @@ class PodcastEpisode(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    transcript_chunks = relationship(
+        "TranscriptChunk", back_populates="episode", cascade="all, delete-orphan"
+    )
     claims = relationship(
         "Claim", back_populates="episode", cascade="all, delete-orphan"
     )
@@ -68,6 +72,42 @@ class PodcastEpisode(Base):
 
     def __repr__(self) -> str:
         return f"<PodcastEpisode(id={self.id}, name='{self.name[:50]}...')>"
+
+
+class TranscriptChunk(Base):
+    """
+    Transcript chunk with position tracking.
+
+    Stores chunks of transcript text that were used for claim extraction.
+    This allows tracking which chunk each claim came from for training data
+    generation and provenance tracking.
+
+    Table: crypto.transcript_chunks
+    """
+
+    __tablename__ = "transcript_chunks"
+    __table_args__ = {"schema": "crypto"}
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    episode_id = Column(
+        BigInteger,
+        ForeignKey("crypto.podcast_episodes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    chunk_index = Column(Integer, nullable=False)
+    chunk_text = Column(Text, nullable=False)
+    start_position = Column(Integer, nullable=False)
+    end_position = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    episode = relationship("PodcastEpisode", back_populates="transcript_chunks")
+    claims = relationship(
+        "Claim", back_populates="source_chunk", foreign_keys="Claim.source_chunk_id"
+    )
+
+    def __repr__(self) -> str:
+        return f"<TranscriptChunk(id={self.id}, episode_id={self.episode_id}, chunk_index={self.chunk_index}, pos={self.start_position}-{self.end_position})>"
 
 
 class Claim(Base):
@@ -86,6 +126,12 @@ class Claim(Base):
         ForeignKey("crypto.podcast_episodes.id", ondelete="CASCADE"),
         nullable=False,
     )
+    source_chunk_id = Column(
+        BigInteger,
+        ForeignKey("crypto.transcript_chunks.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    merged_from_chunk_ids = Column(ARRAY(BigInteger), nullable=True)
     claim_text = Column(Text, nullable=False)
     confidence = Column(Float, nullable=False)
     embedding = Column(Vector(768))  # pgvector for similarity search
@@ -96,6 +142,9 @@ class Claim(Base):
 
     # Relationships
     episode = relationship("PodcastEpisode", back_populates="claims")
+    source_chunk = relationship(
+        "TranscriptChunk", back_populates="claims", foreign_keys=[source_chunk_id]
+    )
     claim_quotes = relationship(
         "ClaimQuote", back_populates="claim", cascade="all, delete-orphan"
     )

@@ -335,6 +335,19 @@ class ClaimDeduplicator:
         for claim in group:
             all_quotes.extend(claim.quotes)
 
+        # Collect all source chunk IDs from merged claims
+        merged_chunk_ids = []
+        for claim in group:
+            # Add this claim's source chunk
+            if claim.source_chunk_id:
+                merged_chunk_ids.append(claim.source_chunk_id)
+            # Add any previously merged chunk IDs
+            if claim.merged_from_chunk_ids:
+                merged_chunk_ids.extend(claim.merged_from_chunk_ids)
+
+        # Deduplicate chunk IDs
+        merged_chunk_ids = list(set(merged_chunk_ids))
+
         logger.debug(f"Merging {len(group)} claims with {len(all_quotes)} total quotes...")
 
         unique_quotes = self.quote_deduplicator.deduplicate(all_quotes)
@@ -346,10 +359,12 @@ class ClaimDeduplicator:
             source_chunk_id=best_claim.source_chunk_id,
             quotes=unique_quotes,
             confidence=best_claim.confidence,
+            merged_from_chunk_ids=merged_chunk_ids,  # Track all source chunks
             metadata={
                 "merged_from_claims": len(group),
                 "original_quote_count": len(all_quotes),
-                "deduplicated_quote_count": len(unique_quotes)
+                "deduplicated_quote_count": len(unique_quotes),
+                "merged_from_chunk_ids_count": len(merged_chunk_ids)
             }
         )
 

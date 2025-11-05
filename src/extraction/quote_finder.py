@@ -17,12 +17,16 @@ Usage:
 
 import re
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from src.config.settings import settings
 from src.extraction.claim_extractor import ExtractedClaim
 from src.search.transcript_search_index import TranscriptSearchIndex, QuoteCandidate
 from src.infrastructure.logger import get_logger
+
+if TYPE_CHECKING:
+    from src.scoring.confidence_calculator import ConfidenceComponents
+    from src.infrastructure.reranker_service import RerankerService
 
 logger = get_logger(__name__)
 
@@ -60,19 +64,21 @@ class ClaimWithQuotes:
 
     Attributes:
         claim_text: The claim text
-        source_chunk_id: Source chunk ID
+        source_chunk_id: Database ID of primary source chunk
         quotes: List of supporting quotes (max 10)
         confidence: Initial confidence (from claim extraction)
         confidence_components: Confidence score components (set by ConfidenceCalculator)
+        merged_from_chunk_ids: List of all chunk IDs if claim was merged (for dedup tracking)
         metadata: Additional metadata (for merge tracking, etc.)
     """
 
     claim_text: str
-    source_chunk_id: int
+    source_chunk_id: int  # Database ID from transcript_chunks table
     quotes: List[Quote]
     confidence: float = 1.0
     confidence_components: Optional["ConfidenceComponents"] = None
-    metadata: Optional[dict] = field(default_factory=dict)
+    merged_from_chunk_ids: Optional[List[int]] = field(default=None)  # For tracking merged claims
+    metadata: dict = field(default_factory=dict)
 
 
 class QuoteFinder:
@@ -125,7 +131,7 @@ class QuoteFinder:
         self,
         search_index: TranscriptSearchIndex,
         reranker: "RerankerService",
-        max_quotes_per_claim: int = None,
+        max_quotes_per_claim: Optional[int] = None,
         initial_candidates: int = 30,
     ):
         """

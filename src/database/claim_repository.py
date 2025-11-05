@@ -110,6 +110,8 @@ class ClaimRepository:
                     episode_id=episode_id,
                     claim_text=claim_with_quotes.claim_text,
                     confidence=claim_with_quotes.confidence,
+                    source_chunk_id=claim_with_quotes.source_chunk_id,
+                    merged_from_chunk_ids=claim_with_quotes.merged_from_chunk_ids,
                     embedding=None,  # Will be set after we get the ID
                     confidence_components=(
                         claim_with_quotes.confidence_components.__dict__

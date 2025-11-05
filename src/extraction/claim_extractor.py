@@ -36,12 +36,12 @@ class ExtractedClaim:
 
     Attributes:
         claim_text: The factual claim text
-        source_chunk_id: ID of the chunk this claim came from
+        source_chunk_id: Database ID of the chunk this claim came from
         confidence: Initial confidence score (optional, for future use)
     """
 
     claim_text: str
-    source_chunk_id: int
+    source_chunk_id: int  # Database ID from transcript_chunks table
     confidence: float = 1.0
 
 

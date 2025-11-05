@@ -19,13 +19,14 @@ Usage:
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict
+from typing import List, Dict, Optional, cast
 import time
 
 from src.config.settings import settings
 from src.database.connection import get_db_session
 from src.database.models import PodcastEpisode
 from src.database.claim_repository import ClaimRepository
+from src.database.chunk_repository import ChunkRepository
 from src.preprocessing.transcript_parser import TranscriptParser
 from src.preprocessing.chunking_service import ChunkingService
 from src.extraction.claim_extractor import ClaimExtractor
@@ -34,7 +35,7 @@ from src.extraction.quote_finder import QuoteFinder, ClaimWithQuotes, Quote
 from src.infrastructure.embedding_service import EmbeddingService
 from src.infrastructure.reranker_service import RerankerService
 from src.deduplication.quote_deduplicator import QuoteDeduplicator
-from src.deduplication.claim_deduplicator import ClaimDeduplicator, DatabaseDeduplicationResult
+from src.deduplication.claim_deduplicator import ClaimDeduplicator
 from src.scoring.confidence_calculator import ConfidenceCalculator
 from src.dspy_models.entailment_validator import EntailmentValidatorModel
 from src.dspy_models.ad_classifier import AdClassifierModel
@@ -220,10 +221,12 @@ class ExtractionPipeline:
 
         episode = self._load_episode(episode_id)
 
-        if not episode.transcript:
+        # SQLAlchemy's typing shows Column[str], but at runtime it's actually str | None
+        # Use cast to tell the type checker what the actual runtime type is
+        transcript = cast(Optional[str], episode.transcript)
+        if not transcript:
             raise ValueError(f"Episode {episode_id} has no transcript")
 
-        transcript = episode.transcript
         transcript_length = len(transcript)
 
         logger.info(
@@ -235,14 +238,40 @@ class ExtractionPipeline:
         parsed_transcript = self.parser.parse(transcript)
         logger.info(f"  ✓ Parsed {len(parsed_transcript.segments)} segments")
 
-        logger.info("Step 2/9: Chunking transcript...")
+        logger.info("Step 2/13: Chunking transcript...")
         chunks = self.chunker.chunk_text(parsed_transcript.full_text)
         logger.info(f"  ✓ Created {len(chunks)} chunks")
 
-        logger.info("Step 3/13: Extracting claims from chunks...")
+        # Step 3: Save chunks to database (NEW - Sprint 5)
+        logger.info("Step 3/13: Saving transcript chunks to database...")
+        chunk_session = get_db_session()
+        try:
+            chunk_repo = ChunkRepository(chunk_session)
+            chunk_db_ids = await chunk_repo.save_chunks(chunks, episode_id)
+
+            # Create mapping from ephemeral chunk_id to database ID
+            chunk_id_mapping = {
+                chunk.chunk_id: db_id
+                for chunk, db_id in zip(chunks, chunk_db_ids)
+            }
+
+            chunk_session.commit()
+            logger.info(f"  ✓ Saved {len(chunk_db_ids)} chunks to database")
+        except Exception as e:
+            logger.error(f"Error saving chunks: {e}", exc_info=True)
+            chunk_session.rollback()
+            raise
+        finally:
+            chunk_session.close()
+
+        logger.info("Step 4/13: Extracting claims from chunks...")
         claims = await self.claim_extractor.extract_from_chunks(chunks)
         claims_extracted_count = len(claims)  # Track original count before filtering
         logger.info(f"  ✓ Extracted {claims_extracted_count} claims")
+
+        # Map ephemeral chunk IDs to database IDs
+        for claim in claims:
+            claim.source_chunk_id = chunk_id_mapping[claim.source_chunk_id]
 
         if not claims:
             logger.warning("No claims extracted, ending pipeline")
@@ -420,6 +449,9 @@ class ExtractionPipeline:
 
                 if dedup_result.is_duplicate:
                     # Found duplicate - merge quotes to existing claim
+                    # Type narrowing: existing_claim_id must be set when is_duplicate is True
+                    assert dedup_result.existing_claim_id is not None, "existing_claim_id must be set when is_duplicate is True"
+
                     duplicate_details.append({
                         "claim_text": claim.claim_text,
                         "existing_claim_id": dedup_result.existing_claim_id,
