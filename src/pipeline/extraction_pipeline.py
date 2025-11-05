@@ -363,21 +363,32 @@ class ExtractionPipeline:
         logger.info("Step 7/13: Validating entailment (filtering non-SUPPORTS quotes)...")
         quotes_before_entailment = sum(len(c.quotes) for c in claims_with_quotes)
 
-        for claim in claims_with_quotes:
+        # Collect ALL claim-quote pairs for global parallel validation (optimized)
+        # This validates all pairs at once instead of sequentially per claim
+        all_pairs = []
+        pair_to_claim_quote_map = []  # Track which claim/quote each pair belongs to
+
+        for claim_idx, claim in enumerate(claims_with_quotes):
             if not claim.quotes:
                 continue
 
-            # Validate ALL quotes in parallel using dspy.asyncify
-            quote_texts = [q.quote_text for q in claim.quotes]
-            pairs = [(claim.claim_text, quote_text) for quote_text in quote_texts]
-            validation_results = await self.entailment_validator.validate_batch_parallel(pairs)
+            for quote_idx, quote in enumerate(claim.quotes):
+                all_pairs.append((claim.claim_text, quote.quote_text))
+                pair_to_claim_quote_map.append((claim_idx, quote_idx))
 
-            # Attach entailment data to Quote objects
-            for quote, result in zip(claim.quotes, validation_results):
+        # Validate ALL pairs in parallel (max_concurrency from settings)
+        if all_pairs:
+            logger.info(f"Validating {len(all_pairs)} claim-quote pairs globally in parallel...")
+            validation_results = await self.entailment_validator.validate_batch_parallel(all_pairs)
+
+            # Map results back to Quote objects
+            for (claim_idx, quote_idx), result in zip(pair_to_claim_quote_map, validation_results):
+                quote = claims_with_quotes[claim_idx].quotes[quote_idx]
                 quote.entailment_score = result.get('confidence', 0.0)
                 quote.entailment_relationship = result.get('relationship', 'UNKNOWN')
 
-            # Filter to keep only SUPPORTS quotes
+        # Filter to keep only SUPPORTS quotes
+        for claim in claims_with_quotes:
             claim.quotes = [
                 q for q in claim.quotes
                 if q.entailment_relationship == 'SUPPORTS'
