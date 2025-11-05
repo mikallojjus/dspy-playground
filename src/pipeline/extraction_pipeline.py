@@ -429,56 +429,68 @@ class ExtractionPipeline:
             )
 
         # Step 11: Database deduplication (NEW - Sprint 4)
-        logger.info("Step 11/13: Checking database for duplicate claims...")
         db_session = get_db_session()
         duplicate_details = []
         unique_claims_for_db = []
 
         try:
-            for claim in claims_with_quotes:
-                # Generate embedding for database search
-                embedding = await self.embedder.embed_text(claim.claim_text)
+            if settings.enable_cross_episode_deduplication:
+                logger.info("Step 11/13: Checking database for duplicate claims...")
 
-                # Check against database
-                dedup_result = await self.claim_deduplicator.deduplicate_against_database(
-                    claim.claim_text,
-                    embedding,
-                    episode_id,
-                    db_session
+                for claim in claims_with_quotes:
+                    # Generate embedding for database search
+                    embedding = await self.embedder.embed_text(claim.claim_text)
+
+                    # Check against database
+                    dedup_result = await self.claim_deduplicator.deduplicate_against_database(
+                        claim.claim_text,
+                        embedding,
+                        episode_id,
+                        db_session
+                    )
+
+                    if dedup_result.is_duplicate:
+                        # Found duplicate - merge quotes to existing claim
+                        # Type narrowing: existing_claim_id must be set when is_duplicate is True
+                        assert dedup_result.existing_claim_id is not None, "existing_claim_id must be set when is_duplicate is True"
+
+                        duplicate_details.append({
+                            "claim_text": claim.claim_text,
+                            "existing_claim_id": dedup_result.existing_claim_id,
+                            "reranker_score": dedup_result.reranker_score,
+                            "new_quotes_count": len(claim.quotes)
+                        })
+
+                        # Merge quotes to existing claim
+                        repo = ClaimRepository(db_session)
+                        await repo.merge_quotes_to_existing_claim(
+                            dedup_result.existing_claim_id,
+                            claim.quotes,
+                            episode_id
+                        )
+
+                        logger.info(
+                            f"  Merged {len(claim.quotes)} quotes to existing claim {dedup_result.existing_claim_id}"
+                        )
+                    else:
+                        # Unique claim - prepare for insertion
+                        claim.metadata["embedding"] = embedding
+                        unique_claims_for_db.append(claim)
+
+                logger.info(
+                    f"  ✓ Found {len(duplicate_details)} duplicates, "
+                    f"{len(unique_claims_for_db)} unique claims to save"
                 )
+            else:
+                logger.info("Step 11/13: Cross-episode deduplication disabled, treating all claims as unique")
 
-                if dedup_result.is_duplicate:
-                    # Found duplicate - merge quotes to existing claim
-                    # Type narrowing: existing_claim_id must be set when is_duplicate is True
-                    assert dedup_result.existing_claim_id is not None, "existing_claim_id must be set when is_duplicate is True"
-
-                    duplicate_details.append({
-                        "claim_text": claim.claim_text,
-                        "existing_claim_id": dedup_result.existing_claim_id,
-                        "reranker_score": dedup_result.reranker_score,
-                        "new_quotes_count": len(claim.quotes)
-                    })
-
-                    # Merge quotes to existing claim
-                    repo = ClaimRepository(db_session)
-                    await repo.merge_quotes_to_existing_claim(
-                        dedup_result.existing_claim_id,
-                        claim.quotes,
-                        episode_id
-                    )
-
-                    logger.info(
-                        f"  Merged {len(claim.quotes)} quotes to existing claim {dedup_result.existing_claim_id}"
-                    )
-                else:
-                    # Unique claim - prepare for insertion
+                # Generate embeddings for all claims without deduplication
+                for claim in claims_with_quotes:
+                    embedding = await self.embedder.embed_text(claim.claim_text)
                     claim.metadata["embedding"] = embedding
                     unique_claims_for_db.append(claim)
 
-            logger.info(
-                f"  ✓ Found {len(duplicate_details)} duplicates, "
-                f"{len(unique_claims_for_db)} unique claims to save"
-            )
+                logger.info(f"  ✓ Prepared {len(unique_claims_for_db)} claims for saving (dedup disabled)")
 
             # Step 12: Save to PostgreSQL (NEW - Sprint 4)
             logger.info("Step 12/13: Saving claims and quotes to database...")

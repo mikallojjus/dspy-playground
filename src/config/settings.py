@@ -102,6 +102,10 @@ class Settings(BaseSettings):
     )
 
     # Deduplication Thresholds
+    enable_cross_episode_deduplication: bool = Field(
+        default=True,
+        description="Enable cross-episode claim deduplication via database similarity search"
+    )
     embedding_similarity_threshold: float = Field(
         default=0.85, description="Cosine similarity threshold for claim deduplication"
     )
