@@ -31,8 +31,8 @@ from pathlib import Path
 from datetime import datetime
 
 # Fix encoding for Windows console
-if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8')
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8")
 
 from src.metrics_llm_judge import llm_judge_metric
 from src.config.settings import settings
@@ -49,31 +49,28 @@ class ClaimExtraction(dspy.Signature):
     - Concise (5-40 words)
     """
 
-    transcript_chunk: str = dspy.InputField(desc="The podcast transcript text to analyze")
-    claims: List[str] = dspy.OutputField(desc="List of factual claims extracted from the transcript")
+    transcript_chunk: str = dspy.InputField(
+        desc="The podcast transcript text to analyze"
+    )
+    claims: List[str] = dspy.OutputField(
+        desc="List of factual claims extracted from the transcript"
+    )
 
 
 def load_dataset(filepath):
     """Load claims dataset and convert to DSPy examples."""
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     examples = []
-    for item in data['examples']:
+    for item in data["examples"]:
         # For positive-only training: only include good claims
         # For validation: include both good and bad
-        if item['quality'] == 'good':
+        if item["quality"] == "good":
             example = dspy.Example(
-                transcript_chunk=item['transcript_chunk'],
-                claims=item['claims']  # List of all claims from this chunk
-            ).with_inputs('transcript_chunk')
-            examples.append(example)
-        else:
-            # For validation set with bad examples, expected claims is empty list
-            example = dspy.Example(
-                transcript_chunk=item['transcript_chunk'],
-                claims=[]  # Bad claims should produce empty output
-            ).with_inputs('transcript_chunk')
+                transcript_chunk=item["transcript_chunk"],
+                claims=item["claims"],  # List of all claims from this chunk
+            ).with_inputs("transcript_chunk")
             examples.append(example)
 
     return examples
@@ -85,19 +82,39 @@ def print_metrics(dataset, dataset_name):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Train claim extraction model with MIPROv2')
-    parser.add_argument('--train-path', default='evaluation/claims_train.json',
-                        help='Path to training dataset (mixed good/bad examples)')
-    parser.add_argument('--val-path', default='evaluation/claims_val.json',
-                        help='Path to validation dataset (mixed good/bad)')
-    parser.add_argument('--output', default='models/claim_extractor_mipro_v1.json',
-                        help='Path to save trained model')
-    parser.add_argument('--max-demos', type=int, default=4,
-                        help='Maximum bootstrapped demos')
-    parser.add_argument('--num-trials', type=int, default=30,
-                        help='Number of Bayesian optimization iterations (higher = better but slower)')
-    parser.add_argument('--num-candidates', type=int, default=10,
-                        help='Number of instruction variants to try per iteration')
+    parser = argparse.ArgumentParser(
+        description="Train claim extraction model with MIPROv2"
+    )
+    parser.add_argument(
+        "--train-path",
+        default="evaluation/claims_train.json",
+        help="Path to training dataset (mixed good/bad examples)",
+    )
+    parser.add_argument(
+        "--val-path",
+        default="evaluation/claims_val.json",
+        help="Path to validation dataset (mixed good/bad)",
+    )
+    parser.add_argument(
+        "--output",
+        default="models/claim_extractor_mipro_v1.json",
+        help="Path to save trained model",
+    )
+    parser.add_argument(
+        "--max-demos", type=int, default=4, help="Maximum bootstrapped demos"
+    )
+    parser.add_argument(
+        "--num-trials",
+        type=int,
+        default=30,
+        help="Number of Bayesian optimization iterations (higher = better but slower)",
+    )
+    parser.add_argument(
+        "--num-candidates",
+        type=int,
+        default=10,
+        help="Number of instruction variants to try per iteration",
+    )
 
     args = parser.parse_args()
 
@@ -114,20 +131,21 @@ def main():
 
     # Configure DSPy
     print(f"Configuring DSPy with Ollama at {settings.ollama_url}")
-    lm = dspy.LM(
-        f"ollama/{settings.ollama_model}",
-        api_base=settings.ollama_url
-    )
+    lm = dspy.LM(f"ollama/{settings.ollama_model}", api_base=settings.ollama_url)
     dspy.configure(lm=lm)
 
     # Configure prompt model for MIPROv2 instruction proposal
     prompt_model = None
     if settings.mipro_prompt_model:
         print(f"Using {settings.mipro_prompt_model} for instruction proposal")
-        prompt_model = dspy.LM(settings.mipro_prompt_model, api_key=settings.anthropic_api_key)
+        prompt_model = dspy.LM(
+            settings.mipro_prompt_model, api_key=settings.anthropic_api_key
+        )
     else:
         print("WARNING: No prompt_model configured. MIPROv2 may fail with Qwen3 4B.")
-        print("Add MIPRO_PROMPT_MODEL to .env (e.g., 'anthropic/claude-3-5-haiku-20241022')")
+        print(
+            "Add MIPRO_PROMPT_MODEL to .env (e.g., 'anthropic/claude-3-5-haiku-20241022')"
+        )
     print()
 
     # Load datasets
@@ -148,10 +166,7 @@ def main():
     # Evaluate baseline
     print("Evaluating baseline on validation set...")
     evaluator = Evaluate(
-        devset=valset,
-        metric=llm_judge_metric,
-        num_threads=1,
-        display_progress=True
+        devset=valset, metric=llm_judge_metric, num_threads=1, display_progress=True
     )
 
     baseline_score = evaluator(baseline)
@@ -170,7 +185,9 @@ def main():
     print(f"  Max labeled demos: {args.max_demos}")
     print(f"  Bayesian optimization trials: {args.num_trials}")
     print(f"  Instruction candidates per trial: {args.num_candidates}")
-    print(f"  Total LLM calls (est): {args.num_trials * args.num_candidates * 2} - {args.num_trials * args.num_candidates * 5}")
+    print(
+        f"  Total LLM calls (est): {args.num_trials * args.num_candidates * 2} - {args.num_trials * args.num_candidates * 5}"
+    )
     print(f"  Training on: {len(trainset)} examples")
     print()
     print("Progress tracking:")
@@ -186,7 +203,7 @@ def main():
         init_temperature=1.0,
         auto=None,  # Disable auto mode to use manual num_trials/num_candidates
         verbose=True,  # Show progress
-        prompt_model=prompt_model  # Use Claude for instruction proposal
+        prompt_model=prompt_model,  # Use Claude for instruction proposal
     )
 
     print("Starting optimization (this will take 1-3 hours)...")
@@ -197,7 +214,7 @@ def main():
         trainset=trainset,
         num_trials=args.num_trials,
         max_bootstrapped_demos=args.max_demos,
-        max_labeled_demos=args.max_demos
+        max_labeled_demos=args.max_demos,
     )
 
     optimization_end = datetime.now()
@@ -225,7 +242,7 @@ def main():
     print()
 
     # Print few-shot examples count
-    if hasattr(optimized, 'demos') and optimized.demos:
+    if hasattr(optimized, "demos") and optimized.demos:
         print(f"Model has {len(optimized.demos)} few-shot examples")
     print()
 
@@ -255,7 +272,9 @@ def main():
     print()
     print(f"Baseline quality score:  {baseline_score_value:.3f}")
     print(f"Optimized quality score: {optimized_score_value:.3f}")
-    print(f"Improvement:             {optimized_score_value - baseline_score_value:+.3f} ({(optimized_score_value - baseline_score_value) / baseline_score_value * 100:+.1f}%)")
+    print(
+        f"Improvement:             {optimized_score_value - baseline_score_value:+.3f} ({(optimized_score_value - baseline_score_value) / baseline_score_value * 100:+.1f}%)"
+    )
     print()
     print(f"Model saved to: {args.output}")
     print()
@@ -295,16 +314,20 @@ def main():
             "baseline": float(baseline_score_value),
             "optimized": float(optimized_score_value),
             "improvement": float(optimized_score_value - baseline_score_value),
-            "improvement_pct": float((optimized_score_value - baseline_score_value) / baseline_score_value * 100),
-        }
+            "improvement_pct": float(
+                (optimized_score_value - baseline_score_value)
+                / baseline_score_value
+                * 100
+            ),
+        },
     }
 
     results_path = output_path.parent / f"{output_path.stem}_results.json"
-    with open(results_path, 'w') as f:
+    with open(results_path, "w") as f:
         json.dump(results, f, indent=2)
     print(f"✓ Detailed results saved to {results_path}")
     print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
