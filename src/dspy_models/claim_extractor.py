@@ -21,6 +21,55 @@ from src.infrastructure.logger import get_logger
 logger = get_logger(__name__)
 
 
+def fix_split_claims(claims: List[str]) -> List[str]:
+    """
+    Fix claims that were incorrectly split by json_repair library.
+
+    The json_repair library (used by DSPy 3.0.3) has a bug where it splits
+    strings containing apostrophes when the LLM generates mixed quote styles.
+
+    For example:
+        Input:  ["Netanyahu", "s family faced persecution..."]
+        Output: ["Netanyahu's family faced persecution..."]
+
+    This function detects and merges such split claims.
+
+    Args:
+        claims: List of claim strings that may contain splits
+
+    Returns:
+        List of claims with splits merged back together
+    """
+    if not claims:
+        return claims
+
+    fixed = []
+    i = 0
+
+    while i < len(claims):
+        claim = claims[i].strip()
+
+        # Check if this looks like the first part of a split claim
+        # Pattern: A proper noun or word that's not too long, followed by a claim starting with "s "
+        if i + 1 < len(claims):
+            next_claim = claims[i + 1].strip()
+
+            # Check if next claim starts with "s " (indicating it's the tail of a possessive)
+            if next_claim.startswith('s ') and len(claim) < 30:
+                # This looks like a split possessive, merge them
+                merged = claim + "'" + next_claim
+                fixed.append(merged)
+                logger.debug(f"Merged split claim: {repr(claim)} + {repr(next_claim)} -> {repr(merged)}")
+                i += 2
+                continue
+
+        # No split detected, keep claim as-is
+        fixed.append(claim)
+        i += 1
+
+    return fixed
+
+
 class ClaimExtraction(dspy.Signature):
     """
     Extract factual, verifiable claims from podcast transcript text.
@@ -117,6 +166,9 @@ class ClaimExtractorModel:
             result = self.model(transcript_chunk=transcript_chunk)
             claims = getattr(result, 'claims', None) or []
 
+            # Fix claims that were split by json_repair bug
+            claims = fix_split_claims(claims)
+
             logger.debug(f"Extracted {len(claims)} claims from chunk ({len(transcript_chunk)} chars)")
 
             return claims
@@ -156,6 +208,9 @@ class ClaimExtractorModel:
         try:
             result = await self._async_model(transcript_chunk=transcript_chunk)
             claims = getattr(result, 'claims', None) or []
+
+            # Fix claims that were split by json_repair bug
+            claims = fix_split_claims(claims)
 
             logger.debug(f"Extracted {len(claims)} claims from chunk ({len(transcript_chunk)} chars)")
 
