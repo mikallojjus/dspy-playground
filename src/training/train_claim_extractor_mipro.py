@@ -65,7 +65,7 @@ def load_dataset(filepath):
         if item['quality'] == 'good':
             example = dspy.Example(
                 transcript_chunk=item['transcript_chunk'],
-                claims=[item['claim']]  # Wrap in list
+                claims=item['claims']  # List of all claims from this chunk
             ).with_inputs('transcript_chunk')
             examples.append(example)
         else:

@@ -249,23 +249,32 @@ class ClaimExtractor:
 
                 claims_before_filter.append(claim_text.strip())
 
-                # Apply quality filter
-                if self._is_valid_claim(claim_text.strip()):
-                    claims.append(
-                        ExtractedClaim(
-                            claim_text=claim_text.strip(),
-                            source_chunk_id=chunk.chunk_id,
-                            confidence=1.0,  # Initial confidence (before scoring)
-                        )
+                # Apply quality filter if enabled
+                if settings.enable_claim_specificity_filter and not self._is_valid_claim(claim_text.strip()):
+                    continue
+
+                claims.append(
+                    ExtractedClaim(
+                        claim_text=claim_text.strip(),
+                        source_chunk_id=chunk.chunk_id,
+                        confidence=1.0,  # Initial confidence (before scoring)
                     )
+                )
 
             filtered_count = len(claims_before_filter) - len(claims)
 
-            logger.debug(
-                f"Chunk {chunk.chunk_id}: extracted {len(claims)} claims "
-                f"({filtered_count} filtered by quality) "
-                f"({len(chunk.text)} chars)"
-            )
+            if settings.enable_claim_specificity_filter:
+                logger.debug(
+                    f"Chunk {chunk.chunk_id}: extracted {len(claims)} claims "
+                    f"({filtered_count} filtered by specificity) "
+                    f"({len(chunk.text)} chars)"
+                )
+            else:
+                logger.debug(
+                    f"Chunk {chunk.chunk_id}: extracted {len(claims)} claims "
+                    f"(specificity filter disabled) "
+                    f"({len(chunk.text)} chars)"
+                )
 
             return claims
 

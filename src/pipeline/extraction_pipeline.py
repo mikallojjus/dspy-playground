@@ -242,11 +242,15 @@ class ExtractionPipeline:
         chunks = self.chunker.chunk_text(parsed_transcript.full_text)
         logger.info(f"  ✓ Created {len(chunks)} chunks")
 
-        # Step 3: Save chunks to database (NEW - Sprint 5)
-        logger.info("Step 3/13: Saving transcript chunks to database...")
-        chunk_session = get_db_session()
+        # Create single database session for atomic transaction (chunks + claims)
+        db_session = get_db_session()
+        duplicate_details = []
+        unique_claims_for_db = []
+
         try:
-            chunk_repo = ChunkRepository(chunk_session)
+            # Step 3: Save chunks to database (NEW - Sprint 5)
+            logger.info("Step 3/13: Saving transcript chunks to database...")
+            chunk_repo = ChunkRepository(db_session)
             chunk_db_ids = await chunk_repo.save_chunks(chunks, episode_id)
 
             # Create mapping from ephemeral chunk_id to database ID
@@ -255,196 +259,188 @@ class ExtractionPipeline:
                 for chunk, db_id in zip(chunks, chunk_db_ids)
             }
 
-            chunk_session.commit()
-            logger.info(f"  ✓ Saved {len(chunk_db_ids)} chunks to database")
-        except Exception as e:
-            logger.error(f"Error saving chunks: {e}", exc_info=True)
-            chunk_session.rollback()
-            raise
-        finally:
-            chunk_session.close()
+            # Note: Not committing yet - will commit atomically with claims at the end
+            logger.info(f"  ✓ Saved {len(chunk_db_ids)} chunks to database (pending commit)")
 
-        logger.info("Step 4/13: Extracting claims from chunks...")
-        claims = await self.claim_extractor.extract_from_chunks(chunks)
-        claims_extracted_count = len(claims)  # Track original count before filtering
-        logger.info(f"  ✓ Extracted {claims_extracted_count} claims")
+            logger.info("Step 4/13: Extracting claims from chunks...")
+            claims = await self.claim_extractor.extract_from_chunks(chunks)
+            claims_extracted_count = len(claims)  # Track original count before filtering
+            logger.info(f"  ✓ Extracted {claims_extracted_count} claims")
 
-        # Map ephemeral chunk IDs to database IDs
-        for claim in claims:
-            claim.source_chunk_id = chunk_id_mapping[claim.source_chunk_id]
-
-        if not claims:
-            logger.warning("No claims extracted, ending pipeline")
-            return self._create_empty_result(
-                episode_id,
-                transcript_length,
-                len(chunks),
-                time.time() - start_time
-            )
-
-        # Step 4: Filter advertisement claims (if enabled)
-        claims_after_ad_filter = claims_extracted_count
-        ad_claims_filtered = 0
-
-        if self.ad_classifier is not None:
-            logger.info("Step 4/13: Filtering advertisement claims...")
-            claim_texts = [c.claim_text for c in claims]
-
-            # Classify all claims in parallel
-            classification_results = await self.ad_classifier.classify_batch_parallel(
-                claim_texts,
-                max_concurrency=settings.max_ad_classification_concurrency
-            )
-
-            # Filter out ads above threshold
-            content_claims = []
-            for claim, result in zip(claims, classification_results):
-                is_ad = result["is_advertisement"]
-                confidence = result["confidence"]
-
-                if is_ad and confidence >= settings.ad_classification_threshold:
-                    ad_claims_filtered += 1
-                    logger.debug(
-                        f"Filtered ad claim (confidence={confidence:.2f}): "
-                        f"{claim.claim_text[:60]}..."
-                    )
-                else:
-                    content_claims.append(claim)
-
-            claims = content_claims
-            claims_after_ad_filter = len(claims)
-
-            logger.info(
-                f"  ✓ {len(claim_texts)} → {claims_after_ad_filter} claims "
-                f"({ad_claims_filtered} advertisements filtered)"
-            )
+            # Map ephemeral chunk IDs to database IDs
+            for claim in claims:
+                claim.source_chunk_id = chunk_id_mapping[claim.source_chunk_id]
 
             if not claims:
-                logger.warning("No claims remaining after ad filtering, ending pipeline")
+                logger.warning("No claims extracted, ending pipeline")
+                db_session.close()
                 return self._create_empty_result(
                     episode_id,
                     transcript_length,
                     len(chunks),
                     time.time() - start_time
                 )
-        else:
-            logger.info("Step 4/13: Skipping ad filtering (disabled or model not found)")
 
-        logger.info("Step 5/13: Building search index...")
-        search_index = await TranscriptSearchIndex.build_from_transcript(
-            parsed_transcript,
-            self.embedder
-        )
-        logger.info(f"  ✓ Indexed {search_index.get_segment_count()} segments")
+            # Step 4: Filter advertisement claims (if enabled)
+            claims_after_ad_filter = claims_extracted_count
+            ad_claims_filtered = 0
 
-        logger.info("Step 5/13: Finding quotes for claims...")
-        quote_finder = QuoteFinder(search_index, self.reranker)
-        claims_with_quotes = await quote_finder.find_quotes_for_claims(claims)
-        logger.info(f"  ✓ Found quotes for {len(claims_with_quotes)} claims")
+            if self.ad_classifier is not None:
+                logger.info("Step 4/13: Filtering advertisement claims...")
+                claim_texts = [c.claim_text for c in claims]
 
-        # Step 6: Deduplicate quotes BEFORE validation (NEW - Sprint 4)
-        # This ensures we validate the FINAL merged quote texts, not intermediate versions
-        logger.info("Step 6/13: Deduplicating quotes...")
-        quotes_before_dedup = sum(len(c.quotes) for c in claims_with_quotes)
-        all_quotes = [q for c in claims_with_quotes for q in c.quotes]
-        unique_quotes = self.quote_deduplicator.deduplicate(all_quotes)
-        logger.info(
-            f"  ✓ {len(all_quotes)} → {len(unique_quotes)} unique quotes "
-            f"({len(all_quotes) - len(unique_quotes)} duplicates removed)"
-        )
+                # Classify all claims in parallel
+                classification_results = await self.ad_classifier.classify_batch_parallel(
+                    claim_texts,
+                    max_concurrency=settings.max_ad_classification_concurrency
+                )
 
-        claims_with_quotes = self._remap_quotes_to_claims(
-            claims_with_quotes, all_quotes, unique_quotes
-        )
+                # Filter out ads above threshold
+                content_claims = []
+                for claim, result in zip(claims, classification_results):
+                    is_ad = result["is_advertisement"]
+                    confidence = result["confidence"]
 
-        # Step 7: Entailment validation on FINAL deduplicated quotes (NEW - Sprint 4)
-        # We validate after deduplication to ensure the actual text being saved
-        # to the database has been validated (not an intermediate text that gets replaced)
-        logger.info("Step 7/13: Validating entailment (filtering non-SUPPORTS quotes)...")
-        quotes_before_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+                    if is_ad and confidence >= settings.ad_classification_threshold:
+                        ad_claims_filtered += 1
+                        logger.debug(
+                            f"Filtered ad claim (confidence={confidence:.2f}): "
+                            f"{claim.claim_text[:60]}..."
+                        )
+                    else:
+                        content_claims.append(claim)
 
-        # Collect ALL claim-quote pairs for global parallel validation (optimized)
-        # This validates all pairs at once instead of sequentially per claim
-        all_pairs = []
-        pair_to_claim_quote_map = []  # Track which claim/quote each pair belongs to
+                claims = content_claims
+                claims_after_ad_filter = len(claims)
 
-        for claim_idx, claim in enumerate(claims_with_quotes):
-            if not claim.quotes:
-                continue
+                logger.info(
+                    f"  ✓ {len(claim_texts)} → {claims_after_ad_filter} claims "
+                    f"({ad_claims_filtered} advertisements filtered)"
+                )
 
-            for quote_idx, quote in enumerate(claim.quotes):
-                all_pairs.append((claim.claim_text, quote.quote_text))
-                pair_to_claim_quote_map.append((claim_idx, quote_idx))
+                if not claims:
+                    logger.warning("No claims remaining after ad filtering, ending pipeline")
+                    db_session.close()
+                    return self._create_empty_result(
+                        episode_id,
+                        transcript_length,
+                        len(chunks),
+                        time.time() - start_time
+                    )
+            else:
+                logger.info("Step 4/13: Skipping ad filtering (disabled or model not found)")
 
-        # Validate ALL pairs in parallel (max_concurrency from settings)
-        if all_pairs:
-            logger.info(f"Validating {len(all_pairs)} claim-quote pairs globally in parallel...")
-            validation_results = await self.entailment_validator.validate_batch_parallel(all_pairs)
+            logger.info("Step 5/13: Building search index...")
+            search_index = await TranscriptSearchIndex.build_from_transcript(
+                parsed_transcript,
+                self.embedder
+            )
+            logger.info(f"  ✓ Indexed {search_index.get_segment_count()} segments")
 
-            # Map results back to Quote objects
-            for (claim_idx, quote_idx), result in zip(pair_to_claim_quote_map, validation_results):
-                quote = claims_with_quotes[claim_idx].quotes[quote_idx]
-                quote.entailment_score = result.get('confidence', 0.0)
-                quote.entailment_relationship = result.get('relationship', 'UNKNOWN')
+            logger.info("Step 5/13: Finding quotes for claims...")
+            quote_finder = QuoteFinder(search_index, self.reranker)
+            claims_with_quotes = await quote_finder.find_quotes_for_claims(claims)
+            logger.info(f"  ✓ Found quotes for {len(claims_with_quotes)} claims")
 
-        # Filter to keep only SUPPORTS quotes
-        for claim in claims_with_quotes:
-            claim.quotes = [
-                q for q in claim.quotes
-                if q.entailment_relationship == 'SUPPORTS'
-            ]
-
-        quotes_after_entailment = sum(len(c.quotes) for c in claims_with_quotes)
-        entailment_filtered = quotes_before_entailment - quotes_after_entailment
-
-        logger.info(
-            f"  ✓ {quotes_before_entailment} → {quotes_after_entailment} quotes "
-            f"({entailment_filtered} non-SUPPORTS filtered)"
-        )
-
-        logger.info("Step 8/13: Deduplicating claims (batch level)...")
-        deduplicated_claims = await self.claim_deduplicator.deduplicate_batch(
-            claims_with_quotes
-        )
-        logger.info(
-            f"  ✓ {len(claims_with_quotes)} → {len(deduplicated_claims)} unique claims "
-            f"({len(claims_with_quotes) - len(deduplicated_claims)} duplicates removed)"
-        )
-
-        logger.info("Step 9/13: Calculating confidence scores...")
-        for claim in deduplicated_claims:
-            conf = self.confidence_calculator.calculate(claim.quotes)
-            claim.confidence = conf.final_confidence
-            claim.confidence_components = conf
-        logger.info(f"  ✓ Calculated confidence for {len(deduplicated_claims)} claims")
-
-        logger.info("Step 10/13: Filtering low-confidence claims...")
-        high_confidence_claims = [
-            c for c in deduplicated_claims
-            if c.confidence >= settings.min_confidence
-        ]
-        logger.info(
-            f"  ✓ {len(high_confidence_claims)} claims above threshold "
-            f"({len(deduplicated_claims) - len(high_confidence_claims)} filtered)"
-        )
-
-        claims_with_quotes = [c for c in high_confidence_claims if c.quotes]
-
-        if not claims_with_quotes:
-            logger.warning("No claims have supporting quotes after filtering")
-            return self._create_empty_result(
-                episode_id,
-                transcript_length,
-                len(chunks),
-                time.time() - start_time
+            # Step 6: Deduplicate quotes BEFORE validation (NEW - Sprint 4)
+            # This ensures we validate the FINAL merged quote texts, not intermediate versions
+            logger.info("Step 6/13: Deduplicating quotes...")
+            quotes_before_dedup = sum(len(c.quotes) for c in claims_with_quotes)
+            all_quotes = [q for c in claims_with_quotes for q in c.quotes]
+            unique_quotes = self.quote_deduplicator.deduplicate(all_quotes)
+            logger.info(
+                f"  ✓ {len(all_quotes)} → {len(unique_quotes)} unique quotes "
+                f"({len(all_quotes) - len(unique_quotes)} duplicates removed)"
             )
 
-        # Step 11: Database deduplication (NEW - Sprint 4)
-        db_session = get_db_session()
-        duplicate_details = []
-        unique_claims_for_db = []
+            claims_with_quotes = self._remap_quotes_to_claims(
+                claims_with_quotes, all_quotes, unique_quotes
+            )
 
-        try:
+            # Step 7: Entailment validation on FINAL deduplicated quotes (NEW - Sprint 4)
+            # We validate after deduplication to ensure the actual text being saved
+            # to the database has been validated (not an intermediate text that gets replaced)
+            logger.info("Step 7/13: Validating entailment (filtering non-SUPPORTS quotes)...")
+            quotes_before_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+
+            # Collect ALL claim-quote pairs for global parallel validation (optimized)
+            # This validates all pairs at once instead of sequentially per claim
+            all_pairs = []
+            pair_to_claim_quote_map = []  # Track which claim/quote each pair belongs to
+
+            for claim_idx, claim in enumerate(claims_with_quotes):
+                if not claim.quotes:
+                    continue
+
+                for quote_idx, quote in enumerate(claim.quotes):
+                    all_pairs.append((claim.claim_text, quote.quote_text))
+                    pair_to_claim_quote_map.append((claim_idx, quote_idx))
+
+            # Validate ALL pairs in parallel (max_concurrency from settings)
+            if all_pairs:
+                logger.info(f"Validating {len(all_pairs)} claim-quote pairs globally in parallel...")
+                validation_results = await self.entailment_validator.validate_batch_parallel(all_pairs)
+
+                # Map results back to Quote objects
+                for (claim_idx, quote_idx), result in zip(pair_to_claim_quote_map, validation_results):
+                    quote = claims_with_quotes[claim_idx].quotes[quote_idx]
+                    quote.entailment_score = result.get('confidence', 0.0)
+                    quote.entailment_relationship = result.get('relationship', 'UNKNOWN')
+
+            # Filter to keep only SUPPORTS quotes
+            for claim in claims_with_quotes:
+                claim.quotes = [
+                    q for q in claim.quotes
+                    if q.entailment_relationship == 'SUPPORTS'
+                ]
+
+            quotes_after_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+            entailment_filtered = quotes_before_entailment - quotes_after_entailment
+
+            logger.info(
+                f"  ✓ {quotes_before_entailment} → {quotes_after_entailment} quotes "
+                f"({entailment_filtered} non-SUPPORTS filtered)"
+            )
+
+            logger.info("Step 8/13: Deduplicating claims (batch level)...")
+            deduplicated_claims = await self.claim_deduplicator.deduplicate_batch(
+                claims_with_quotes
+            )
+            logger.info(
+                f"  ✓ {len(claims_with_quotes)} → {len(deduplicated_claims)} unique claims "
+                f"({len(claims_with_quotes) - len(deduplicated_claims)} duplicates removed)"
+            )
+
+            logger.info("Step 9/13: Calculating confidence scores...")
+            for claim in deduplicated_claims:
+                conf = self.confidence_calculator.calculate(claim.quotes)
+                claim.confidence = conf.final_confidence
+                claim.confidence_components = conf
+            logger.info(f"  ✓ Calculated confidence for {len(deduplicated_claims)} claims")
+
+            logger.info("Step 10/13: Filtering low-confidence claims...")
+            high_confidence_claims = [
+                c for c in deduplicated_claims
+                if c.confidence >= settings.min_confidence
+            ]
+            logger.info(
+                f"  ✓ {len(high_confidence_claims)} claims above threshold "
+                f"({len(deduplicated_claims) - len(high_confidence_claims)} filtered)"
+            )
+
+            claims_with_quotes = [c for c in high_confidence_claims if c.quotes]
+
+            if not claims_with_quotes:
+                logger.warning("No claims have supporting quotes after filtering")
+                db_session.close()
+                return self._create_empty_result(
+                    episode_id,
+                    transcript_length,
+                    len(chunks),
+                    time.time() - start_time
+                )
+
+            # Step 11: Database deduplication (using same session)
             if settings.enable_cross_episode_deduplication:
                 logger.info("Step 11/13: Checking database for duplicate claims...")
 
@@ -503,7 +499,7 @@ class ExtractionPipeline:
 
                 logger.info(f"  ✓ Prepared {len(unique_claims_for_db)} claims for saving (dedup disabled)")
 
-            # Step 12: Save to PostgreSQL (NEW - Sprint 4)
+            # Step 12: Save to PostgreSQL (same session as chunks)
             logger.info("Step 12/13: Saving claims and quotes to database...")
 
             if unique_claims_for_db:
@@ -534,13 +530,13 @@ class ExtractionPipeline:
                 quotes_saved = 0
                 logger.info("  ✓ No new claims to save (all were duplicates)")
 
-            # Step 13: Commit transaction
-            logger.info("Step 13/13: Committing transaction...")
+            # Step 13: Commit atomic transaction (chunks + claims together)
+            logger.info("Step 13/13: Committing atomic transaction (chunks + claims)...")
             db_session.commit()
-            logger.info("  ✓ Transaction committed")
+            logger.info("  ✓ Transaction committed successfully")
 
         except Exception as e:
-            logger.error(f"Error in database operations: {e}", exc_info=True)
+            logger.error(f"Error in pipeline: {e}", exc_info=True)
             db_session.rollback()
             logger.warning("Transaction rolled back")
             raise

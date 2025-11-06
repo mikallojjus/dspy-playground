@@ -78,6 +78,12 @@ class Settings(BaseSettings):
         description="Maximum concurrent ad classification calls (DSPy asyncify)",
     )
 
+    # Claim Quality Filtering
+    enable_claim_specificity_filter: bool = Field(
+        default=True,
+        description="Enable specificity filtering (requires numbers, proper nouns, or dates)",
+    )
+
     # Ad Classification
     filter_advertisement_claims: bool = Field(
         default=True,
