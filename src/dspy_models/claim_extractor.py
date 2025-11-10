@@ -76,13 +76,20 @@ class ClaimExtraction(dspy.Signature):
 
     Claims should be:
     - Factual (not opinions)
-    - Self-contained (no pronouns like he/she/they)
-    - Specific (include names, numbers, dates)
+    - Self-contained (no pronouns like he/she/they without clear referents)
+    - Specific (include names, numbers, dates when relevant)
     - Concise (5-40 words)
+
+    OUTPUT FORMAT REQUIREMENT:
+    Return claims as a valid JSON array using ONLY double quotes.
+    Example: ["claim one", "claim two", "claim three"]
+    Do NOT use single quotes or mix quote styles - use double quotes only.
     """
 
     transcript_chunk: str = dspy.InputField(desc="The podcast transcript text to analyze")
-    claims: List[str] = dspy.OutputField(desc="List of factual claims extracted from the transcript")
+    claims: List[str] = dspy.OutputField(
+        desc='List of factual claims as JSON array with double quotes only: ["claim1", "claim2"]'
+    )
 
 
 class ClaimExtractorModel:
@@ -107,6 +114,9 @@ class ClaimExtractorModel:
             FileNotFoundError: If model file doesn't exist
             Exception: If DSPy configuration fails
         """
+        # NOTE: No monkey-patch needed with format="json" (Track A)
+        # Ollama generates only valid JSON, preventing malformed output at source
+
         self.model_path = Path(model_path)
 
         if not self.model_path.exists():
@@ -117,11 +127,40 @@ class ClaimExtractorModel:
 
         # Configure DSPy with Ollama
         logger.info(f"Configuring DSPy with Ollama at {settings.ollama_url}")
+
+        # 🎯 STRUCTURED OUTPUT FIX: Use JSON schema for guided decoding
+        # Research shows format="json" alone is insufficient (Ollama hallucinates structure)
+        # JSON schema provides CONSTRAINED generation matching exact output structure
+        #
+        # WHY THIS WORKS IN INFERENCE (but not training):
+        # - Inference only uses ClaimExtraction signature (reasoning, claims)
+        # - Training uses multiple signatures (ClaimExtraction + ClaimQualityJudge)
+        # - JSON schema must match signature, so we can only use it when one signature is used
+        claims_schema = {
+            "type": "object",
+            "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "description": "Brief reasoning about claim extraction"
+                },
+                "claims": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of factual claims extracted from transcript"
+                }
+            },
+            "required": ["reasoning", "claims"]
+        }
+
         lm = dspy.LM(
             f"ollama/{settings.ollama_model}",
-            api_base=settings.ollama_url
+            api_base=settings.ollama_url,
+            format=claims_schema,  # Constrain output to exact JSON schema (guided decoding)
         )
         dspy.configure(lm=lm)
+        logger.info("Configured with structured output (JSON schema for guided decoding)")
 
         # Load optimized model
         logger.info(f"Loading optimized claim extractor from {model_path}")
