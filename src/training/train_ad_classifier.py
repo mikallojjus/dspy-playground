@@ -292,8 +292,13 @@ def main():
     optimized.save(str(model_path))
     print(f"✓ Model saved to {model_path}")
 
-    # Get few-shot examples count
-    few_shot_count = len(optimized.demos) if hasattr(optimized, 'demos') and optimized.demos else 0
+    # Get few-shot examples count (check multiple possible locations)
+    few_shot_count = 0
+    if hasattr(optimized, "demos") and optimized.demos:
+        few_shot_count = len(optimized.demos)
+    elif hasattr(optimized, "predictor") and hasattr(optimized.predictor, "demos") and optimized.predictor.demos:
+        few_shot_count = len(optimized.predictor.demos)
+
     if few_shot_count > 0:
         print(f"  Model has {few_shot_count} few-shot examples")
 
@@ -303,7 +308,7 @@ def main():
 
     results = {
         "model_path": str(model_path),
-        "model_name": model_path.name,
+        "model_name": model_path.parent.name,  # Use folder name, not "model.json"
         "timestamp": training_start_timestamp.isoformat(),
         "model_type": "ad_classifier",
         "optimizer": "BootstrapFewShot",
