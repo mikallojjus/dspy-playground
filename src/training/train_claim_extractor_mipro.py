@@ -18,6 +18,7 @@ Optional arguments:
     --max-demos INT       Max bootstrapped demos (default: 4)
     --num-trials INT      Bayesian optimization iterations (default: 30)
     --num-candidates INT  Instruction variants to try (default: 10)
+    --fresh-start         Delete existing model file before training
 """
 
 import dspy
@@ -26,6 +27,8 @@ from dspy.evaluate import Evaluate
 import json
 import sys
 import argparse
+import random
+import time
 from typing import List
 from pathlib import Path
 from datetime import datetime
@@ -36,6 +39,12 @@ if sys.platform == "win32":
 
 from src.metrics_llm_judge import llm_judge_metric
 from src.config.settings import settings
+from src.training.training_utils import (
+    generate_model_filename,
+    save_training_results,
+    format_metric_comparison,
+    format_duration,
+)
 
 
 class ClaimExtraction(dspy.Signature):
@@ -45,15 +54,20 @@ class ClaimExtraction(dspy.Signature):
     Claims should be:
     - Factual (not opinions)
     - Self-contained (no pronouns like he/she/they without clear referents)
-    - Specific (include names, numbers, dates)
+    - Specific (include names, numbers, dates when relevant)
     - Concise (5-40 words)
+
+    OUTPUT FORMAT REQUIREMENT:
+    Return claims as a valid JSON array using ONLY double quotes.
+    Example: ["claim one", "claim two", "claim three"]
+    Do NOT use single quotes or mix quote styles - use double quotes only.
     """
 
     transcript_chunk: str = dspy.InputField(
         desc="The podcast transcript text to analyze"
     )
     claims: List[str] = dspy.OutputField(
-        desc="List of factual claims extracted from the transcript"
+        desc='List of factual claims as JSON array with double quotes only: ["claim1", "claim2"]'
     )
 
 
@@ -97,8 +111,8 @@ def main():
     )
     parser.add_argument(
         "--output",
-        default="models/claim_extractor_mipro_v1.json",
-        help="Path to save trained model",
+        default=None,
+        help="Path to save trained model (default: auto-generated timestamp-based folder)",
     )
     parser.add_argument(
         "--max-demos", type=int, default=4, help="Maximum bootstrapped demos"
@@ -115,24 +129,87 @@ def main():
         default=10,
         help="Number of instruction variants to try per iteration",
     )
+    parser.add_argument(
+        "--fresh-start",
+        action="store_true",
+        help="Delete existing model file before training",
+    )
 
     args = parser.parse_args()
 
-    start_time = datetime.now()
+    # Generate timestamp-based filenames or use provided output path
+    if args.output is None:
+        model_path, results_path = generate_model_filename("claim_extractor_mipro")
+        print("=" * 80)
+        print("Claim Extraction Model Training - MIPROv2")
+        print("=" * 80)
+        print()
+        print(f"Training run folder: {model_path.parent}")
+        print(f"  Model: {model_path.name}")
+        print(f"  Results: {results_path.name}")
+        print()
+    else:
+        model_path = Path(args.output)
+        results_path = model_path.parent / f"{model_path.stem}_results.json"
+        print("=" * 80)
+        print("Claim Extraction Model Training - MIPROv2")
+        print("=" * 80)
+        print()
+        print(f"Using custom output path:")
+        print(f"  Model: {model_path}")
+        print(f"  Results: {results_path}")
+        print()
 
-    print("=" * 80)
-    print("Claim Extraction Model Training - MIPROv2")
-    print("=" * 80)
-    print()
+    # Delete existing model file if fresh start requested
+    if args.fresh_start:
+        if model_path.exists():
+            print(f"Deleting existing model file: {model_path}")
+            model_path.unlink()
+            print("✓ Model file deleted for fresh start")
+            print()
+
+    training_start_time = time.time()
+    training_start_timestamp = datetime.now()
+
     print("MIPROv2 optimizes both instructions AND few-shot examples.")
     print("Expected runtime: 1-3 hours for 389 training examples")
-    print("Started at:", start_time.strftime("%Y-%m-%d %H:%M:%S"))
+    print("Started at:", training_start_timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+    print()
+
+    # NOTE: Monkey-patch NOT needed for Track A (format="json") or Track B (ChatAdapter)
+    # The patch was only needed for JSONAdapter without format constraints
+    # If Track A works, malformed JSON never occurs (prevented at source)
+    print("Track A: Testing format='json' WITHOUT monkey-patching (clean test)")
     print()
 
     # Configure DSPy
+    random_seed = random.randint(1, 1000000)
     print(f"Configuring DSPy with Ollama at {settings.ollama_url}")
-    lm = dspy.LM(f"ollama/{settings.ollama_model}", api_base=settings.ollama_url)
+    print(f"Using random seed: {random_seed}")
+
+    # 🎯 TRAINING CONFIGURATION: Use format="json" for compatibility
+    # NOTE: Cannot use JSON schema during training because DSPy uses multiple signatures:
+    #   - ClaimExtraction (reasoning, claims)
+    #   - ClaimQualityJudge (is_high_quality, reason)
+    # Global schema would conflict with LLM judge metric
+    #
+    # STRATEGY: Clean training with format="json", strict schema at inference
+    lm = dspy.LM(
+        f"ollama/{settings.ollama_model}",
+        api_base=settings.ollama_url,
+        cache=False,  # Disable caching to force fresh training
+        temperature=0.3,  # Non-deterministic generation
+        seed=random_seed,  # Random seed for each training run
+        format="json",  # Valid JSON mode (compatible with all signatures)
+    )
     dspy.configure(lm=lm)
+    print("✓ DSPy configured with:")
+    print(f"  - JSON Mode: ENABLED (format='json' for multi-signature compatibility)")
+    print(f"  - Caching: DISABLED")
+    print(f"  - Temperature: 0.3 (balanced quality and variation)")
+    print(f"  - Seed: {random_seed} (randomized to break cache)")
+    print(f"  NOTE: Strict schema will be enforced at INFERENCE time")
+    print()
 
     # Configure prompt model for MIPROv2 instruction proposal
     prompt_model = None
@@ -207,22 +284,26 @@ def main():
     )
 
     print("Starting optimization (this will take 1-3 hours)...")
-    optimization_start = datetime.now()
+
+    # Note: Small dataset (9 train, 4 val), so use small minibatch
+    minibatch_size = min(4, len(valset))
+    print(f"Using minibatch_size={minibatch_size} (valset has {len(valset)} examples)")
+    print()
 
     optimized = optimizer.compile(
         baseline,
         trainset=trainset,
+        valset=valset,  # Required for MIPROv2 evaluation
         num_trials=args.num_trials,
         max_bootstrapped_demos=args.max_demos,
         max_labeled_demos=args.max_demos,
+        minibatch_size=minibatch_size,  # Must be <= valset size # COME BACK TO THIS LATER, MIGHT BE TEMPORARY
     )
 
-    optimization_end = datetime.now()
-    optimization_duration = optimization_end - optimization_start
+    training_duration = time.time() - training_start_time
 
     print()
-    print("Optimization complete!")
-    print(f"Time taken: {optimization_duration}")
+    print(f"Optimization complete! (took {format_duration(training_duration)})")
     print()
 
     # Evaluate optimized model
@@ -234,16 +315,14 @@ def main():
     print()
 
     # Save model
-    output_path = Path(args.output)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    optimized.save(str(model_path))
+    print(f"✓ Model saved to {model_path}")
 
-    optimized.save(str(output_path))
-    print(f"✓ Model saved to {args.output}")
-    print()
-
-    # Print few-shot examples count
-    if hasattr(optimized, "demos") and optimized.demos:
-        print(f"Model has {len(optimized.demos)} few-shot examples")
+    # Get few-shot examples count
+    few_shot_count = len(optimized.demos) if hasattr(optimized, "demos") and optimized.demos else 0
+    if few_shot_count > 0:
+        print(f"  Model has {few_shot_count} few-shot examples")
     print()
 
     # Print example predictions
@@ -261,71 +340,73 @@ def main():
         print(f"  Predicted claims: {pred.claims}")
         print()
 
+    # Save comprehensive results
+    improvement = optimized_score_value - baseline_score_value
+    targets_met = optimized_score_value > 0.85
+
+    results = {
+        "model_path": str(model_path),
+        "model_name": model_path.name,
+        "timestamp": training_start_timestamp.isoformat(),
+        "model_type": "claim_extractor",
+        "optimizer": "MIPROv2",
+        "config": {
+            "max_demos": args.max_demos,
+            "num_trials": args.num_trials,
+            "num_candidates": args.num_candidates,
+            "train_path": args.train_path,
+            "val_path": args.val_path,
+            "train_size": len(trainset),
+            "val_size": len(valset),
+            "temperature": 0.3,
+            "cache": False,
+        },
+        "baseline": {
+            "score": baseline_score_value,
+            "quality_score": baseline_score_value,
+        },
+        "optimized": {
+            "score": optimized_score_value,
+            "quality_score": optimized_score_value,
+        },
+        "improvement": {
+            "score": improvement,
+            "quality_score": improvement,
+        },
+        "training_time_seconds": training_duration,
+        "few_shot_demos": few_shot_count,
+        "targets_met": targets_met,
+        "target_score": 0.85,
+    }
+
+    save_training_results(results_path, results)
+    print(f"✓ Results saved to {results_path}")
+    print()
+
     # Print summary
     print("=" * 80)
     print("Training Summary")
     print("=" * 80)
     print()
-    print(f"Started at:  {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Finished at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Total time:  {datetime.now() - start_time}")
+    print(f"Quality Score: {format_metric_comparison(baseline_score_value, optimized_score_value)}")
+    print(f"Training Time: {format_duration(training_duration)}")
+    print(f"Few-shot Demos: {few_shot_count}")
     print()
-    print(f"Baseline quality score:  {baseline_score_value:.3f}")
-    print(f"Optimized quality score: {optimized_score_value:.3f}")
-    print(
-        f"Improvement:             {optimized_score_value - baseline_score_value:+.3f} ({(optimized_score_value - baseline_score_value) / baseline_score_value * 100:+.1f}%)"
-    )
-    print()
-    print(f"Model saved to: {args.output}")
+    print(f"Model saved to: {model_path}")
+    print(f"Results saved to: {results_path}")
     print()
 
     # Check if we met goals
-    issues_pct = (1 - optimized_score_value) * 100
-    if issues_pct < 15:
-        print(f"✓ Goal achieved: Low-quality claims = {issues_pct:.1f}% (target: <15%)")
+    if targets_met:
+        print("✓ Goal achieved: Quality score > 0.85")
     else:
-        print(f"⚠ Goal not met: Low-quality claims = {issues_pct:.1f}% (target: <15%)")
-
-    if optimized_score_value > baseline_score_value + 0.05:
-        print(f"✓ Significant improvement over BootstrapFewShot!")
-    elif optimized_score_value > baseline_score_value:
-        print(f"✓ Modest improvement over baseline")
-    else:
-        print(f"⚠ No improvement - BootstrapFewShot may be sufficient")
+        print(
+            f"⚠ Goal not met: Quality score {optimized_score_value:.3f} (target: >0.85)"
+        )
 
     print()
-
-    # Save detailed results
-    results = {
-        "optimizer": "MIPROv2",
-        "start_time": start_time.isoformat(),
-        "end_time": datetime.now().isoformat(),
-        "duration_seconds": (datetime.now() - start_time).total_seconds(),
-        "optimization_duration_seconds": optimization_duration.total_seconds(),
-        "config": {
-            "num_trials": args.num_trials,
-            "num_candidates": args.num_candidates,
-            "max_demos": args.max_demos,
-            "model": settings.ollama_model,
-            "train_examples": len(trainset),
-            "val_examples": len(valset),
-        },
-        "scores": {
-            "baseline": float(baseline_score_value),
-            "optimized": float(optimized_score_value),
-            "improvement": float(optimized_score_value - baseline_score_value),
-            "improvement_pct": float(
-                (optimized_score_value - baseline_score_value)
-                / baseline_score_value
-                * 100
-            ),
-        },
-    }
-
-    results_path = output_path.parent / f"{output_path.stem}_results.json"
-    with open(results_path, "w") as f:
-        json.dump(results, f, indent=2)
-    print(f"✓ Detailed results saved to {results_path}")
+    print("To compare all trained models, run:")
+    print("  uv run python -m src.cli.compare_models --model-type claim_extractor")
     print()
 
 

@@ -26,6 +26,7 @@ from dspy.evaluate import Evaluate
 import json
 import sys
 import argparse
+import time
 from typing import Literal
 from pathlib import Path
 from datetime import datetime
@@ -36,6 +37,12 @@ if sys.platform == 'win32':
 
 from src.metrics.entailment_metrics import entailment_llm_judge_metric, calculate_entailment_metrics
 from src.config.settings import settings
+from src.training.training_utils import (
+    generate_model_filename,
+    save_training_results,
+    format_metric_comparison,
+    format_duration,
+)
 
 
 class EntailmentValidation(dspy.Signature):
@@ -94,8 +101,8 @@ def main():
                         help='Path to training dataset')
     parser.add_argument('--val-path', default='evaluation/entailment_val.json',
                         help='Path to validation dataset')
-    parser.add_argument('--output', default='models/entailment_validator_mipro_v1.json',
-                        help='Path to save trained model')
+    parser.add_argument('--output', default=None,
+                        help='Path to save trained model (default: auto-generated timestamp-based folder)')
     parser.add_argument('--max-demos', type=int, default=5,
                         help='Maximum bootstrapped demos (using 5 for binary-ish task)')
     parser.add_argument('--num-trials', type=int, default=20,
@@ -105,15 +112,35 @@ def main():
 
     args = parser.parse_args()
 
-    start_time = datetime.now()
+    # Generate timestamp-based filenames or use provided output path
+    if args.output is None:
+        model_path, results_path = generate_model_filename("entailment_validator_mipro")
+        print("=" * 80)
+        print("Entailment Validation Model Training - MIPROv2")
+        print("=" * 80)
+        print()
+        print(f"Training run folder: {model_path.parent}")
+        print(f"  Model: {model_path.name}")
+        print(f"  Results: {results_path.name}")
+        print()
+    else:
+        model_path = Path(args.output)
+        results_path = model_path.parent / f"{model_path.stem}_results.json"
+        print("=" * 80)
+        print("Entailment Validation Model Training - MIPROv2")
+        print("=" * 80)
+        print()
+        print(f"Using custom output path:")
+        print(f"  Model: {model_path}")
+        print(f"  Results: {results_path}")
+        print()
 
-    print("=" * 80)
-    print("Entailment Validation Model Training - MIPROv2")
-    print("=" * 80)
-    print()
+    training_start_time = time.time()
+    training_start_timestamp = datetime.now()
+
     print("MIPROv2 is ideal for entailment's subtle SUPPORTS vs RELATED boundary.")
     print("Expected runtime: 30-90 minutes for 31 training examples")
-    print("Started at:", start_time.strftime("%Y-%m-%d %H:%M:%S"))
+    print("Started at:", training_start_timestamp.strftime("%Y-%m-%d %H:%M:%S"))
     print()
 
     # Configure DSPy
@@ -204,7 +231,6 @@ def main():
     )
 
     print("Starting optimization (this will take 30-90 minutes)...")
-    optimization_start = datetime.now()
 
     optimized = optimizer.compile(
         baseline,
@@ -214,12 +240,10 @@ def main():
         max_labeled_demos=args.max_demos
     )
 
-    optimization_end = datetime.now()
-    optimization_duration = optimization_end - optimization_start
+    training_duration = time.time() - training_start_time
 
     print()
-    print("Optimization complete!")
-    print(f"Time taken: {optimization_duration}")
+    print(f"Optimization complete! (took {format_duration(training_duration)})")
     print()
 
     # Evaluate optimized model
@@ -243,16 +267,14 @@ def main():
     print()
 
     # Save model
-    output_path = Path(args.output)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    optimized.save(str(model_path))
+    print(f"✓ Model saved to {model_path}")
 
-    optimized.save(str(output_path))
-    print(f"✓ Model saved to {args.output}")
-    print()
-
-    # Print few-shot examples count
-    if hasattr(optimized, 'demos') and optimized.demos:
-        print(f"Model has {len(optimized.demos)} few-shot examples")
+    # Get few-shot examples count
+    few_shot_count = len(optimized.demos) if hasattr(optimized, 'demos') and optimized.demos else 0
+    if few_shot_count > 0:
+        print(f"  Model has {few_shot_count} few-shot examples")
     print()
 
     # Print example predictions
@@ -273,24 +295,69 @@ def main():
         print(f"  Match: {'✓' if pred.relationship == example.relationship else '✗'}")
         print()
 
+    # Save comprehensive results
+    accuracy_improvement = optimized_metrics['accuracy'] - baseline_metrics['accuracy']
+    fp_reduction = baseline_metrics['false_positive_rate'] - optimized_metrics['false_positive_rate']
+    targets_met = (optimized_metrics['false_positive_rate'] < 0.10 and
+                   optimized_metrics['accuracy'] > 0.90)
+
+    results = {
+        "model_path": str(model_path),
+        "model_name": model_path.name,
+        "timestamp": training_start_timestamp.isoformat(),
+        "model_type": "entailment_validator",
+        "optimizer": "MIPROv2",
+        "config": {
+            "max_demos": args.max_demos,
+            "num_trials": args.num_trials,
+            "num_candidates": args.num_candidates,
+            "train_path": args.train_path,
+            "val_path": args.val_path,
+            "train_size": len(trainset),
+            "val_size": len(valset),
+        },
+        "baseline": {
+            "score": baseline_score_value,
+            "accuracy": baseline_metrics['accuracy'],
+            "precision": baseline_metrics['precision'],
+            "recall": baseline_metrics['recall'],
+            "false_positive_rate": baseline_metrics['false_positive_rate'],
+        },
+        "optimized": {
+            "score": optimized_score_value,
+            "accuracy": optimized_metrics['accuracy'],
+            "precision": optimized_metrics['precision'],
+            "recall": optimized_metrics['recall'],
+            "false_positive_rate": optimized_metrics['false_positive_rate'],
+        },
+        "improvement": {
+            "score": optimized_score_value - baseline_score_value,
+            "accuracy": accuracy_improvement,
+            "false_positive_rate_reduction": fp_reduction,
+        },
+        "training_time_seconds": training_duration,
+        "few_shot_demos": few_shot_count,
+        "targets_met": targets_met,
+        "target_accuracy": 0.90,
+        "target_fp_rate": 0.10,
+    }
+
+    save_training_results(results_path, results)
+    print(f"✓ Results saved to {results_path}")
+    print()
+
     # Print summary
     print("=" * 80)
     print("Training Summary")
     print("=" * 80)
     print()
-    print(f"Started at:  {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Finished at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Total time:  {datetime.now() - start_time}")
+    print(f"Accuracy: {baseline_metrics['accuracy']:.1%} → {optimized_metrics['accuracy']:.1%} ({accuracy_improvement:+.1%})")
+    print(f"False Positive Rate: {baseline_metrics['false_positive_rate']:.1%} → {optimized_metrics['false_positive_rate']:.1%} ({-fp_reduction:+.1%})")
+    print(f"Training Time: {format_duration(training_duration)}")
+    print(f"Few-shot Demos: {few_shot_count}")
     print()
-    print(f"Baseline accuracy:  {baseline_metrics['accuracy']:.1%}")
-    print(f"Optimized accuracy: {optimized_metrics['accuracy']:.1%}")
-    print(f"Improvement:        {optimized_metrics['accuracy'] - baseline_metrics['accuracy']:+.1%}")
-    print()
-    print(f"Baseline false positive rate:  {baseline_metrics['false_positive_rate']:.1%}")
-    print(f"Optimized false positive rate: {optimized_metrics['false_positive_rate']:.1%}")
-    print(f"Reduction:                     {baseline_metrics['false_positive_rate'] - optimized_metrics['false_positive_rate']:.1%}")
-    print()
-    print(f"Model saved to: {args.output}")
+    print(f"Model saved to: {model_path}")
+    print(f"Results saved to: {results_path}")
     print()
 
     # Check if we met goals
@@ -304,52 +371,9 @@ def main():
     else:
         print(f"⚠ Goal not met: Accuracy {optimized_metrics['accuracy']:.1%} (target: >90%)")
 
-    if optimized_score_value > baseline_score_value + 0.05:
-        print(f"✓ Significant improvement over BootstrapFewShot!")
-    elif optimized_score_value > baseline_score_value:
-        print(f"✓ Modest improvement over baseline")
-    else:
-        print(f"⚠ No improvement - BootstrapFewShot may be sufficient")
-
     print()
-
-    # Save detailed results
-    results = {
-        "optimizer": "MIPROv2",
-        "start_time": start_time.isoformat(),
-        "end_time": datetime.now().isoformat(),
-        "duration_seconds": (datetime.now() - start_time).total_seconds(),
-        "optimization_duration_seconds": optimization_duration.total_seconds(),
-        "config": {
-            "num_trials": args.num_trials,
-            "num_candidates": args.num_candidates,
-            "max_demos": args.max_demos,
-            "model": settings.ollama_model,
-            "train_examples": len(trainset),
-            "val_examples": len(valset),
-        },
-        "scores": {
-            "baseline": float(baseline_score_value),
-            "optimized": float(optimized_score_value),
-            "improvement": float(optimized_score_value - baseline_score_value),
-            "improvement_pct": float((optimized_score_value - baseline_score_value) / baseline_score_value * 100) if baseline_score_value > 0 else 0,
-        },
-        "metrics": {
-            "baseline": {
-                "accuracy": float(baseline_metrics['accuracy']),
-                "false_positive_rate": float(baseline_metrics['false_positive_rate']),
-            },
-            "optimized": {
-                "accuracy": float(optimized_metrics['accuracy']),
-                "false_positive_rate": float(optimized_metrics['false_positive_rate']),
-            }
-        }
-    }
-
-    results_path = output_path.parent / f"{output_path.stem}_results.json"
-    with open(results_path, 'w') as f:
-        json.dump(results, f, indent=2)
-    print(f"✓ Detailed results saved to {results_path}")
+    print("To compare all trained models, run:")
+    print("  uv run python -m src.cli.compare_models --model-type entailment_validator")
     print()
 
 

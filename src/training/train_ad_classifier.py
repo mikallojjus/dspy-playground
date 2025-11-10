@@ -4,8 +4,12 @@ Train/retrain the ad classification model.
 This script:
 1. Loads ad classification train/val datasets
 2. Uses BootstrapFewShot optimizer with LLM-as-judge metric
-3. Saves optimized model to models/ad_classifier_v1.json
+3. Saves optimized model to models/ad_classifier_TIMESTAMP/ folder
 4. Evaluates on validation set
+
+Each training run creates a timestamped folder containing:
+  - model.json (DSPy model)
+  - results.json (training metrics)
 
 Usage:
     python -m src.training.train_ad_classifier
@@ -13,7 +17,7 @@ Usage:
 Optional arguments:
     --train-path PATH     Path to training dataset (default: evaluation/ad_train.json)
     --val-path PATH       Path to validation dataset (default: evaluation/ad_val.json)
-    --output PATH         Path to save model (default: models/ad_classifier_v1.json)
+    --output PATH         Custom path to save model (default: auto-generated folder)
     --max-demos INT       Max bootstrapped demos (default: 4)
 """
 
@@ -23,6 +27,8 @@ from dspy.evaluate import Evaluate
 import json
 import sys
 import argparse
+import time
+from datetime import datetime
 from pathlib import Path
 
 # Fix encoding for Windows console
@@ -32,6 +38,12 @@ if sys.platform == 'win32':
 from src.metrics.ad_metrics import ad_classification_llm_judge_metric
 from src.config.settings import settings
 from src.infrastructure.logger import get_logger
+from src.training.training_utils import (
+    generate_model_filename,
+    save_training_results,
+    format_metric_comparison,
+    format_duration,
+)
 
 logger = get_logger(__name__)
 
@@ -166,17 +178,35 @@ def main():
                         help='Path to training dataset')
     parser.add_argument('--val-path', default='evaluation/ad_val.json',
                         help='Path to validation dataset')
-    parser.add_argument('--output', default='models/ad_classifier_v1.json',
-                        help='Path to save trained model')
+    parser.add_argument('--output', default=None,
+                        help='Path to save trained model (default: auto-generated timestamp-based filename)')
     parser.add_argument('--max-demos', type=int, default=4,
                         help='Maximum bootstrapped demos')
 
     args = parser.parse_args()
 
-    print("=" * 80)
-    print("Ad Classification Model Training")
-    print("=" * 80)
-    print()
+    # Generate timestamp-based filenames or use provided output path
+    if args.output is None:
+        model_path, results_path = generate_model_filename("ad_classifier")
+        print("=" * 80)
+        print("Ad Classification Model Training")
+        print("=" * 80)
+        print()
+        print(f"Training run folder: {model_path.parent}")
+        print(f"  Model: {model_path.name}")
+        print(f"  Results: {results_path.name}")
+        print()
+    else:
+        model_path = Path(args.output)
+        results_path = model_path.parent / f"{model_path.stem}_results.json"
+        print("=" * 80)
+        print("Ad Classification Model Training")
+        print("=" * 80)
+        print()
+        print(f"Using custom output path:")
+        print(f"  Model: {model_path}")
+        print(f"  Results: {results_path}")
+        print()
 
     # Configure DSPy
     print(f"Configuring DSPy with Ollama at {settings.ollama_url}")
@@ -228,6 +258,10 @@ def main():
     print(f"  Training on: {len(trainset)} examples")
     print()
 
+    # Track training time
+    training_start_time = time.time()
+    training_start_timestamp = datetime.now()
+
     optimizer = BootstrapFewShot(
         metric=ad_classification_llm_judge_metric,
         max_bootstrapped_demos=args.max_demos,
@@ -239,8 +273,10 @@ def main():
         trainset=trainset
     )
 
+    training_duration = time.time() - training_start_time
+
     print()
-    print("Optimization complete!")
+    print(f"Optimization complete! (took {format_duration(training_duration)})")
     print()
 
     # Evaluate optimized model
@@ -252,16 +288,52 @@ def main():
     print()
 
     # Save model
-    output_path = Path(args.output)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    optimized.save(str(model_path))
+    print(f"✓ Model saved to {model_path}")
 
-    optimized.save(str(output_path))
-    print(f"✓ Model saved to {args.output}")
-    print()
+    # Get few-shot examples count
+    few_shot_count = len(optimized.demos) if hasattr(optimized, 'demos') and optimized.demos else 0
+    if few_shot_count > 0:
+        print(f"  Model has {few_shot_count} few-shot examples")
 
-    # Print few-shot examples count
-    if hasattr(optimized, 'demos') and optimized.demos:
-        print(f"Model has {len(optimized.demos)} few-shot examples")
+    # Save comprehensive results
+    improvement = optimized_score_value - baseline_score_value
+    targets_met = optimized_score_value > 0.90
+
+    results = {
+        "model_path": str(model_path),
+        "model_name": model_path.name,
+        "timestamp": training_start_timestamp.isoformat(),
+        "model_type": "ad_classifier",
+        "optimizer": "BootstrapFewShot",
+        "config": {
+            "max_demos": args.max_demos,
+            "train_path": args.train_path,
+            "val_path": args.val_path,
+            "train_size": len(trainset),
+            "val_size": len(valset),
+        },
+        "baseline": {
+            "score": baseline_score_value,
+            "accuracy": baseline_score_value,
+        },
+        "optimized": {
+            "score": optimized_score_value,
+            "accuracy": optimized_score_value,
+        },
+        "improvement": {
+            "score": improvement,
+            "accuracy": improvement,
+        },
+        "training_time_seconds": training_duration,
+        "few_shot_demos": few_shot_count,
+        "targets_met": targets_met,
+        "target_accuracy": 0.90,
+    }
+
+    save_training_results(results_path, results)
+    print(f"✓ Results saved to {results_path}")
     print()
 
     # Print example predictions
@@ -288,19 +360,23 @@ def main():
     print("Training Summary")
     print("=" * 80)
     print()
-    print(f"Baseline accuracy score: {baseline_score_value:.3f}")
-    print(f"Optimized accuracy score: {optimized_score_value:.3f}")
-    print(f"Improvement: {optimized_score_value - baseline_score_value:+.3f}")
+    print(f"Accuracy: {format_metric_comparison(baseline_score_value, optimized_score_value)}")
+    print(f"Training Time: {format_duration(training_duration)}")
+    print(f"Few-shot Demos: {few_shot_count}")
     print()
-    print(f"Model saved to: {args.output}")
+    print(f"Model saved to: {model_path}")
+    print(f"Results saved to: {results_path}")
     print()
 
     # Check if we met goals
-    if optimized_score_value > 0.90:
+    if targets_met:
         print("✓ Goal achieved: Accuracy score > 0.90")
     else:
         print(f"⚠ Goal not met: Accuracy score {optimized_score_value:.3f} (target: >0.90)")
 
+    print()
+    print("To compare all trained models, run:")
+    print("  uv run python -m src.cli.compare_models --model-type ad_classifier")
     print()
 
 
