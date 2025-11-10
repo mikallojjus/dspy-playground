@@ -119,7 +119,6 @@ class ChunkRepository:
                     f"{len(chunk.text)} chars"
                 )
 
-            logger.info(f"✅ Saved {len(chunk_ids)} chunks")
             return chunk_ids
 
         except Exception as e:

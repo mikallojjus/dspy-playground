@@ -43,7 +43,7 @@
       "confidence": 0.5
     },
     {
-      "claim": "The Frazier team\u2019s approach includes using trusted execution environments and verification procedures to ensure the reliability of their AI agents.",
+      "claim": "The Frazier team’s approach includes using trusted execution environments and verification procedures to ensure the reliability of their AI agents.",
       "quote": "And we're now seeing this kind of be carved out by the Frayer, Fraser Fraser team, Fraser Fraser team in terms of like their tool set that they're building out. And I've seen a number of teams actually take this approach and I believe the, the Fraser team is focusing on using trusted execution environments and also some kind of verification procedure so that you can trust that what the agent is doing is in fact what it's doing so that can act sovereign.",
       "relationship": "SUPPORTS",
       "reasoning": "Supports",

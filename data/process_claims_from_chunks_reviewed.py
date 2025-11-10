@@ -38,11 +38,33 @@ def parse_claims(claims_text: str, maintainer: str) -> list[str]:
         return []
 
     # Try to parse as JSON first (Ahmed and Catalin formats)
-    if claims_text.startswith('{'):
+    if claims_text.startswith('{') or claims_text.startswith('['):
+        data = None
+
+        # Try parsing as-is first
         try:
             data = json.loads(claims_text)
+        except json.JSONDecodeError:
+            # Try fixing common JSON errors (trailing commas)
+            fixed_text = re.sub(r',(\s*[\]}])', r'\1', claims_text)
+            try:
+                data = json.loads(fixed_text)
+            except json.JSONDecodeError:
+                pass  # Fall through to other parsing methods
 
-            if 'claims' in data and isinstance(data['claims'], list):
+        # If JSON parsing succeeded, extract claims
+        if data is not None:
+            # Handle direct array format: [{"claim": "..."}, {"claim": "..."}]
+            if isinstance(data, list):
+                # Array of claim objects with 'claim' key
+                if data and isinstance(data[0], dict) and 'claim' in data[0]:
+                    return [item['claim'] for item in data if 'claim' in item]
+                # Array of strings
+                elif data and isinstance(data[0], str):
+                    return data
+
+            # Handle object format: {"claims": [...]}
+            if isinstance(data, dict) and 'claims' in data and isinstance(data['claims'], list):
                 claims_list = data['claims']
 
                 # Ahmed format: [{"claim": "..."}, {"claim": "..."}]
@@ -52,9 +74,6 @@ def parse_claims(claims_text: str, maintainer: str) -> list[str]:
                 # Catalin format: ["claim1", "claim2"]
                 elif claims_list and isinstance(claims_list[0], str):
                     return claims_list
-
-        except json.JSONDecodeError:
-            pass  # Fall through to other parsing methods
 
     # Dovile/Simas format: semicolon-separated
     if ';' in claims_text:
@@ -156,10 +175,10 @@ def process_csv(csv_file: str, output_file: str):
         json.dump(output_data, f, indent=2, ensure_ascii=False)
 
     # Print statistics
-    print(f"✓ Processed {stats['total_rows']:,} total rows")
-    print(f"✓ Found {stats['rows_with_claims']:,} rows with claims")
-    print(f"✓ Extracted {stats['total_claims']:,} individual claims")
-    print(f"✓ Created {len(examples):,} unique chunk examples")
+    print(f"Processed {stats['total_rows']:,} total rows")
+    print(f"Found {stats['rows_with_claims']:,} rows with claims")
+    print(f"Extracted {stats['total_claims']:,} individual claims")
+    print(f"Created {len(examples):,} unique chunk examples")
     print()
 
     # Show statistics about claims per chunk
@@ -177,7 +196,7 @@ def process_csv(csv_file: str, output_file: str):
         print(f"    Claims: {counts['claims']:,}")
     print()
 
-    print(f"✓ Saved to: {output_file}")
+    print(f"Saved to: {output_file}")
     print()
 
     # Show sample examples
@@ -196,7 +215,7 @@ def process_csv(csv_file: str, output_file: str):
 
     print()
     print("=" * 80)
-    print("✓ Processing complete!")
+    print("Processing complete!")
     print("=" * 80)
 
     return len(examples)
@@ -213,12 +232,12 @@ if __name__ == "__main__":
 
     try:
         num_examples = process_csv(csv_file, output_file)
-        print(f"\n✓ Successfully created {num_examples:,} training examples")
+        print(f"\nSuccessfully created {num_examples:,} training examples")
     except FileNotFoundError as e:
-        print(f"✗ Error: File not found: {e}")
+        print(f"Error: File not found: {e}")
         sys.exit(1)
     except Exception as e:
-        print(f"✗ Error processing CSV: {e}")
+        print(f"Error processing CSV: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
