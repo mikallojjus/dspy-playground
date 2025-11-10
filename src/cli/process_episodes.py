@@ -39,6 +39,7 @@ from typing import List, Tuple, Optional, cast
 from dataclasses import dataclass, field
 
 from rich.console import Console
+from rich.text import Text
 from rich.progress import (
     Progress,
     SpinnerColumn,
@@ -193,61 +194,256 @@ def display_summary(
     return True
 
 
+def _format_filter_row(before: int, after: int, reason: str = "") -> str:
+    """Format a filter row showing before → after with optional reason."""
+    filtered = before - after
+    if filtered > 0:
+        suffix = f" (-{filtered}: {reason})" if reason else f" (-{filtered})"
+        return f"{before} → {after}{suffix}"
+    return f"{before}"
+
+
+def _format_claims_extraction_section(stats) -> Table:
+    """Create claims extraction section."""
+    table = Table(title="CLAIMS EXTRACTION", box=box.ROUNDED, show_header=False, title_style="bold cyan")
+    table.add_column("Metric", style="dim", width=24)
+    table.add_column("Value")
+
+    table.add_row("Extracted", f"{stats.claims_extracted} claims")
+    if stats.specificity_filtered_count > 0:
+        table.add_row("Specificity Filter", _format_filter_row(
+            stats.claims_extracted,
+            stats.claims_after_specificity_filter,
+            "too vague"
+        ))
+    if stats.ad_claims_filtered > 0:
+        table.add_row("Ad Filter", _format_filter_row(
+            stats.claims_after_specificity_filter,
+            stats.claims_after_ad_filter,
+            "advertisements"
+        ))
+
+    return table
+
+
+def _format_claims_validation_section(stats) -> Table:
+    """Create claims validation section."""
+    table = Table(title="CLAIMS VALIDATION", box=box.ROUNDED, show_header=False, title_style="bold cyan")
+    table.add_column("Metric", style="dim", width=24)
+    table.add_column("Value")
+
+    # Step 1: Deduplication
+    dedup_filtered = (stats.claims_after_ad_filter or stats.claims_after_specificity_filter) - stats.claims_after_dedup
+    if dedup_filtered > 0:
+        table.add_row("Deduplication", _format_filter_row(
+            stats.claims_after_ad_filter or stats.claims_after_specificity_filter,
+            stats.claims_after_dedup,
+            "duplicates"
+        ))
+
+    # Step 2: Quote Requirement (now happens BEFORE confidence filter)
+    if stats.claims_without_quotes_count > 0:
+        claims_before_quote_filter = stats.claims_after_dedup
+        claims_after_quote_filter = claims_before_quote_filter - stats.claims_without_quotes_count
+        table.add_row("Quote Requirement", _format_filter_row(
+            claims_before_quote_filter,
+            claims_after_quote_filter,
+            "no quotes"
+        ))
+
+    # Step 3: Confidence Filter (now happens AFTER quote requirement)
+    if stats.low_confidence_filtered_count > 0:
+        # Calculate claims before confidence filter
+        claims_before_conf = stats.claims_after_dedup - stats.claims_without_quotes_count
+        table.add_row("Confidence Filter", _format_filter_row(
+            claims_before_conf,
+            stats.claims_after_confidence_filter,
+            "low confidence"
+        ))
+
+    return table
+
+
+def _format_claims_persistence_section(stats) -> Table:
+    """Create claims persistence section."""
+    table = Table(title="CLAIMS PERSISTENCE", box=box.ROUNDED, show_header=False, title_style="bold cyan")
+    table.add_column("Metric", style="dim", width=24)
+    table.add_column("Value")
+
+    table.add_row("Database Check", f"{stats.claims_with_quotes} → {stats.claims_saved + stats.claims_merged_to_existing} unique")
+    if stats.claims_merged_to_existing > 0:
+        table.add_row("Merged to Existing", f"{stats.claims_merged_to_existing} claims")
+    table.add_row("✓ Saved", f"[bold green]{stats.claims_saved}[/bold green] new claims")
+
+    return table
+
+
+def _format_quotes_section(stats) -> Table:
+    """Create quotes section."""
+    table = Table(title="QUOTES EXTRACTION & VALIDATION", box=box.ROUNDED, show_header=False, title_style="bold cyan")
+    table.add_column("Metric", style="dim", width=24)
+    table.add_column("Value")
+
+    if stats.quotes_initial_candidates > 0:
+        table.add_row("Candidates Found", f"{stats.quotes_initial_candidates} initial matches")
+
+        if stats.question_filtered_count > 0:
+            table.add_row("Question Filter", _format_filter_row(
+                stats.quotes_initial_candidates,
+                stats.quotes_after_question_filter,
+                "rhetorical"
+            ))
+
+        if stats.quality_filtered_count > 0:
+            table.add_row("Quality Filter", _format_filter_row(
+                stats.quotes_after_question_filter,
+                stats.quotes_after_quality_filter,
+                "too short/ads"
+            ))
+
+        if stats.relevance_filtered_count > 0:
+            table.add_row("Relevance Filter", _format_filter_row(
+                stats.quotes_after_quality_filter,
+                stats.quotes_after_relevance_filter,
+                f"below {0.85}"
+            ))
+
+    if stats.duplicate_quotes_count > 0:
+        table.add_row("Deduplication", _format_filter_row(
+            stats.quotes_before_dedup,
+            stats.quotes_after_dedup,
+            "duplicates"
+        ))
+
+    if stats.entailment_filtered_quotes > 0:
+        table.add_row("Entailment Check", _format_filter_row(
+            stats.quotes_before_entailment,
+            stats.quotes_after_entailment,
+            "not SUPPORTS"
+        ))
+
+    table.add_row("✓ Saved", f"[bold green]{stats.quotes_saved}[/bold green] quotes")
+
+    return table
+
+
+def _format_filtered_samples_section(filtered_items) -> Table:
+    """Create filtered samples section with full text and enhanced metadata."""
+    table = Table(title="FILTERED SAMPLES", box=box.ROUNDED, show_header=False, title_style="bold yellow", width=100)
+    table.add_column("", style="dim", no_wrap=False)
+
+    any_samples = False
+
+    # Low confidence claims (with quote counts)
+    if filtered_items.low_confidence_claims:
+        any_samples = True
+        table.add_row(f"[yellow]Low confidence claims ({len(filtered_items.low_confidence_claims)}):[/yellow]")
+        table.add_row("")
+        for idx, item in enumerate(filtered_items.low_confidence_claims[:3], 1):
+            # Full claim text (word-wrapped automatically by rich)
+            table.add_row(f" {idx}. {item.text}")
+            # Enhanced metadata with quote count
+            quote_count = item.metadata.get("quote_count", 0)
+            quote_info = f"{quote_count} quote{'s' if quote_count != 1 else ''}"
+            table.add_row(f"    [dim]→ {item.reason} ({quote_info})[/dim]")
+            table.add_row("")
+
+    # Claims without quotes
+    if filtered_items.claims_without_quotes:
+        any_samples = True
+        if filtered_items.low_confidence_claims:
+            table.add_row("")  # Extra spacing between categories
+        table.add_row(f"[yellow]Claims without quotes ({len(filtered_items.claims_without_quotes)}):[/yellow]")
+        table.add_row("")
+        for idx, item in enumerate(filtered_items.claims_without_quotes[:3], 1):
+            table.add_row(f" {idx}. {item.text}")
+            table.add_row(f"    [dim]→ {item.reason}[/dim]")
+            table.add_row("")
+
+    # Vague claims (specificity filtered)
+    if filtered_items.specificity_filtered:
+        any_samples = True
+        if filtered_items.low_confidence_claims or filtered_items.claims_without_quotes:
+            table.add_row("")
+        table.add_row(f"[yellow]Vague claims ({len(filtered_items.specificity_filtered)}):[/yellow]")
+        table.add_row("")
+        for idx, item in enumerate(filtered_items.specificity_filtered[:3], 1):
+            table.add_row(f" {idx}. {item.text}")
+            table.add_row(f"    [dim]→ {item.reason}[/dim]")
+            table.add_row("")
+
+    # Advertisement claims
+    if filtered_items.ad_claims:
+        any_samples = True
+        if filtered_items.specificity_filtered or filtered_items.low_confidence_claims or filtered_items.claims_without_quotes:
+            table.add_row("")
+        table.add_row(f"[yellow]Advertisement claims ({len(filtered_items.ad_claims)}):[/yellow]")
+        table.add_row("")
+        for idx, item in enumerate(filtered_items.ad_claims[:3], 1):
+            table.add_row(f" {idx}. {item.text}")
+            table.add_row(f"    [dim]→ {item.reason}[/dim]")
+            table.add_row("")
+
+    # Entailment filtered quotes (non-SUPPORTS)
+    if filtered_items.entailment_filtered_quotes:
+        any_samples = True
+        if any([filtered_items.specificity_filtered, filtered_items.ad_claims,
+                filtered_items.low_confidence_claims, filtered_items.claims_without_quotes]):
+            table.add_row("")
+        table.add_row(f"[yellow]Non-supporting quotes ({len(filtered_items.entailment_filtered_quotes)}):[/yellow]")
+        table.add_row("")
+        for idx, item in enumerate(filtered_items.entailment_filtered_quotes[:3], 1):
+            # Show first 120 chars for quotes (they can be long)
+            quote_text = item.text if len(item.text) <= 120 else item.text[:117] + "..."
+            table.add_row(f" {idx}. \"{quote_text}\"")
+            table.add_row(f"    [dim]→ {item.reason}[/dim]")
+            table.add_row("")
+
+    if not any_samples:
+        table.add_row("[dim]No filtered items to display[/dim]")
+
+    return table
+
+
+def _format_performance_section(stats) -> Table:
+    """Create performance section."""
+    table = Table(title="PERFORMANCE", box=box.ROUNDED, show_header=False, title_style="bold magenta")
+    table.add_column("Stage", style="dim", width=24)
+    table.add_column("Time")
+
+    if stats.stage_timings:
+        for stage, duration in stats.stage_timings.items():
+            # Format stage name
+            stage_name = stage.replace("_", " ").title()
+            table.add_row(stage_name, f"{duration:.1f}s")
+
+        table.add_row("─" * 24, "─" * 10)
+
+    table.add_row("[bold]Total[/bold]", f"[bold]{stats.processing_time_seconds:.1f}s[/bold]")
+
+    return table
+
+
 def display_episode_result(
     episode: PodcastEpisode,
     result: PipelineResult,
     index: int,
     total: int
 ):
-    """Display results for a single processed episode."""
+    """Display results for a single processed episode with detailed breakdown."""
     console.print()
     console.print(
         f"[bold cyan]Episode {index}/{total}[/bold cyan]: "
         f"{episode.name} (ID: {episode.id})"
     )
 
-    # Create results table
-    table = Table(box=box.SIMPLE)
-    table.add_column("Metric", style="dim")
-    table.add_column("Value", style="bold")
-
-    # Claims
-    table.add_row(
-        "Claims",
-        f"{result.stats.claims_extracted} → "
-        f"{result.stats.claims_after_dedup} → "
-        f"{result.stats.claims_saved} saved"
-    )
-
-    # Quotes
-    table.add_row(
-        "Quotes",
-        f"{result.stats.quotes_before_entailment} → "
-        f"{result.stats.quotes_after_entailment} (entailment) → "
-        f"{result.stats.quotes_saved} saved"
-    )
-
-    # Entailment filtering
-    if result.stats.entailment_filtered_quotes > 0:
-        table.add_row(
-            "Entailment filtered",
-            f"{result.stats.entailment_filtered_quotes} quotes"
-        )
-
-    # Database duplicates
-    if result.stats.database_duplicates_found > 0:
-        table.add_row(
-            "Duplicates merged",
-            f"{result.stats.database_duplicates_found} claims"
-        )
-
-    # Processing time
-    table.add_row(
-        "Time",
-        f"{result.stats.processing_time_seconds:.1f}s"
-    )
-
-    console.print(table)
+    # Display all sections
+    console.print(_format_claims_extraction_section(result.stats))
+    console.print(_format_claims_validation_section(result.stats))
+    console.print(_format_claims_persistence_section(result.stats))
+    console.print(_format_quotes_section(result.stats))
+    console.print(_format_filtered_samples_section(result.stats.filtered_items))
+    console.print(_format_performance_section(result.stats))
 
 
 def display_error(

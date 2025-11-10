@@ -6,30 +6,30 @@
       {
         "augmented": true,
         "claim_text": "Bitcoin reached an all-time high of $69,000 in November 2021",
-        "reasoning": "The claim states a historical price point for Bitcoin in November 2021, which is a factual statement about a past event and does not include promotional elements, discount codes, sponsorships, or calls to action. This aligns with the definition of content claims (historical facts or data points) rather than advertisements.",
+        "reasoning": "This statement provides a factual data point about Bitcoin's historical price, which does not promote or endorse any product or service.",
         "is_advertisement": "False",
-        "confidence": "1.0"
+        "confidence": "0.95"
       },
       {
         "augmented": true,
         "claim_text": "Use code CRYPTO50 for half off your first month",
-        "reasoning": "This claim provides a discount code (CRYPTO50) for a service, which is a promotional offer matching the definition of advertisement (specifically a discount code for a commercial product).",
+        "reasoning": "The claim includes a discount code (\"Use code CRYPTO50\") which is a common element in promotional content encouraging users to make a purchase or try a service at a reduced rate.",
         "is_advertisement": "True",
-        "confidence": "1.0"
+        "confidence": "0.95"
       },
       {
         "augmented": true,
         "claim_text": "NordVPN is offering 70% off their 2-year plan for our listeners",
-        "reasoning": "The claim describes a discount promotion (70% off 2-year plan) for NordVPN specifically targeted at listeners, which directly matches the definition of advertisement claims (product/service promotions and special offers).",
+        "reasoning": "The claim mentions a discount offer from NordVPN, which is a clear indication of promotional content.",
         "is_advertisement": "True",
-        "confidence": "1.0"
+        "confidence": "0.95"
       },
       {
         "augmented": true,
         "claim_text": "Today's episode is brought to you by Ledger",
-        "reasoning": "The claim \"Today's episode is brought to you by Ledger\" explicitly identifies Ledger as the sponsor for the episode, matching the definition of advertisement claims under \"sponsor mentions or endorsements.\" This directly aligns with the provided example: \"Today's episode is sponsored by Ledger,\" which is explicitly listed as promotional content. The phrasing \"brought to you by\" is a standard sponsorship indicator in podcast contexts, confirming it is commercial promotional material.",
+        "reasoning": "The claim mentions that today's episode is sponsored by Ledger, which indicates it is a promotional content.",
         "is_advertisement": "True",
-        "confidence": "1.0"
+        "confidence": "0.95"
       }
     ],
     "signature": {

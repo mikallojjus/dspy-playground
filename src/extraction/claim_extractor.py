@@ -86,6 +86,11 @@ class ClaimExtractor:
         # Get max concurrency from settings
         self.batch_size = settings.max_claim_extraction_concurrency
 
+        # Tracking for filtered items (populated during extraction)
+        self.specificity_filtered_items: List[tuple[str, str]] = []  # (text, reason)
+        self.claims_before_filter_count: int = 0
+        self.claims_after_filter_count: int = 0
+
         logger.info(f"ClaimExtractor ready (max_concurrency={self.batch_size})")
 
     def _is_valid_claim(self, claim_text: str) -> bool:
@@ -103,11 +108,24 @@ class ClaimExtractor:
         Returns:
             True if claim passes quality checks, False otherwise
         """
+        is_valid, _ = self._validate_claim_with_reason(claim_text)
+        return is_valid
+
+    def _validate_claim_with_reason(self, claim_text: str) -> tuple[bool, str]:
+        """
+        Validate claim and return reason if invalid.
+
+        Returns:
+            Tuple of (is_valid, reason). reason is empty string if valid.
+        """
         # Length check (5-40 words)
         word_count = len(claim_text.split())
-        if word_count < 5 or word_count > 40:
+        if word_count < 5:
             logger.debug(f"Filtered claim (length={word_count}): {claim_text[:50]}...")
-            return False
+            return False, f"Too short ({word_count} words, need 5+)"
+        if word_count > 40:
+            logger.debug(f"Filtered claim (length={word_count}): {claim_text[:50]}...")
+            return False, f"Too long ({word_count} words, max 40)"
 
         claim_lower = claim_text.lower()
 
@@ -140,9 +158,9 @@ class ClaimExtractor:
 
         if not (has_number or has_proper_noun or has_date):
             logger.debug(f"Filtered non-specific claim: {claim_text[:50]}...")
-            return False
+            return False, "Too vague (no numbers, proper nouns, or dates)"
 
-        return True
+        return True, ""
 
     async def extract_from_chunks(
         self, chunks: List[TextChunk]
@@ -175,6 +193,11 @@ class ClaimExtractor:
         if not chunks:
             logger.warning("No chunks provided for claim extraction")
             return []
+
+        # Reset tracking for this extraction
+        self.specificity_filtered_items = []
+        self.claims_before_filter_count = 0
+        self.claims_after_filter_count = 0
 
         logger.info(
             f"Starting claim extraction from {len(chunks)} chunks "
@@ -250,8 +273,13 @@ class ClaimExtractor:
                 claims_before_filter.append(claim_text.strip())
 
                 # Apply quality filter if enabled
-                if settings.enable_claim_specificity_filter and not self._is_valid_claim(claim_text.strip()):
-                    continue
+                if settings.enable_claim_specificity_filter:
+                    is_valid, reason = self._validate_claim_with_reason(claim_text.strip())
+                    if not is_valid:
+                        # Track filtered item (limit to first 10 to avoid memory issues)
+                        if len(self.specificity_filtered_items) < 10:
+                            self.specificity_filtered_items.append((claim_text.strip(), reason))
+                        continue
 
                 claims.append(
                     ExtractedClaim(
@@ -260,6 +288,10 @@ class ClaimExtractor:
                         confidence=1.0,  # Initial confidence (before scoring)
                     )
                 )
+
+            # Update tracking
+            self.claims_before_filter_count += len(claims_before_filter)
+            self.claims_after_filter_count += len(claims)
 
             filtered_count = len(claims_before_filter) - len(claims)
 

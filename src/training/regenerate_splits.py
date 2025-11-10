@@ -58,13 +58,13 @@ def regenerate_entailment_splits():
     val_data = {"examples": val}
 
     with open('evaluation/entailment_train.json', 'w', encoding='utf-8') as f:
-        json.dump(train_data, f, indent=2)
+        json.dump(train_data, f, indent=2, ensure_ascii=False)
 
     with open('evaluation/entailment_val.json', 'w', encoding='utf-8') as f:
-        json.dump(val_data, f, indent=2)
+        json.dump(val_data, f, indent=2, ensure_ascii=False)
 
-    print(f"✓ Train set: {len(train)} examples → evaluation/entailment_train.json")
-    print(f"✓ Val set: {len(val)} examples → evaluation/entailment_val.json")
+    print(f"Train set: {len(train)} examples -> evaluation/entailment_train.json")
+    print(f"Val set: {len(val)} examples -> evaluation/entailment_val.json")
     print()
 
 
@@ -104,13 +104,13 @@ def regenerate_claims_splits():
     val_data = {"examples": val}
 
     with open('evaluation/claims_train.json', 'w', encoding='utf-8') as f:
-        json.dump(train_data, f, indent=2)
+        json.dump(train_data, f, indent=2, ensure_ascii=False)
 
     with open('evaluation/claims_val.json', 'w', encoding='utf-8') as f:
-        json.dump(val_data, f, indent=2)
+        json.dump(val_data, f, indent=2, ensure_ascii=False)
 
-    print(f"✓ Train set: {len(train)} examples → evaluation/claims_train.json")
-    print(f"✓ Val set: {len(val)} examples → evaluation/claims_val.json")
+    print(f"Train set: {len(train)} examples -> evaluation/claims_train.json")
+    print(f"Val set: {len(val)} examples -> evaluation/claims_val.json")
     print()
 
 
@@ -150,13 +150,13 @@ def regenerate_ad_splits():
     val_data = {"examples": val}
 
     with open('evaluation/ad_train.json', 'w', encoding='utf-8') as f:
-        json.dump(train_data, f, indent=2)
+        json.dump(train_data, f, indent=2, ensure_ascii=False)
 
     with open('evaluation/ad_val.json', 'w', encoding='utf-8') as f:
-        json.dump(val_data, f, indent=2)
+        json.dump(val_data, f, indent=2, ensure_ascii=False)
 
-    print(f"✓ Train set: {len(train)} examples → evaluation/ad_train.json")
-    print(f"✓ Val set: {len(val)} examples → evaluation/ad_val.json")
+    print(f"Train set: {len(train)} examples -> evaluation/ad_train.json")
+    print(f"Val set: {len(val)} examples -> evaluation/ad_val.json")
     print()
 
 

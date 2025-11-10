@@ -148,6 +148,15 @@ class QuoteFinder:
         self.max_quotes = max_quotes_per_claim or settings.max_quotes_per_claim
         self.initial_candidates = initial_candidates
 
+        # Tracking for filtered items (populated during quote finding)
+        self.quotes_initial_candidates_count: int = 0
+        self.question_filtered_items: List[tuple[str, str]] = []  # (text, reason)
+        self.quality_filtered_items: List[tuple[str, str]] = []  # (text, reason)
+        self.relevance_filtered_items: List[tuple[str, str]] = []  # (text, reason)
+        self.quotes_after_question_filter_count: int = 0
+        self.quotes_after_quality_filter_count: int = 0
+        self.quotes_after_relevance_filter_count: int = 0
+
         logger.info(
             f"Initialized QuoteFinder: max_quotes={self.max_quotes}, "
             f"initial_candidates={self.initial_candidates}"
@@ -179,6 +188,15 @@ class QuoteFinder:
         if not claims:
             logger.warning("No claims provided for quote finding")
             return []
+
+        # Reset tracking for this quote finding session
+        self.quotes_initial_candidates_count = 0
+        self.question_filtered_items = []
+        self.quality_filtered_items = []
+        self.relevance_filtered_items = []
+        self.quotes_after_question_filter_count = 0
+        self.quotes_after_quality_filter_count = 0
+        self.quotes_after_relevance_filter_count = 0
 
         logger.info(f"Finding quotes for {len(claims)} claims")
 
@@ -231,10 +249,20 @@ class QuoteFinder:
             logger.warning(f"No candidates found for claim: {claim.claim_text[:60]}...")
             return []
 
+        # Track initial candidates
+        self.quotes_initial_candidates_count += len(candidates)
+
         # Filter questions
-        filtered_candidates = [
-            c for c in candidates if not self._is_question(c.quote_text)
-        ]
+        filtered_candidates = []
+        for c in candidates:
+            if self._is_question(c.quote_text):
+                # Track filtered question (limit to first 10)
+                if len(self.question_filtered_items) < 10:
+                    self.question_filtered_items.append((c.quote_text, "Rhetorical question"))
+            else:
+                filtered_candidates.append(c)
+
+        self.quotes_after_question_filter_count += len(filtered_candidates)
 
         if len(filtered_candidates) < len(candidates):
             logger.debug(
@@ -249,9 +277,17 @@ class QuoteFinder:
             return []
 
         # Filter low-quality quotes (disclaimers, ad copy)
-        quality_filtered = [
-            c for c in filtered_candidates if self._is_valid_quote(c.quote_text)
-        ]
+        quality_filtered = []
+        for c in filtered_candidates:
+            is_valid, reason = self._validate_quote_with_reason(c.quote_text)
+            if not is_valid:
+                # Track filtered quote (limit to first 10)
+                if len(self.quality_filtered_items) < 10:
+                    self.quality_filtered_items.append((c.quote_text, reason))
+            else:
+                quality_filtered.append(c)
+
+        self.quotes_after_quality_filter_count += len(quality_filtered)
 
         if len(quality_filtered) < len(filtered_candidates):
             logger.debug(
@@ -275,9 +311,20 @@ class QuoteFinder:
 
         # Filter by minimum relevance threshold
         quotes_before_threshold = len(reranked)
-        reranked_above_threshold = [
-            r for r in reranked if r["score"] >= settings.min_quote_relevance
-        ]
+        reranked_above_threshold = []
+        for r in reranked:
+            if r["score"] >= settings.min_quote_relevance:
+                reranked_above_threshold.append(r)
+            else:
+                # Track filtered quote (limit to first 10)
+                if len(self.relevance_filtered_items) < 10:
+                    candidate = filtered_candidates[r["index"]]
+                    self.relevance_filtered_items.append((
+                        candidate.quote_text,
+                        f"Low relevance ({r['score']:.2f} < {settings.min_quote_relevance})"
+                    ))
+
+        self.quotes_after_relevance_filter_count += len(reranked_above_threshold)
 
         if len(reranked_above_threshold) < quotes_before_threshold:
             logger.debug(
@@ -369,32 +416,42 @@ class QuoteFinder:
             assert not finder._is_valid_quote("Visit kraken.com/bankless today!")
             ```
         """
+        is_valid, _ = self._validate_quote_with_reason(text)
+        return is_valid
+
+    def _validate_quote_with_reason(self, text: str) -> tuple[bool, str]:
+        """
+        Validate quote and return reason if invalid.
+
+        Returns:
+            Tuple of (is_valid, reason). reason is empty string if valid.
+        """
         # Length check (too short = likely incomplete/ad copy)
         if len(text) < 50:
             logger.debug(f"Filtered short quote ({len(text)} chars): {text[:30]}...")
-            return False
+            return False, f"Too short ({len(text)} chars, need 50+)"
 
         text_lower = text.lower()
 
         # Ad copy patterns
         ad_patterns = [
-            r"(visit|go\s+to|check\s+out)\s+\w+\.(com|io|org)",
-            r"(special|exclusive)\s+(deal|offer|discount)",
-            r"use\s+(code|promo)",
-            r"sign\s+up\s+(now|today)",
-            r"subscribe\s+(now|today)",
-            r"hit\s+that\s+subscribe\s+button",
-            r"enable\s+notifications",
-            r"brought\s+to\s+you\s+by",
-            r"our\s+sponsor",
+            (r"(visit|go\s+to|check\s+out)\s+\w+\.(com|io|org)", "Contains website promotion"),
+            (r"(special|exclusive)\s+(deal|offer|discount)", "Contains marketing offer"),
+            (r"use\s+(code|promo)", "Contains promo code"),
+            (r"sign\s+up\s+(now|today)", "Contains signup CTA"),
+            (r"subscribe\s+(now|today)", "Contains subscribe CTA"),
+            (r"hit\s+that\s+subscribe\s+button", "Contains subscribe button CTA"),
+            (r"enable\s+notifications", "Contains notification CTA"),
+            (r"brought\s+to\s+you\s+by", "Contains sponsorship mention"),
+            (r"our\s+sponsor", "Contains sponsor mention"),
         ]
 
-        for pattern in ad_patterns:
+        for pattern, reason in ad_patterns:
             if re.search(pattern, text_lower):
                 logger.debug(f"Filtered ad copy quote: {text[:60]}...")
-                return False
+                return False, reason
 
-        return True
+        return True, ""
 
     def get_claims_without_quotes(
         self, claims_with_quotes: List[ClaimWithQuotes]
