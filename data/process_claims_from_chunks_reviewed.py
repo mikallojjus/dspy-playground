@@ -45,11 +45,29 @@ def parse_claims(claims_text: str, maintainer: str) -> list[str]:
         try:
             data = json.loads(claims_text)
         except json.JSONDecodeError:
-            # Try fixing common JSON errors (trailing commas)
-            fixed_text = re.sub(r',(\s*[\]}])', r'\1', claims_text)
+            # Try fixing common JSON errors
+            fixed_text = claims_text
+
+            # Fix 1: Remove trailing commas
+            fixed_text = re.sub(r',(\s*[\]}])', r'\1', fixed_text)
+
+            # Fix 2: Add missing commas between objects (e.g., } { -> }, {)
+            fixed_text = re.sub(r'}\s*{', r'}, {', fixed_text)
+
+            # Fix 3: Remove control characters (tabs, newlines) from inside strings
+            # This is a heuristic: replace any literal control chars with spaces
+            import codecs
+            fixed_text = ''.join(c if c.isprintable() or c in '\n\r\t ' else ' ' for c in fixed_text)
+
             try:
                 data = json.loads(fixed_text)
             except json.JSONDecodeError:
+                # Last resort: try to manually extract claims using regex
+                # Look for "claim": "..." patterns
+                claim_pattern = r'"claim"\s*:\s*"([^"]*(?:\\"[^"]*)*)"'
+                matches = re.findall(claim_pattern, fixed_text)
+                if matches:
+                    return [m.replace('\\"', '"') for m in matches]
                 pass  # Fall through to other parsing methods
 
         # If JSON parsing succeeded, extract claims
@@ -106,7 +124,7 @@ def process_csv(csv_file: str, output_file: str):
         'by_maintainer': {}
     }
 
-    with open(csv_file, 'r', encoding='utf-8') as f:
+    with open(csv_file, 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
 
         for row_num, row in enumerate(reader, start=2):
@@ -182,12 +200,13 @@ def process_csv(csv_file: str, output_file: str):
     print()
 
     # Show statistics about claims per chunk
-    claims_per_chunk = [len(ex['claims']) for ex in examples]
-    print("Example Statistics:")
-    print(f"  Avg claims per chunk: {sum(claims_per_chunk) / len(examples):.1f}")
-    print(f"  Min claims in a chunk: {min(claims_per_chunk)}")
-    print(f"  Max claims in a chunk: {max(claims_per_chunk)}")
-    print()
+    if examples:
+        claims_per_chunk = [len(ex['claims']) for ex in examples]
+        print("Example Statistics:")
+        print(f"  Avg claims per chunk: {sum(claims_per_chunk) / len(examples):.1f}")
+        print(f"  Min claims in a chunk: {min(claims_per_chunk)}")
+        print(f"  Max claims in a chunk: {max(claims_per_chunk)}")
+        print()
 
     print("By Maintainer:")
     for maintainer, counts in sorted(stats['by_maintainer'].items()):
@@ -200,18 +219,21 @@ def process_csv(csv_file: str, output_file: str):
     print()
 
     # Show sample examples
-    print("Sample examples (first 3):")
-    print("-" * 80)
-    for i, example in enumerate(examples[:3], 1):
-        print(f"\nExample {i}:")
-        print(f"  Chunk: {example['transcript_chunk'][:100]}...")
-        print(f"  Claims ({len(example['claims'])}):")
-        for j, claim in enumerate(example['claims'][:3], 1):  # Show first 3 claims
-            claim_display = claim[:80] + "..." if len(claim) > 80 else claim
-            print(f"    {j}. {claim_display}")
-        if len(example['claims']) > 3:
-            print(f"    ... and {len(example['claims']) - 3} more")
-        print(f"  Quality: {example['quality']}")
+    if examples:
+        print("Sample examples (first 3):")
+        print("-" * 80)
+        for i, example in enumerate(examples[:3], 1):
+            print(f"\nExample {i}:")
+            print(f"  Chunk: {example['transcript_chunk'][:100]}...")
+            print(f"  Claims ({len(example['claims'])}):")
+            for j, claim in enumerate(example['claims'][:3], 1):  # Show first 3 claims
+                claim_display = claim[:80] + "..." if len(claim) > 80 else claim
+                print(f"    {j}. {claim_display}")
+            if len(example['claims']) > 3:
+                print(f"    ... and {len(example['claims']) - 3} more")
+            print(f"  Quality: {example['quality']}")
+    else:
+        print("No examples to display.")
 
     print()
     print("=" * 80)

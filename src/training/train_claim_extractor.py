@@ -48,26 +48,76 @@ from src.training.training_utils import (
 
 
 class ClaimExtraction(dspy.Signature):
-    """
-    Extract factual, verifiable claims from podcast transcript text.
+    """You are an expert claim extraction system analyzing podcast transcript text. Your task is to identify and extract factual, verifiable claims while filtering out opinions, speculation, and conversational filler.
 
-    Claims should be:
-    - Factual (not opinions)
-    - Self-contained (no pronouns like he/she/they without clear referents)
-    - Specific (include names, numbers, dates when relevant)
-    - Concise (5-40 words)
+**ANALYSIS PROCESS:**
+1. Read through the transcript chunk carefully, identifying distinct factual assertions
+2. Distinguish between verifiable facts and subjective opinions/commentary
+3. For each potential claim, ensure it meets ALL criteria below
+4. Reformulate claims to be self-contained and verification-ready
 
-    OUTPUT FORMAT REQUIREMENT:
-    Return claims as a valid JSON array using ONLY double quotes.
-    Example: ["claim one", "claim two", "claim three"]
-    Do NOT use single quotes or mix quote styles - use double quotes only.
-    """
+**CLAIM CRITERIA - Each claim must be:**
+- **Factual**: A statement that can be verified as true or false (not opinions, beliefs, or speculation)
+- **Self-contained**: Include full context with proper nouns; replace pronouns with specific referents (names, titles, entities)
+- **Specific**: Include relevant details like names, numbers, dates, locations when mentioned
+- **Concise**: 5-40 words maximum
+- **Declarative**: Reformulated as a clear statement, not a question or conditional
+
+**WHAT TO EXTRACT:**
+- Historical facts and events
+- Scientific/medical claims
+- Statistics and measurements
+- Biographical information
+- Named entities and their attributes
+- Specific actions taken by identified individuals/organizations
+- Verifiable relationships between entities
+
+**WHAT TO EXCLUDE:**
+- Opinions, beliefs, and subjective assessments
+- Hypothetical scenarios ("what if", "could be")
+- Questions and uncertainties
+- Conversational acknowledgments ("yeah", "right", "I see")
+- Vague statements without specific referents
+- Personal anecdotes without verifiable facts
+- Future predictions or speculation
+
+**OUTPUT FORMAT REQUIREMENT:**
+Return claims as a valid JSON array using ONLY double quotes.
+Format: ["claim one", "claim two", "claim three"]
+- Use double quotes (") only - no single quotes (')
+- Ensure proper JSON escaping for quotes within claims
+- Each claim should be a complete, standalone sentence
+
+**QUALITY CHECKS:**
+- Can this claim be fact-checked against external sources?
+- Does it contain all necessary context to understand what is being claimed?
+- Is every pronoun replaced with its specific referent?
+- Is it free from opinion markers (I think, maybe, probably, seems)?
+
+**EXAMPLES:**
+
+Example 1:
+Transcript: "Trump said he would build a wall on the southern border. The wall would be 30 feet tall and Mexico would pay for it, he claimed."
+CORRECT: ["Donald Trump said he would build a wall on the southern border", "Donald Trump claimed the wall would be 30 feet tall", "Donald Trump claimed Mexico would pay for the border wall"]
+WRONG: ["The speaker discusses Trump's border wall plans", "He mentions a 30-foot wall"]
+
+Example 2:
+Transcript: "Bitcoin reached $69,000 in November 2021. That was crazy! I think it'll go higher next year."
+CORRECT: ["Bitcoin reached $69,000 in November 2021"]
+WRONG: ["The speaker discusses Bitcoin prices", "Bitcoin will go higher next year", "The speaker thinks Bitcoin reached a high price"]
+
+Example 3:
+Transcript: "Yeah, you know, I really love that movie. The effects were amazing."
+CORRECT: [] (no verifiable factual claims - only opinions)
+WRONG: ["The speaker loves the movie", "The effects were amazing"]"""
 
     transcript_chunk: str = dspy.InputField(
-        desc="The podcast transcript text to analyze"
+        desc="The podcast transcript text to analyze",
+        prefix="Transcript:",
     )
     claims: List[str] = dspy.OutputField(
-        desc='List of factual claims as JSON array with double quotes only: ["claim1", "claim2"]'
+        desc='List of factual claims as JSON array with double quotes only: ["claim1", "claim2"]',
+        prefix="Claims (extract the actual facts, not meta-commentary about what the speaker discusses):",
     )
 
 

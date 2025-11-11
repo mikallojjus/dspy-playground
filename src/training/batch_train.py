@@ -65,23 +65,23 @@ class BatchTrainer:
         configs = []
 
         # BootstrapFewShot optimizer (30 runs)
-        # Claim extractor: 5 runs each for max_demos=4, 10, 16
-        for max_demos in [4, 10, 16]:
+        # Claim extractor: 5 runs each for max_demos=4, 6, 8
+        for max_demos in [4, 6, 8]:
             for run_num in range(1, 6):
                 configs.append(TrainingConfig("claim_extractor", "BootstrapFewShot", max_demos, run_num))
 
-        # Entailment validator: 5 runs each for max_demos=4, 10, 16
-        for max_demos in [4, 10, 16]:
+        # Entailment validator: 5 runs each for max_demos=4, 6, 8
+        for max_demos in [4, 6, 8]:
             for run_num in range(1, 6):
                 configs.append(TrainingConfig("entailment_validator", "BootstrapFewShot", max_demos, run_num))
 
         # MIPROv2 optimizer (30 runs)
-        # Claim extractor: 5 runs each for max_demos=4, 10, 16
-        for max_demos in [4, 10, 16]:
+        # Claim extractor: 5 runs each for max_demos=4, 6, 8
+        for max_demos in [4, 6, 8]:
             for run_num in range(1, 6):
                 configs.append(TrainingConfig("claim_extractor", "MIPROv2", max_demos, run_num))
 
-        # Entailment validator: 5 runs each for max_demos=4, 10, 16
+        # Entailment validator: 5 runs each for max_demos=4, 6, 8
         for max_demos in [4, 6, 8]:
             for run_num in range(1, 6):
                 configs.append(TrainingConfig("entailment_validator", "MIPROv2", max_demos, run_num))
@@ -323,7 +323,6 @@ def main():
     print("    - Claim Extractor: 15 runs (5 runs × 3 max_demos values)")
     print("    - Entailment Validator: 15 runs (5 runs × 3 max_demos values)")
     print()
-    print("Estimated time: 40-60 hours (1.5-2.5 days)")
     print()
 
     # Generate log filename

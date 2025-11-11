@@ -1,73 +1,78 @@
 {
   "examples": [
     {
-      "claim_text": "VPNs can help protect privacy online",
-      "is_advertisement": false,
-      "notes": "General technology benefit, not specific product"
-    },
-    {
-      "claim_text": "Metamask is a browser extension for interacting with Ethereum",
+      "claim_text": "Metamask is a browser extension for interacting with Ethereum.",
       "is_advertisement": false,
       "notes": "Neutral tool description"
     },
     {
-      "claim_text": "The podcast's theme music is by Jim Brumberg and Ben Landsberg of Wanderly",
+      "claim_text": "Amica Insurance is a mutual company that prioritizes customer needs.",
       "is_advertisement": true
     },
     {
-      "claim_text": "Mike Neuder believes the Ethereum roadmap is on track",
-      "is_advertisement": false,
-      "notes": "Guest opinion about technology"
-    },
-    {
-      "claim_text": "Ledger is a company that makes hardware wallets",
-      "is_advertisement": false,
-      "notes": "Neutral company description, not promotional"
-    },
-    {
-      "claim_text": "Wix provides tools for creating websites with AI assistance",
-      "is_advertisement": true
-    },
-    {
-      "claim_text": "Smart contracts on Ethereum are executed by the Ethereum Virtual Machine",
-      "is_advertisement": false,
-      "notes": "Technical fact"
-    },
-    {
-      "claim_text": "If your revenues are at least in the seven figures, you can download the free ebook 'Navigating Global Trade' from netsuite.com/nyt",
-      "is_advertisement": true
-    },
-    {
-      "claim_text": "The podcast has a new YouTube channel at subscribe@youtube.com slash aty. The Interview podcast",
-      "is_advertisement": true
-    },
-    {
-      "claim_text": "Ledger hardware wallets support over 5,500 cryptocurrencies",
+      "claim_text": "Use code CRYPTO50 for half off your first month.",
       "is_advertisement": true,
-      "notes": "Product specification from sponsor segment"
+      "notes": "Promo code with discount"
     },
     {
-      "claim_text": "Check out the link in the description for a special deal on Ledger devices",
-      "is_advertisement": true,
-      "notes": "Call to action for promotional link"
+      "claim_text": "Decentralized finance protocols locked over $100 billion in total value at their peak.",
+      "is_advertisement": false,
+      "notes": "Industry statistics"
     },
     {
-      "claim_text": "Try Nexo today and earn up to 16% interest on your crypto deposits",
-      "is_advertisement": true,
-      "notes": "Call to action with promotional rate"
-    },
-    {
-      "claim_text": "Since 2017, Disney has nearly doubled its spending on film and television content",
-      "is_advertisement": false
-    },
-    {
-      "claim_text": "Amazon presents a commercial for Kelly's purchase of a sleep machine weighted blanket and noise canceling earbuds to address her roommate's deviated septum",
+      "claim_text": "The podcast's theme music is by Jim Brumberg and Ben Landsberg of Wanderly.",
       "is_advertisement": true
     },
     {
-      "claim_text": "Athletic Greens was founded in 2010",
+      "claim_text": "Non-fungible tokens experienced explosive growth in 2021.",
       "is_advertisement": false,
-      "notes": "Historical fact about company, not promotional"
+      "notes": "Market trend observation"
+    },
+    {
+      "claim_text": "VPNs can help protect privacy online.",
+      "is_advertisement": false,
+      "notes": "General technology benefit, not specific product."
+    },
+    {
+      "claim_text": "The podcast's theme music is by Jim Brumberg and Ben Landsberg of Wanderly.",
+      "is_advertisement": true
+    },
+    {
+      "claim_text": "Wix provides tools for creating websites with AI assistance.",
+      "is_advertisement": true
+    },
+    {
+      "claim_text": "Visit athleticgreens.com/bankless to claim your free vitamin D and travel packs.",
+      "is_advertisement": true,
+      "notes": "Call to action with referral URL and free offer"
+    },
+    {
+      "claim_text": "Today's episode is brought to you by Ledger.",
+      "is_advertisement": true,
+      "notes": "Explicit sponsor mention"
+    },
+    {
+      "claim_text": "Get 50% off your subscription when you use our exclusive link.",
+      "is_advertisement": true,
+      "notes": "Discount offer with affiliate link"
+    },
+    {
+      "claim_text": "The Ethereum Foundation funds development of the Ethereum protocol.",
+      "is_advertisement": false,
+      "notes": "Organizational structure fact"
+    },
+    {
+      "claim_text": "DSW is an online shoe retailer",
+      "is_advertisement": true
+    },
+    {
+      "claim_text": "Wix offers AI tools to help users create websites with full control and flexibility.",
+      "is_advertisement": true
+    },
+    {
+      "claim_text": "Aave is a decentralized lending protocol.",
+      "is_advertisement": false,
+      "notes": "Protocol description (neutral, not promotional)"
     }
   ]
 }
