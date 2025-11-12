@@ -114,10 +114,12 @@ class EpisodeQueryService:
         Query logic:
         1. Retrieve latest episodes (NO transcript filter - we get actual latest episodes)
         2. Filter by podcast_ids if provided
-        3. Skip already-processed unless force=True
+        3. If limit > 0 AND podcast_ids provided:
+           - First, identify the latest N episodes per podcast (using ROW_NUMBER window function)
+           - Then, filter out already-processed episodes unless force=True
+           - This ensures we only consider episodes within the latest N, not N unprocessed episodes
         4. Order by published_at DESC (newest first), NULL dates last
-        5. If limit > 0 AND podcast_ids provided: get limit per podcast
-        6. If limit > 0 but no podcast_ids: get limit total across all podcasts
+        5. If limit > 0 but no podcast_ids: get limit total across all podcasts
 
         Note: Transcript filtering happens in the main processing logic to ensure
         we truly get the LATEST episodes, not just the latest with transcripts.
@@ -125,7 +127,8 @@ class EpisodeQueryService:
         Args:
             podcast_ids: Optional list of podcast IDs to filter by (None = all podcasts)
             limit: Maximum number of episodes per podcast when podcast_ids specified,
-                   or total when no podcast_ids (0 = no limit)
+                   or total when no podcast_ids (0 = no limit). The limit is applied to the
+                   latest episodes overall, not the latest unprocessed episodes.
             force: If True, include already-processed episodes
 
         Returns:
@@ -136,7 +139,8 @@ class EpisodeQueryService:
             # Get all unprocessed episodes from all podcasts
             episodes = service.get_episodes_to_process()
 
-            # Get 100 newest episodes from each of podcasts 1, 2, 3
+            # Get unprocessed episodes from the latest 100 episodes of each podcast
+            # (Not the latest 100 unprocessed episodes, which could span further back)
             episodes = service.get_episodes_to_process(podcast_ids=[1,2,3], limit=100)
 
             # Reprocess all episodes (force=True)
@@ -153,9 +157,38 @@ class EpisodeQueryService:
             logger.debug(f"Querying {len(podcast_ids)} podcasts separately with limit={limit} each")
             all_episodes = []
             for podcast_id in podcast_ids:
-                # Base query for this podcast
+                # Use a subquery with ROW_NUMBER to get the latest N episodes first
+                # THEN filter by processed status - this ensures we get episodes from the
+                # actual latest N, not the latest N unprocessed (which could span further back)
+                from sqlalchemy import select
+
+                # Create subquery that ranks episodes by published_at within this podcast
+                ranked_subquery = (
+                    select(
+                        PodcastEpisode.id.label('episode_id'),
+                        func.row_number().over(
+                            partition_by=PodcastEpisode.podcast_id,
+                            order_by=PodcastEpisode.published_at.desc().nulls_last()
+                        ).label('episode_rank')
+                    )
+                    .where(PodcastEpisode.podcast_id == podcast_id)
+                ).subquery()
+
+                # Get the IDs of the latest N episodes for this podcast
+                latest_episode_ids = (
+                    self.session.query(ranked_subquery.c.episode_id)
+                    .filter(ranked_subquery.c.episode_rank <= limit)
+                    .all()
+                )
+                latest_episode_ids = [row[0] for row in latest_episode_ids]
+
+                if not latest_episode_ids:
+                    logger.debug(f"Podcast {podcast_id}: No episodes found")
+                    continue
+
+                # Now query for these specific episodes
                 query = self.session.query(PodcastEpisode).filter(
-                    PodcastEpisode.podcast_id == podcast_id
+                    PodcastEpisode.id.in_(latest_episode_ids)
                 )
 
                 # Skip already-processed episodes unless force=True
@@ -168,15 +201,12 @@ class EpisodeQueryService:
                     )  # No claims = not processed
                     logger.debug(f"Podcast {podcast_id}: Filtering to unprocessed episodes only")
 
-                # Order by newest first (published_at DESC), NULL dates last
+                # Order by newest first to maintain consistent ordering
                 query = query.order_by(PodcastEpisode.published_at.desc().nulls_last())
-
-                # Apply limit for this podcast
-                query = query.limit(limit)
 
                 # Execute query for this podcast
                 podcast_episodes = query.all()
-                logger.debug(f"Podcast {podcast_id}: Found {len(podcast_episodes)} episodes")
+                logger.debug(f"Podcast {podcast_id}: Found {len(podcast_episodes)} episodes from latest {limit}")
                 all_episodes.extend(podcast_episodes)
 
             logger.info(f"Found {len(all_episodes)} total episodes across {len(podcast_ids)} podcasts")
