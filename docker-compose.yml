@@ -11,6 +11,13 @@ services:
       - OLLAMA_HOST=0.0.0.0:11434
       - OLLAMA_KEEP_ALIVE=-1  # Keep models loaded indefinitely
       - OLLAMA_MAX_LOADED_MODELS=1  # Only load one model at a time
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "ollama list || exit 1"]
@@ -31,6 +38,13 @@ services:
       - OLLAMA_HOST=0.0.0.0:11434
       - OLLAMA_KEEP_ALIVE=-1  # Keep embedding model loaded
       - OLLAMA_MAX_LOADED_MODELS=1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "ollama list || exit 1"]
