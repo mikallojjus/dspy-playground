@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # Ollama instance for Qwen 2.5 7B (LLM operations)
   ollama-qwen:
@@ -6,18 +8,18 @@ services:
     ports:
       - "11434:11434"
     volumes:
+      - /var/lib/nvidia/lib64:/usr/local/nvidia/lib64
+      - /var/lib/nvidia/bin:/usr/local/nvidia/bin
       - ollama-qwen-data:/root/.ollama
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+      - /dev/nvidiactl:/dev/nvidiactl
     environment:
       - OLLAMA_HOST=0.0.0.0:11434
-      - OLLAMA_KEEP_ALIVE=-1  # Keep models loaded indefinitely
-      - OLLAMA_MAX_LOADED_MODELS=1  # Only load one model at a time
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+      - OLLAMA_KEEP_ALIVE=-1
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - LD_LIBRARY_PATH=/usr/local/nvidia/lib64
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "ollama list || exit 1"]
@@ -31,20 +33,20 @@ services:
     image: ollama/ollama:latest
     container_name: ollama-embedding
     ports:
-      - "11435:11434" 
+      - "11435:11434"
     volumes:
+      - /var/lib/nvidia/lib64:/usr/local/nvidia/lib64
+      - /var/lib/nvidia/bin:/usr/local/nvidia/bin
       - ollama-embedding-data:/root/.ollama
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+      - /dev/nvidiactl:/dev/nvidiactl
     environment:
       - OLLAMA_HOST=0.0.0.0:11434
-      - OLLAMA_KEEP_ALIVE=-1  # Keep embedding model loaded
+      - OLLAMA_KEEP_ALIVE=-1
       - OLLAMA_MAX_LOADED_MODELS=1
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+      - LD_LIBRARY_PATH=/usr/local/nvidia/lib64
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "ollama list || exit 1"]
@@ -61,15 +63,16 @@ services:
     ports:
       - "8080:80"
     volumes:
+      - /var/lib/nvidia/lib64:/usr/local/nvidia/lib64
+      - /var/lib/nvidia/bin:/usr/local/nvidia/bin
       - ./reranker-models:/data
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+      - /dev/nvidiactl:/dev/nvidiactl
+    environment:
+      - LD_LIBRARY_PATH=/usr/local/nvidia/lib64
     command: --model-id BAAI/bge-reranker-large
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/health"]
       interval: 30s
