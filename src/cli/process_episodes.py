@@ -94,8 +94,8 @@ Examples:
   # Process a specific episode by ID
   %(prog)s --episode-id 456
 
-  # Process specific podcast, limit to 5 episodes
-  %(prog)s --podcast-id 123 --limit 5
+  # Process specific podcasts, limit to 100 episodes per podcast
+  %(prog)s --podcast-ids 1,2,3 --limit 100
 
   # Continue processing on errors
   %(prog)s --continue-on-error
@@ -109,10 +109,10 @@ Examples:
     )
 
     parser.add_argument(
-        "--podcast-id",
-        type=int,
+        "--podcast-ids",
+        type=str,
         default=None,
-        help="Process episodes from specific podcast ID (default: all podcasts)"
+        help="Process episodes from specific podcast IDs, comma-separated (e.g., '1,2,3') (default: all podcasts)"
     )
 
     parser.add_argument(
@@ -147,12 +147,23 @@ Examples:
         help="Show what would be processed without actually processing"
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # Parse comma-separated podcast IDs into a list
+    if args.podcast_ids:
+        try:
+            args.podcast_ids = [int(pid.strip()) for pid in args.podcast_ids.split(',')]
+        except ValueError:
+            parser.error("--podcast-ids must be a comma-separated list of integers")
+    else:
+        args.podcast_ids = None
+
+    return args
 
 
 def display_summary(
     episodes: List[PodcastEpisode],
-    podcast_id: Optional[int],
+    podcast_ids: Optional[List[int]],
     episode_id: Optional[int],
     force: bool
 ):
@@ -167,7 +178,10 @@ def display_summary(
     if episode_id is not None:
         table.add_row("Episode ID", str(episode_id))
     else:
-        table.add_row("Podcast ID", str(podcast_id) if podcast_id else "All podcasts")
+        if podcast_ids:
+            table.add_row("Podcast IDs", ", ".join(str(pid) for pid in podcast_ids))
+        else:
+            table.add_row("Podcast IDs", "All podcasts")
         table.add_row("Order", "Newest first")
 
     table.add_row("Episodes to process", str(len(episodes)))
@@ -622,13 +636,30 @@ async def main():
             return 1
     else:
         episodes = query_service.get_episodes_to_process(
-            podcast_id=args.podcast_id,
+            podcast_ids=args.podcast_ids,
             limit=args.limit,
             force=args.force
         )
 
+        # Filter episodes to only those with transcripts
+        total_retrieved = len(episodes)
+        episodes_with_transcripts = [ep for ep in episodes if ep.podscribe_transcript is not None]
+        episodes_without_transcripts = total_retrieved - len(episodes_with_transcripts)
+
+        # Log statistics
+        if total_retrieved > 0:
+            console.print()
+            console.print(f"[cyan]Retrieved {total_retrieved} episode(s)[/cyan]")
+            console.print(f"[green]  ✓ {len(episodes_with_transcripts)} with transcripts (will process)[/green]")
+            if episodes_without_transcripts > 0:
+                console.print(f"[yellow]  ⊘ {episodes_without_transcripts} without transcripts (skipping)[/yellow]")
+            console.print()
+
+        # Update episodes to only those with transcripts
+        episodes = episodes_with_transcripts
+
     # Display summary
-    should_continue = display_summary(episodes, args.podcast_id, args.episode_id, args.force)
+    should_continue = display_summary(episodes, args.podcast_ids, args.episode_id, args.force)
     if not should_continue:
         return 0
 

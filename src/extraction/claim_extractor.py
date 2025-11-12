@@ -272,6 +272,15 @@ class ClaimExtractor:
 
                 claims_before_filter.append(claim_text.strip())
 
+                # Lowercase letter check (independent filter, runs regardless of specificity filter)
+                if settings.filter_lowercase_claims:
+                    if claim_text.strip() and claim_text.strip()[0].islower():
+                        logger.debug(f"Filtered lowercase claim: {claim_text.strip()[:50]}...")
+                        # Track filtered item (limit to first 10 to avoid memory issues)
+                        if len(self.specificity_filtered_items) < 10:
+                            self.specificity_filtered_items.append((claim_text.strip(), "Starts with lowercase letter"))
+                        continue
+
                 # Apply quality filter if enabled
                 if settings.enable_claim_specificity_filter:
                     is_valid, reason = self._validate_claim_with_reason(claim_text.strip())

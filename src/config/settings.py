@@ -83,6 +83,10 @@ class Settings(BaseSettings):
         default=True,
         description="Enable specificity filtering (requires numbers, proper nouns, or dates)",
     )
+    filter_lowercase_claims: bool = Field(
+        default=True,
+        description="Filter out claims that start with a lowercase letter",
+    )
 
     # Ad Classification
     filter_advertisement_claims: bool = Field(

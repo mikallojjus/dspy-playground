@@ -106,21 +106,26 @@ class EpisodeQueryService:
         return episode
 
     def get_episodes_to_process(
-        self, podcast_id: Optional[int] = None, limit: int = 0, force: bool = False
+        self, podcast_ids: Optional[List[int]] = None, limit: int = 0, force: bool = False
     ) -> List[PodcastEpisode]:
         """
         Get episodes to process based on filters.
 
         Query logic:
-        1. Episodes must have transcript (transcript IS NOT NULL)
-        2. Filter by podcast_id if provided
+        1. Retrieve latest episodes (NO transcript filter - we get actual latest episodes)
+        2. Filter by podcast_ids if provided
         3. Skip already-processed unless force=True
         4. Order by published_at DESC (newest first), NULL dates last
-        5. Apply limit if > 0
+        5. If limit > 0 AND podcast_ids provided: get limit per podcast
+        6. If limit > 0 but no podcast_ids: get limit total across all podcasts
+
+        Note: Transcript filtering happens in the main processing logic to ensure
+        we truly get the LATEST episodes, not just the latest with transcripts.
 
         Args:
-            podcast_id: Optional podcast ID to filter by (None = all podcasts)
-            limit: Maximum number of episodes (0 = no limit)
+            podcast_ids: Optional list of podcast IDs to filter by (None = all podcasts)
+            limit: Maximum number of episodes per podcast when podcast_ids specified,
+                   or total when no podcast_ids (0 = no limit)
             force: If True, include already-processed episodes
 
         Returns:
@@ -131,52 +136,85 @@ class EpisodeQueryService:
             # Get all unprocessed episodes from all podcasts
             episodes = service.get_episodes_to_process()
 
-            # Get 5 newest episodes from podcast 123
-            episodes = service.get_episodes_to_process(podcast_id=123, limit=5)
+            # Get 100 newest episodes from each of podcasts 1, 2, 3
+            episodes = service.get_episodes_to_process(podcast_ids=[1,2,3], limit=100)
 
             # Reprocess all episodes (force=True)
             episodes = service.get_episodes_to_process(force=True)
             ```
         """
         logger.info(
-            f"Querying episodes: podcast_id={podcast_id}, "
+            f"Querying episodes: podcast_ids={podcast_ids}, "
             f"limit={limit}, force={force}"
         )
 
-        # Base query: episodes with transcripts
-        query = self.session.query(PodcastEpisode).filter(
-            PodcastEpisode.podscribe_transcript.isnot(None)
-        )
+        # If we have podcast_ids AND a limit, query each podcast separately
+        if podcast_ids is not None and limit > 0:
+            logger.debug(f"Querying {len(podcast_ids)} podcasts separately with limit={limit} each")
+            all_episodes = []
+            for podcast_id in podcast_ids:
+                # Base query for this podcast
+                query = self.session.query(PodcastEpisode).filter(
+                    PodcastEpisode.podcast_id == podcast_id
+                )
 
-        # Filter by podcast_id if provided
-        if podcast_id is not None:
-            query = query.filter(PodcastEpisode.podcast_id == podcast_id)
-            logger.debug(f"Filtering by podcast_id={podcast_id}")
+                # Skip already-processed episodes unless force=True
+                if not force:
+                    # LEFT JOIN to find episodes without claims
+                    query = query.outerjoin(
+                        Claim, Claim.episode_id == PodcastEpisode.id
+                    ).filter(
+                        Claim.id.is_(None)
+                    )  # No claims = not processed
+                    logger.debug(f"Podcast {podcast_id}: Filtering to unprocessed episodes only")
 
-        # Skip already-processed episodes unless force=True
-        if not force:
-            # LEFT JOIN to find episodes without claims
-            query = query.outerjoin(
-                Claim, Claim.episode_id == PodcastEpisode.id
-            ).filter(
-                Claim.id.is_(None)
-            )  # No claims = not processed
-            logger.debug("Filtering to unprocessed episodes only (force=False)")
+                # Order by newest first (published_at DESC), NULL dates last
+                query = query.order_by(PodcastEpisode.published_at.desc().nulls_last())
 
-        # Order by newest first (published_at DESC), NULL dates last
-        query = query.order_by(PodcastEpisode.published_at.desc().nulls_last())
+                # Apply limit for this podcast
+                query = query.limit(limit)
 
-        # Apply limit if specified
-        if limit > 0:
-            query = query.limit(limit)
-            logger.debug(f"Applying limit={limit}")
+                # Execute query for this podcast
+                podcast_episodes = query.all()
+                logger.debug(f"Podcast {podcast_id}: Found {len(podcast_episodes)} episodes")
+                all_episodes.extend(podcast_episodes)
 
-        # Execute query
-        episodes = query.all()
+            logger.info(f"Found {len(all_episodes)} total episodes across {len(podcast_ids)} podcasts")
+            return all_episodes
+        else:
+            # Single query for all podcasts or when no limit specified
+            # Base query
+            query = self.session.query(PodcastEpisode)
 
-        logger.info(f"Found {len(episodes)} episodes to process")
+            # Filter by podcast_ids if provided
+            if podcast_ids is not None:
+                query = query.filter(PodcastEpisode.podcast_id.in_(podcast_ids))
+                logger.debug(f"Filtering by podcast_ids={podcast_ids}")
 
-        return episodes
+            # Skip already-processed episodes unless force=True
+            if not force:
+                # LEFT JOIN to find episodes without claims
+                query = query.outerjoin(
+                    Claim, Claim.episode_id == PodcastEpisode.id
+                ).filter(
+                    Claim.id.is_(None)
+                )  # No claims = not processed
+                logger.debug("Filtering to unprocessed episodes only (force=False)")
+
+            # Order by newest first (published_at DESC), NULL dates last
+            query = query.order_by(PodcastEpisode.published_at.desc().nulls_last())
+
+            # Apply limit if specified
+            if limit > 0:
+                query = query.limit(limit)
+                logger.debug(f"Applying limit={limit}")
+
+            # Execute query
+            episodes = query.all()
+
+            logger.info(f"Found {len(episodes)} episodes to process")
+
+            return episodes
 
     def is_episode_processed(self, episode_id: int) -> bool:
         """
