@@ -63,6 +63,33 @@ class AdClassification(dspy.Signature):
     confidence: str = dspy.OutputField(desc="Classification confidence as string decimal (0.0-1.0)")
 
 
+class BatchAdClassification(dspy.Signature):
+    """
+    Classify multiple claims as advertisement/promotional content in a single call.
+
+    Same classification criteria as AdClassification, but processes multiple claims
+    at once for better efficiency.
+
+    Output format:
+    - Return a JSON array of objects
+    - Each object: {"is_advertisement": "True" or "False", "confidence": "0.0-1.0"}
+    - Must return exactly the same number of results as input claims
+    - Results must be in the same order as input claims
+
+    Example:
+    Input: ["Use code BANKLESS for 20% off", "Bitcoin reached $69,000"]
+    Output: [
+        {"is_advertisement": "True", "confidence": "0.95"},
+        {"is_advertisement": "False", "confidence": "0.92"}
+    ]
+    """
+
+    claims: List[str] = dspy.InputField(desc="List of claims to classify")
+    results: str = dspy.OutputField(
+        desc='JSON array of classification results: [{"is_advertisement": "True"/"False", "confidence": "0.0-1.0"}, ...]'
+    )
+
+
 class AdClassifier(dspy.Module):
     """
     Wrapper module that handles string-to-typed-value parsing.
@@ -99,6 +126,73 @@ class AdClassifier(dspy.Module):
         if value_str in ['true', '1', 'yes']:
             return True
         elif value_str in ['false', '0', 'no']:
+            return False
+        else:
+            return False
+
+    def _parse_float(self, value):
+        """Parse string to float, with fallback."""
+        if value is None:
+            return 0.5
+
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return 0.5
+
+
+class BatchAdClassifier(dspy.Module):
+    """
+    Batch wrapper module for classifying multiple claims in a single LLM call.
+
+    Processes multiple claims at once for better efficiency (fewer API calls).
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.predictor = dspy.ChainOfThought(BatchAdClassification)
+
+    def forward(self, claims):
+        import json
+
+        # Get raw prediction with JSON string output
+        raw_pred = self.predictor(claims=claims)
+
+        # Parse JSON results
+        try:
+            results_json = json.loads(raw_pred.results)
+
+            # Parse each result
+            parsed_results = []
+            for result in results_json:
+                is_ad = self._parse_bool(result.get('is_advertisement', 'False'))
+                conf = self._parse_float(result.get('confidence', '0.5'))
+                parsed_results.append({
+                    'is_advertisement': is_ad,
+                    'confidence': conf
+                })
+
+            return dspy.Prediction(results=parsed_results)
+
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            logger.error(f"Error parsing batch classification results: {e}")
+            # Return conservative defaults for all claims
+            return dspy.Prediction(
+                results=[
+                    {'is_advertisement': False, 'confidence': 0.0}
+                    for _ in claims
+                ]
+            )
+
+    def _parse_bool(self, value):
+        """Parse string to bool, with fallback."""
+        if value is None:
+            return False
+
+        value_str = str(value).strip().lower()
+        if value_str in ['true', '1', 'yes', True]:
+            return True
+        elif value_str in ['false', '0', 'no', False]:
             return False
         else:
             return False
@@ -171,6 +265,12 @@ class AdClassifierModel:
         # This captures the current DSPy configuration context
         self._async_model = dspy.asyncify(self.model)
         logger.debug("Created async wrapper for parallel ad classification")
+
+        # Create zero-shot batch classifier for true batching
+        # (No trained model needed - uses zero-shot reasoning)
+        self.batch_model = BatchAdClassifier()
+        self._async_batch_model = dspy.asyncify(self.batch_model)
+        logger.info("Created zero-shot batch classifier for multi-claim processing")
 
     def classify(self, claim_text: str) -> Dict[str, any]:
         """
@@ -343,6 +443,104 @@ class AdClassifierModel:
         )
 
         return results
+
+    async def classify_batch(
+        self,
+        claim_texts: List[str],
+        batch_size: int = None
+    ) -> List[Dict[str, any]]:
+        """
+        Classify multiple claims using TRUE batching (multiple claims per LLM call).
+
+        This method groups claims into batches and makes fewer LLM calls compared
+        to classify_batch_parallel() which makes one call per claim.
+
+        Example: 125 claims → ~12 LLM calls (10 claims per call) instead of 125 calls
+
+        Args:
+            claim_texts: List of claims to classify
+            batch_size: Number of claims per LLM call (default from settings)
+
+        Returns:
+            List of classification result dicts
+
+        Example:
+            ```python
+            classifier = AdClassifierModel()
+            claims = [... 125 claims ...]
+            results = await classifier.classify_batch(claims, batch_size=10)
+            # Makes ~12 LLM calls instead of 125
+            ```
+
+        Note:
+            - Uses zero-shot batch classifier (no training needed)
+            - Much more efficient for large batches (90% fewer API calls)
+            - Falls back gracefully on errors
+        """
+        if not claim_texts:
+            return []
+
+        # Get batch size from settings if not specified
+        if batch_size is None:
+            batch_size = settings.ad_classification_batch_size
+
+        logger.info(
+            f"Classifying {len(claim_texts)} claims using TRUE batching "
+            f"(batch_size={batch_size}, ~{(len(claim_texts) + batch_size - 1) // batch_size} LLM calls)"
+        )
+
+        all_results = []
+
+        # Process in batches
+        for i in range(0, len(claim_texts), batch_size):
+            batch = claim_texts[i:i + batch_size]
+            batch_num = (i // batch_size) + 1
+            total_batches = (len(claim_texts) + batch_size - 1) // batch_size
+
+            logger.debug(
+                f"Processing batch {batch_num}/{total_batches} "
+                f"({len(batch)} claims)"
+            )
+
+            try:
+                # Call batch classifier with multiple claims
+                result = await self._async_batch_model(claims=batch)
+
+                # Extract results list
+                batch_results = result.results if hasattr(result, 'results') else []
+
+                # Verify we got the right number of results
+                if len(batch_results) != len(batch):
+                    logger.warning(
+                        f"Batch {batch_num}: Expected {len(batch)} results, got {len(batch_results)}. "
+                        "Padding with defaults."
+                    )
+                    # Pad with defaults if needed
+                    while len(batch_results) < len(batch):
+                        batch_results.append({'is_advertisement': False, 'confidence': 0.0})
+
+                all_results.extend(batch_results[:len(batch)])  # Truncate if too many
+
+            except Exception as e:
+                logger.error(
+                    f"Error in batch {batch_num} classification: {e}",
+                    exc_info=True
+                )
+                # Return conservative defaults for this batch
+                all_results.extend([
+                    {'is_advertisement': False, 'confidence': 0.0}
+                    for _ in batch
+                ])
+
+        # Log summary
+        ad_count = sum(1 for r in all_results if r["is_advertisement"])
+        logger.info(
+            f"Batch classification complete: {ad_count}/{len(all_results)} advertisements "
+            f"(processed {len(all_results)} claims in "
+            f"{(len(claim_texts) + batch_size - 1) // batch_size} batches)"
+        )
+
+        return all_results
 
     def filter_ads(
         self,

@@ -336,24 +336,61 @@ class ExtractionPipeline:
                     time.time() - start_time
                 )
 
-            # Step 4: Filter advertisement claims (if enabled)
-            claims_after_ad_filter = claims_after_specificity
+            # Step 4: Deduplicate claims EARLY (before ad filtering to avoid redundant LLM calls)
+            # Convert ExtractedClaim -> ClaimWithQuotes with empty quotes for deduplication
+            logger.info("Step 4/13: Deduplicating claims (before ad filtering)...")
+            stage_start = time.time()
+
+            claims_with_quotes = [
+                ClaimWithQuotes(
+                    claim_text=c.claim_text,
+                    source_chunk_id=c.source_chunk_id,
+                    quotes=[],
+                    confidence=c.confidence  # Use initial confidence from extraction
+                )
+                for c in claims
+            ]
+
+            claims_before_dedup = len(claims_with_quotes)
+            deduplicated_claims = await self.claim_deduplicator.deduplicate_batch(
+                claims_with_quotes
+            )
+            claims_after_dedup = len(deduplicated_claims)  # Track for stats
+            stage_timings["claim_deduplication"] = time.time() - stage_start
+
+            logger.info(
+                f"  ✓ {claims_before_dedup} → {claims_after_dedup} unique claims "
+                f"({claims_before_dedup - claims_after_dedup} duplicates removed, "
+                f"saves {claims_before_dedup - claims_after_dedup} redundant ad classification calls)"
+            )
+
+            if not deduplicated_claims:
+                logger.warning("No claims remaining after deduplication, ending pipeline")
+                return self._create_empty_result(
+                    episode_id,
+                    transcript_length,
+                    len(chunks),
+                    time.time() - start_time
+                )
+
+            # Step 5: Filter advertisement claims (if enabled) - NOW ON DEDUPLICATED SET
+            claims_after_ad_filter = len(deduplicated_claims)
             ad_claims_filtered = 0
 
             if self.ad_classifier is not None:
-                logger.info("Step 4/13: Filtering advertisement claims...")
+                logger.info("Step 5/13: Filtering advertisement claims...")
                 stage_start = time.time()
-                claim_texts = [c.claim_text for c in claims]
+                claim_texts = [c.claim_text for c in deduplicated_claims]
 
-                # Classify all claims in parallel
-                classification_results = await self.ad_classifier.classify_batch_parallel(
+                # Classify claims using TRUE batching (multiple claims per LLM call)
+                classification_results = await self.ad_classifier.classify_batch(
                     claim_texts,
-                    max_concurrency=settings.max_ad_classification_concurrency
+                    batch_size=settings.ad_classification_batch_size
                 )
 
                 # Filter out ads above threshold
                 content_claims = []
-                for claim, result in zip(claims, classification_results):
+                for claim, result in zip(deduplicated_claims, classification_results):
                     is_ad = result["is_advertisement"]
                     confidence = result["confidence"]
 
@@ -373,8 +410,8 @@ class ExtractionPipeline:
                     else:
                         content_claims.append(claim)
 
-                claims = content_claims
-                claims_after_ad_filter = len(claims)
+                deduplicated_claims = content_claims
+                claims_after_ad_filter = len(deduplicated_claims)
                 stage_timings["ad_classification"] = time.time() - stage_start
 
                 logger.info(
@@ -382,7 +419,7 @@ class ExtractionPipeline:
                     f"({ad_claims_filtered} advertisements filtered)"
                 )
 
-                if not claims:
+                if not deduplicated_claims:
                     logger.warning("No claims remaining after ad filtering, ending pipeline")
                     return self._create_empty_result(
                         episode_id,
@@ -391,185 +428,231 @@ class ExtractionPipeline:
                         time.time() - start_time
                     )
             else:
-                logger.info("Step 4/13: Skipping ad filtering (disabled or model not found)")
+                logger.info("Step 5/13: Skipping ad filtering (disabled or model not found)")
 
-            logger.info("Step 5/13: Building search index...")
-            stage_start = time.time()
-            search_index = await TranscriptSearchIndex.build_from_transcript(
-                parsed_transcript,
-                self.embedder
-            )
-            stage_timings["search_index_build"] = time.time() - stage_start
-            logger.info(f"  ✓ Indexed {search_index.get_segment_count()} segments")
+            # ========================================================================
+            # Steps 6-8: Quote Processing (OPTIONAL - can be disabled for faster extraction)
+            # ========================================================================
+            if settings.enable_quote_processing:
+                logger.info("Step 6/13: Building search index...")
+                stage_start = time.time()
+                search_index = await TranscriptSearchIndex.build_from_transcript(
+                    parsed_transcript,
+                    self.embedder
+                )
+                stage_timings["search_index_build"] = time.time() - stage_start
+                logger.info(f"  ✓ Indexed {search_index.get_segment_count()} segments")
 
-            logger.info("Step 5/13: Finding quotes for claims...")
-            stage_start = time.time()
-            quote_finder = QuoteFinder(search_index, self.reranker)
-            claims_with_quotes = await quote_finder.find_quotes_for_claims(claims)
-            stage_timings["quote_finding"] = time.time() - stage_start
+                logger.info("Step 6/13: Finding quotes for claims...")
+                stage_start = time.time()
+                quote_finder = QuoteFinder(search_index, self.reranker)
+                claims_with_quotes = await quote_finder.find_quotes_for_claims(deduplicated_claims)
+                stage_timings["quote_finding"] = time.time() - stage_start
 
-            # Collect quote filtering stats from quote_finder
-            quotes_initial_candidates = quote_finder.quotes_initial_candidates_count
-            quotes_after_question = quote_finder.quotes_after_question_filter_count
-            quotes_after_quality = quote_finder.quotes_after_quality_filter_count
-            quotes_after_relevance = quote_finder.quotes_after_relevance_filter_count
+                # Collect quote filtering stats from quote_finder
+                quotes_initial_candidates = quote_finder.quotes_initial_candidates_count
+                quotes_after_question = quote_finder.quotes_after_question_filter_count
+                quotes_after_quality = quote_finder.quotes_after_quality_filter_count
+                quotes_after_relevance = quote_finder.quotes_after_relevance_filter_count
 
-            # Collect filtered items (limit to 3 samples each)
-            for text, reason in quote_finder.question_filtered_items[:3]:
-                filtered_items_log.question_quotes.append(FilteredItem(text=text, reason=reason))
-            for text, reason in quote_finder.quality_filtered_items[:3]:
-                filtered_items_log.quality_filtered_quotes.append(FilteredItem(text=text, reason=reason))
-            for text, reason in quote_finder.relevance_filtered_items[:3]:
-                filtered_items_log.relevance_filtered_quotes.append(FilteredItem(text=text, reason=reason))
+                # Collect filtered items (limit to 3 samples each)
+                for text, reason in quote_finder.question_filtered_items[:3]:
+                    filtered_items_log.question_quotes.append(FilteredItem(text=text, reason=reason))
+                for text, reason in quote_finder.quality_filtered_items[:3]:
+                    filtered_items_log.quality_filtered_quotes.append(FilteredItem(text=text, reason=reason))
+                for text, reason in quote_finder.relevance_filtered_items[:3]:
+                    filtered_items_log.relevance_filtered_quotes.append(FilteredItem(text=text, reason=reason))
 
-            logger.info(f"  ✓ Found quotes for {len(claims_with_quotes)} claims")
+                logger.info(f"  ✓ Found quotes for {len(claims_with_quotes)} claims")
 
-            # Step 6: Deduplicate quotes BEFORE validation (NEW - Sprint 4)
-            # This ensures we validate the FINAL merged quote texts, not intermediate versions
-            logger.info("Step 6/13: Deduplicating quotes...")
-            stage_start = time.time()
-            quotes_before_dedup = sum(len(c.quotes) for c in claims_with_quotes)
-            all_quotes = [q for c in claims_with_quotes for q in c.quotes]
-            unique_quotes = self.quote_deduplicator.deduplicate(all_quotes)
-            stage_timings["quote_deduplication"] = time.time() - stage_start
+                # Step 7: Deduplicate quotes BEFORE validation (NEW - Sprint 4)
+                # This ensures we validate the FINAL merged quote texts, not intermediate versions
+                logger.info("Step 7/13: Deduplicating quotes...")
+                stage_start = time.time()
+                quotes_before_dedup = sum(len(c.quotes) for c in claims_with_quotes)
+                all_quotes = [q for c in claims_with_quotes for q in c.quotes]
+                unique_quotes = self.quote_deduplicator.deduplicate(all_quotes)
+                stage_timings["quote_deduplication"] = time.time() - stage_start
 
-            duplicate_quotes_count = len(all_quotes) - len(unique_quotes)
+                duplicate_quotes_count = len(all_quotes) - len(unique_quotes)
 
-            logger.info(
-                f"  ✓ {len(all_quotes)} → {len(unique_quotes)} unique quotes "
-                f"({duplicate_quotes_count} duplicates removed)"
-            )
+                logger.info(
+                    f"  ✓ {len(all_quotes)} → {len(unique_quotes)} unique quotes "
+                    f"({duplicate_quotes_count} duplicates removed)"
+                )
 
-            claims_with_quotes = self._remap_quotes_to_claims(
-                claims_with_quotes, all_quotes, unique_quotes
-            )
+                claims_with_quotes = self._remap_quotes_to_claims(
+                    claims_with_quotes, all_quotes, unique_quotes
+                )
 
-            # Step 7: Entailment validation on FINAL deduplicated quotes (NEW - Sprint 4)
-            # We validate after deduplication to ensure the actual text being saved
-            # to the database has been validated (not an intermediate text that gets replaced)
-            logger.info("Step 7/13: Validating entailment (filtering non-SUPPORTS quotes)...")
-            stage_start = time.time()
-            quotes_before_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+                # Step 8: Entailment validation on FINAL deduplicated quotes (NEW - Sprint 4)
+                # We validate after deduplication to ensure the actual text being saved
+                # to the database has been validated (not an intermediate text that gets replaced)
+                logger.info("Step 8/13: Validating entailment (filtering non-SUPPORTS quotes)...")
+                stage_start = time.time()
+                quotes_before_entailment = sum(len(c.quotes) for c in claims_with_quotes)
 
-            # Collect ALL claim-quote pairs for global parallel validation (optimized)
-            # This validates all pairs at once instead of sequentially per claim
-            all_pairs = []
-            pair_to_claim_quote_map = []  # Track which claim/quote each pair belongs to
+                # Collect ALL claim-quote pairs for global parallel validation (optimized)
+                # This validates all pairs at once instead of sequentially per claim
+                all_pairs = []
+                pair_to_claim_quote_map = []  # Track which claim/quote each pair belongs to
 
-            for claim_idx, claim in enumerate(claims_with_quotes):
-                if not claim.quotes:
-                    continue
+                for claim_idx, claim in enumerate(claims_with_quotes):
+                    if not claim.quotes:
+                        continue
 
-                for quote_idx, quote in enumerate(claim.quotes):
-                    all_pairs.append((claim.claim_text, quote.quote_text))
-                    pair_to_claim_quote_map.append((claim_idx, quote_idx))
+                    for quote_idx, quote in enumerate(claim.quotes):
+                        all_pairs.append((claim.claim_text, quote.quote_text))
+                        pair_to_claim_quote_map.append((claim_idx, quote_idx))
 
-            # Validate ALL pairs in parallel (max_concurrency from settings)
-            if all_pairs:
-                logger.info(f"Validating {len(all_pairs)} claim-quote pairs globally in parallel...")
-                validation_results = await self.entailment_validator.validate_batch_parallel(all_pairs)
+                # Validate ALL pairs in parallel (max_concurrency from settings)
+                if all_pairs:
+                    logger.info(f"Validating {len(all_pairs)} claim-quote pairs globally in parallel...")
+                    validation_results = await self.entailment_validator.validate_batch_parallel(all_pairs)
 
-                # Map results back to Quote objects
-                for (claim_idx, quote_idx), result in zip(pair_to_claim_quote_map, validation_results):
-                    quote = claims_with_quotes[claim_idx].quotes[quote_idx]
-                    quote.entailment_score = result.get('confidence', 0.0)
-                    quote.entailment_relationship = result.get('relationship', 'UNKNOWN')
+                    # Map results back to Quote objects
+                    for (claim_idx, quote_idx), result in zip(pair_to_claim_quote_map, validation_results):
+                        quote = claims_with_quotes[claim_idx].quotes[quote_idx]
+                        quote.entailment_score = result.get('confidence', 0.0)
+                        quote.entailment_relationship = result.get('relationship', 'UNKNOWN')
 
-            # Filter to keep only SUPPORTS quotes
-            for claim in claims_with_quotes:
-                for quote in claim.quotes:
-                    if quote.entailment_relationship != 'SUPPORTS':
-                        # Track filtered entailment quote (limit to 3 samples)
-                        if len(filtered_items_log.entailment_filtered_quotes) < 3:
-                            filtered_items_log.entailment_filtered_quotes.append(FilteredItem(
-                                text=quote.quote_text,
-                                reason=f"Relationship: {quote.entailment_relationship} (score={quote.entailment_score:.2f})",
-                                metadata={"relationship": quote.entailment_relationship, "score": quote.entailment_score}
-                            ))
+                # Filter to keep only SUPPORTS quotes
+                for claim in claims_with_quotes:
+                    for quote in claim.quotes:
+                        if quote.entailment_relationship != 'SUPPORTS':
+                            # Track filtered entailment quote (limit to 3 samples)
+                            if len(filtered_items_log.entailment_filtered_quotes) < 3:
+                                filtered_items_log.entailment_filtered_quotes.append(FilteredItem(
+                                    text=quote.quote_text,
+                                    reason=f"Relationship: {quote.entailment_relationship} (score={quote.entailment_score:.2f})",
+                                    metadata={"relationship": quote.entailment_relationship, "score": quote.entailment_score}
+                                ))
 
-                claim.quotes = [
-                    q for q in claim.quotes
-                    if q.entailment_relationship == 'SUPPORTS'
-                ]
+                    claim.quotes = [
+                        q for q in claim.quotes
+                        if q.entailment_relationship == 'SUPPORTS'
+                    ]
 
-            quotes_after_entailment = sum(len(c.quotes) for c in claims_with_quotes)
-            entailment_filtered = quotes_before_entailment - quotes_after_entailment
-            stage_timings["entailment_validation"] = time.time() - stage_start
+                quotes_after_entailment = sum(len(c.quotes) for c in claims_with_quotes)
+                entailment_filtered = quotes_before_entailment - quotes_after_entailment
+                stage_timings["entailment_validation"] = time.time() - stage_start
 
-            logger.info(
-                f"  ✓ {quotes_before_entailment} → {quotes_after_entailment} quotes "
-                f"({entailment_filtered} non-SUPPORTS filtered)"
-            )
+                logger.info(
+                    f"  ✓ {quotes_before_entailment} → {quotes_after_entailment} quotes "
+                    f"({entailment_filtered} non-SUPPORTS filtered)"
+                )
+            else:
+                # Quote processing disabled - use deduplicated claims with empty quotes
+                logger.info("Step 6-8/13: Skipping quote processing (disabled for faster extraction)")
+                logger.info("  ⚡ Quote finding, deduplication, and entailment validation skipped")
 
-            logger.info("Step 8/13: Deduplicating claims (batch level)...")
-            stage_start = time.time()
-            deduplicated_claims = await self.claim_deduplicator.deduplicate_batch(
-                claims_with_quotes
-            )
-            stage_timings["claim_deduplication"] = time.time() - stage_start
-            logger.info(
-                f"  ✓ {len(claims_with_quotes)} → {len(deduplicated_claims)} unique claims "
-                f"({len(claims_with_quotes) - len(deduplicated_claims)} duplicates removed)"
-            )
+                # Deduplicated claims already have empty quotes from Step 4
+                claims_with_quotes = deduplicated_claims
+
+                # Initialize quote stats to 0
+                quotes_initial_candidates = 0
+                quotes_after_question = 0
+                quotes_after_quality = 0
+                quotes_after_relevance = 0
+                quotes_before_dedup = 0
+                unique_quotes = []
+                duplicate_quotes_count = 0
+                quotes_before_entailment = 0
+                quotes_after_entailment = 0
+                entailment_filtered = 0
+
+                # Skip timing entries for quote-related stages
+                stage_timings["search_index_build"] = 0.0
+                stage_timings["quote_finding"] = 0.0
+                stage_timings["quote_deduplication"] = 0.0
+                stage_timings["entailment_validation"] = 0.0
+
+            # NOTE: Claim deduplication was moved to Step 4 (before ad filtering)
+            # This section previously had claim deduplication but it's now done earlier
 
             # Step 9: Filter claims without quotes FIRST (before confidence calculation)
             # This prevents claims with 0 quotes from showing as "low confidence (0.0)"
-            logger.info("Step 9/13: Filtering claims without quotes...")
-            claims_with_quotes_list = []
-            claims_without_quotes_count = 0
-            for c in deduplicated_claims:
-                if not c.quotes:
-                    claims_without_quotes_count += 1
-                    # Track claim without quotes (limit to 3 samples)
-                    if len(filtered_items_log.claims_without_quotes) < 3:
-                        filtered_items_log.claims_without_quotes.append(FilteredItem(
-                            text=c.claim_text,
-                            reason="No supporting quotes found after entailment validation",
-                            metadata={"quote_count": 0}
-                        ))
-                else:
-                    claims_with_quotes_list.append(c)
+            # Skip this filtering when quote processing is disabled
+            if settings.enable_quote_processing:
+                logger.info("Step 9/13: Filtering claims without quotes...")
+                claims_with_quotes_list = []
+                claims_without_quotes_count = 0
+                for c in claims_with_quotes:
+                    if not c.quotes:
+                        claims_without_quotes_count += 1
+                        # Track claim without quotes (limit to 3 samples)
+                        if len(filtered_items_log.claims_without_quotes) < 3:
+                            filtered_items_log.claims_without_quotes.append(FilteredItem(
+                                text=c.claim_text,
+                                reason="No supporting quotes found after entailment validation",
+                                metadata={"quote_count": 0}
+                            ))
+                    else:
+                        claims_with_quotes_list.append(c)
 
-            logger.info(
-                f"  ✓ {len(claims_with_quotes_list)} claims with quotes "
-                f"({claims_without_quotes_count} filtered - no quotes)"
-            )
+                logger.info(
+                    f"  ✓ {len(claims_with_quotes_list)} claims with quotes "
+                    f"({claims_without_quotes_count} filtered - no quotes)"
+                )
+            else:
+                # Quote processing disabled - keep all claims (already deduplicated in Step 4)
+                logger.info("Step 9/13: Skipping quote filtering (quote processing disabled)")
+                claims_with_quotes_list = claims_with_quotes
+                claims_without_quotes_count = 0
+                logger.info(f"  ✓ Keeping all {len(claims_with_quotes_list)} claims")
 
             # Step 10: Calculate confidence ONLY for claims WITH quotes
-            logger.info("Step 10/13: Calculating confidence scores...")
-            stage_start = time.time()
-            for claim in claims_with_quotes_list:
-                conf = self.confidence_calculator.calculate(claim.quotes)
-                claim.confidence = conf.final_confidence
-                claim.confidence_components = conf
-            stage_timings["confidence_calculation"] = time.time() - stage_start
-            logger.info(f"  ✓ Calculated confidence for {len(claims_with_quotes_list)} claims")
+            if settings.enable_quote_processing:
+                logger.info("Step 10/13: Calculating confidence scores...")
+                stage_start = time.time()
+                for claim in claims_with_quotes_list:
+                    conf = self.confidence_calculator.calculate(claim.quotes)
+                    claim.confidence = conf.final_confidence
+                    claim.confidence_components = conf
+                stage_timings["confidence_calculation"] = time.time() - stage_start
+                logger.info(f"  ✓ Calculated confidence for {len(claims_with_quotes_list)} claims")
+            else:
+                # Quote processing disabled - keep default confidence already set
+                logger.info("Step 10/13: Using default confidence (quote processing disabled)")
+                stage_timings["confidence_calculation"] = 0.0
+                logger.info(f"  ✓ All {len(claims_with_quotes_list)} claims using default confidence (0.8)")
 
             # Step 11: Filter by confidence threshold
-            logger.info("Step 11/13: Filtering low-confidence claims...")
-            claims_before_confidence_filter = len(claims_with_quotes_list)
-            high_confidence_claims = []
-            for c in claims_with_quotes_list:
-                if c.confidence < settings.min_confidence:
-                    # Track low confidence claim (limit to 3 samples)
-                    if len(filtered_items_log.low_confidence_claims) < 3:
-                        filtered_items_log.low_confidence_claims.append(FilteredItem(
-                            text=c.claim_text,
-                            reason=f"Low confidence ({c.confidence:.2f} < {settings.min_confidence})",
-                            metadata={"confidence": c.confidence, "quote_count": len(c.quotes)}
-                        ))
-                else:
-                    high_confidence_claims.append(c)
+            if settings.enable_quote_processing:
+                logger.info("Step 11/13: Filtering low-confidence claims...")
+                claims_before_confidence_filter = len(claims_with_quotes_list)
+                high_confidence_claims = []
+                for c in claims_with_quotes_list:
+                    if c.confidence < settings.min_confidence:
+                        # Track low confidence claim (limit to 3 samples)
+                        if len(filtered_items_log.low_confidence_claims) < 3:
+                            filtered_items_log.low_confidence_claims.append(FilteredItem(
+                                text=c.claim_text,
+                                reason=f"Low confidence ({c.confidence:.2f} < {settings.min_confidence})",
+                                metadata={"confidence": c.confidence, "quote_count": len(c.quotes)}
+                            ))
+                    else:
+                        high_confidence_claims.append(c)
 
-            low_confidence_filtered_count = claims_before_confidence_filter - len(high_confidence_claims)
-            claims_after_confidence_filter = len(high_confidence_claims)
+                low_confidence_filtered_count = claims_before_confidence_filter - len(high_confidence_claims)
+                claims_after_confidence_filter = len(high_confidence_claims)
 
-            logger.info(
-                f"  ✓ {len(high_confidence_claims)} claims above threshold "
-                f"({low_confidence_filtered_count} filtered)"
-            )
+                logger.info(
+                    f"  ✓ {len(high_confidence_claims)} claims above threshold "
+                    f"({low_confidence_filtered_count} filtered)"
+                )
 
-            claims_with_quotes = high_confidence_claims
+                claims_with_quotes = high_confidence_claims
+            else:
+                # Quote processing disabled - skip confidence filtering
+                logger.info("Step 11/13: Skipping confidence filtering (quote processing disabled)")
+                high_confidence_claims = claims_with_quotes_list
+                claims_before_confidence_filter = len(claims_with_quotes_list)
+                claims_after_confidence_filter = len(high_confidence_claims)
+                low_confidence_filtered_count = 0
+                logger.info(f"  ✓ Keeping all {len(high_confidence_claims)} claims")
+
+                claims_with_quotes = high_confidence_claims
 
             if not claims_with_quotes:
                 logger.warning("No claims have supporting quotes after filtering")
@@ -749,8 +832,8 @@ class ExtractionPipeline:
             raise
 
         # Calculate final stats
-        total_quotes = sum(len(c.quotes) for c in claims_with_quotes)
-        avg_quotes = total_quotes / len(claims_with_quotes)
+        total_quotes = sum(len(c.quotes) for c in claims_with_quotes) if settings.enable_quote_processing else 0
+        avg_quotes = (total_quotes / len(claims_with_quotes)) if (claims_with_quotes and settings.enable_quote_processing) else 0.0
         processing_time = time.time() - start_time
 
         stats = PipelineStats(
@@ -762,7 +845,7 @@ class ExtractionPipeline:
             specificity_filtered_count=specificity_filtered_count,
             claims_after_ad_filter=claims_after_ad_filter,
             ad_claims_filtered=ad_claims_filtered,
-            claims_after_dedup=len(deduplicated_claims),
+            claims_after_dedup=claims_after_dedup,
             claims_after_confidence_filter=claims_after_confidence_filter,
             low_confidence_filtered_count=low_confidence_filtered_count,
             claims_with_quotes=len(claims_with_quotes),
@@ -795,10 +878,16 @@ class ExtractionPipeline:
             f"✅ Pipeline complete for episode {episode_id} "
             f"({processing_time:.1f}s)"
         )
-        logger.info(
-            f"   📊 {len(claims_with_quotes)} claims, {total_quotes} quotes "
-            f"(avg {avg_quotes:.1f} quotes/claim)"
-        )
+        if settings.enable_quote_processing:
+            logger.info(
+                f"   📊 {len(claims_with_quotes)} claims, {total_quotes} quotes "
+                f"(avg {avg_quotes:.1f} quotes/claim)"
+            )
+        else:
+            logger.info(
+                f"   📊 {len(claims_with_quotes)} claims "
+                f"(quote processing disabled - faster extraction)"
+            )
 
         # Cleanup: Unload all models from GPU to prevent memory accumulation between runs
         self._cleanup_gpu_models()

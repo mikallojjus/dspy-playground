@@ -56,6 +56,12 @@ class Settings(BaseSettings):
         default=5000, description="Reranker request timeout in milliseconds"
     )
 
+    # Quote Processing
+    enable_quote_processing: bool = Field(
+        default=True,
+        description="Enable quote finding and entailment validation (disable for faster extraction without quotes)"
+    )
+
     # Chunking
     chunk_size: int = Field(
         default=16000, description="Maximum chunk size in characters"
@@ -77,6 +83,10 @@ class Settings(BaseSettings):
         default=10,
         description="Maximum concurrent ad classification calls (DSPy asyncify)",
     )
+    ad_classification_batch_size: int = Field(
+        default=10,
+        description="Number of claims to classify per LLM call (true batching)",
+    )
 
     # Claim Quality Filtering
     enable_claim_specificity_filter: bool = Field(
@@ -86,6 +96,10 @@ class Settings(BaseSettings):
     filter_lowercase_claims: bool = Field(
         default=True,
         description="Filter out claims that start with a lowercase letter",
+    )
+    max_claims_per_chunk: int = Field(
+        default=10,
+        description="Maximum claims to extract per chunk (limits dense content, keeps longest claims)",
     )
 
     # Ad Classification

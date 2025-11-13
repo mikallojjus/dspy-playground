@@ -298,6 +298,17 @@ class ClaimExtractor:
                     )
                 )
 
+            # Limit claims per chunk if configured (keeps longest/most detailed)
+            if settings.max_claims_per_chunk > 0 and len(claims) > settings.max_claims_per_chunk:
+                claims_before_limit = len(claims)
+                # Sort by claim length (longest = most detailed) and keep top N
+                claims = sorted(claims, key=lambda c: len(c.claim_text), reverse=True)[:settings.max_claims_per_chunk]
+                claims_filtered_by_limit = claims_before_limit - len(claims)
+                logger.debug(
+                    f"Chunk {chunk.chunk_id}: Limited to {settings.max_claims_per_chunk} claims "
+                    f"({claims_filtered_by_limit} filtered by max_claims_per_chunk)"
+                )
+
             # Update tracking
             self.claims_before_filter_count += len(claims_before_filter)
             self.claims_after_filter_count += len(claims)

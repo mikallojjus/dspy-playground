@@ -306,7 +306,7 @@ class ClaimDeduplicator:
         Merge duplicate claims.
 
         Merge strategy:
-        - Keep claim text with highest confidence
+        - Keep claim text with highest confidence (and longest if tied)
         - Combine all quotes from all claims
         - Deduplicate combined quotes
         - Track merge metadata
@@ -329,7 +329,8 @@ class ClaimDeduplicator:
             #         combined and deduplicated quotes from both
             ```
         """
-        best_claim = max(group, key=lambda c: c.confidence)
+        # Use confidence as primary key, claim length as tiebreaker (longer = more specific)
+        best_claim = max(group, key=lambda c: (c.confidence, len(c.claim_text)))
 
         all_quotes = []
         for claim in group:
