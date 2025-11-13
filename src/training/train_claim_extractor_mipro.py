@@ -251,6 +251,7 @@ def main():
         temperature=0.3,  # Non-deterministic generation
         seed=random_seed,  # Random seed for each training run
         format="json",  # Valid JSON mode (compatible with all signatures)
+        num_ctx=32768,  # 32K context to prevent truncation with large few-shot examples
     )
     dspy.configure(lm=lm)
     print("✓ DSPy configured with:")

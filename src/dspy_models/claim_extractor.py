@@ -158,6 +158,7 @@ class ClaimExtractorModel:
             f"ollama/{settings.ollama_model}",
             api_base=settings.ollama_url,
             format=claims_schema,  # Constrain output to exact JSON schema (guided decoding)
+            num_ctx=32768,  # Set 32K context window to prevent truncation with large few-shot examples
         )
         dspy.configure(lm=lm)
         logger.info("Configured with structured output (JSON schema for guided decoding)")

@@ -299,25 +299,15 @@ class ExtractionPipeline:
         chunks = self.chunker.chunk_text(parsed_transcript.full_text)
         logger.info(f"  ✓ Created {len(chunks)} chunks")
 
-        # Create single database session for atomic transaction (chunks + claims)
-        db_session = get_db_session()
+        # NOTE: Database session is opened AFTER extraction completes (see line ~673)
+        # This prevents holding DB connections during slow LLM processing (~5-6 minutes)
         duplicate_details = []
         unique_claims_for_db = []
 
         try:
-            # Step 3: Save chunks to database (NEW - Sprint 5)
-            logger.info("Step 3/13: Saving transcript chunks to database...")
-            chunk_repo = ChunkRepository(db_session)
-            chunk_db_ids = await chunk_repo.save_chunks(chunks, episode_id)
-
-            # Create mapping from ephemeral chunk_id to database ID
-            chunk_id_mapping = {
-                chunk.chunk_id: db_id
-                for chunk, db_id in zip(chunks, chunk_db_ids)
-            }
-
-            # Note: Not committing yet - will commit atomically with claims at the end
-            logger.info(f"  ✓ Saved {len(chunk_db_ids)} chunks to database (pending commit)")
+            # Step 3: Defer chunk save until after extraction completes
+            # (Prevents stale chunks if pipeline fails during extraction)
+            logger.info("Step 3/13: Skipping early chunk save (will save atomically with claims)...")
 
             logger.info("Step 4/13: Extracting claims from chunks...")
             stage_start = time.time()
@@ -335,13 +325,10 @@ class ExtractionPipeline:
 
             logger.info(f"  ✓ Extracted {claims_extracted_count} claims → {claims_after_specificity} after specificity filter")
 
-            # Map ephemeral chunk IDs to database IDs
-            for claim in claims:
-                claim.source_chunk_id = chunk_id_mapping[claim.source_chunk_id]
+            # NOTE: Keep ephemeral chunk IDs for now, will map to DB IDs after chunks are saved
 
             if not claims:
                 logger.warning("No claims extracted, ending pipeline")
-                db_session.close()
                 return self._create_empty_result(
                     episode_id,
                     transcript_length,
@@ -397,7 +384,6 @@ class ExtractionPipeline:
 
                 if not claims:
                     logger.warning("No claims remaining after ad filtering, ending pipeline")
-                    db_session.close()
                     return self._create_empty_result(
                         episode_id,
                         transcript_length,
@@ -587,7 +573,6 @@ class ExtractionPipeline:
 
             if not claims_with_quotes:
                 logger.warning("No claims have supporting quotes after filtering")
-                db_session.close()
                 return self._create_empty_result(
                     episode_id,
                     transcript_length,
@@ -595,127 +580,173 @@ class ExtractionPipeline:
                     time.time() - start_time
                 )
 
-            # Step 11: Database deduplication (using same session)
-            if settings.enable_cross_episode_deduplication:
-                logger.info("Step 11/13: Checking database for duplicate claims...")
-                stage_start = time.time()
+            # ========================================================================
+            # Step 11: Database deduplication (CURRENTLY DISABLED - COMMENTED OUT)
+            # ========================================================================
+            # NOTE: Cross-episode deduplication requires holding a DB session open during extraction,
+            # which causes connection timeouts on long-running jobs (4+ hours).
+            #
+            # Previously, the DB session was opened at the start and held for ~6 minutes per episode
+            # while doing LLM calls. After 43 episodes, the connection timed out.
+            #
+            # To re-enable this feature:
+            # 1. Set ENABLE_CROSS_EPISODE_DEDUPLICATION=true in .env
+            # 2. Uncomment the code block below
+            # 3. Refactor to use a separate read-only session for dedup queries (not the save session)
+            # 4. Test with batch jobs to ensure no timeouts
+            #
+            # Commented out code:
+            # if settings.enable_cross_episode_deduplication:
+            #     logger.info("Step 11/13: Checking database for duplicate claims...")
+            #     stage_start = time.time()
+            #
+            #     for claim in claims_with_quotes:
+            #         # Generate embedding for database search
+            #         embedding = await self.embedder.embed_text(claim.claim_text)
+            #
+            #         # Check against database
+            #         dedup_result = await self.claim_deduplicator.deduplicate_against_database(
+            #             claim.claim_text,
+            #             embedding,
+            #             episode_id,
+            #             db_session
+            #         )
+            #
+            #         if dedup_result.is_duplicate:
+            #             # Found duplicate - merge quotes to existing claim
+            #             # Type narrowing: existing_claim_id must be set when is_duplicate is True
+            #             assert dedup_result.existing_claim_id is not None, "existing_claim_id must be set when is_duplicate is True"
+            #
+            #             duplicate_details.append({
+            #                 "claim_text": claim.claim_text,
+            #                 "existing_claim_id": dedup_result.existing_claim_id,
+            #                 "reranker_score": dedup_result.reranker_score,
+            #                 "new_quotes_count": len(claim.quotes)
+            #             })
+            #
+            #             # Track database duplicate (limit to 3 samples)
+            #             if len(filtered_items_log.database_duplicates) < 3:
+            #                 filtered_items_log.database_duplicates.append(FilteredItem(
+            #                     text=claim.claim_text,
+            #                     reason=f"Duplicate of claim {dedup_result.existing_claim_id} (score={dedup_result.reranker_score:.2f})",
+            #                     metadata={
+            #                         "existing_claim_id": dedup_result.existing_claim_id,
+            #                         "reranker_score": dedup_result.reranker_score
+            #                     }
+            #                 ))
+            #
+            #             # Merge quotes to existing claim
+            #             repo = ClaimRepository(db_session)
+            #             await repo.merge_quotes_to_existing_claim(
+            #                 dedup_result.existing_claim_id,
+            #                 claim.quotes,
+            #                 episode_id
+            #             )
+            #
+            #             logger.info(
+            #                 f"  Merged {len(claim.quotes)} quotes to existing claim {dedup_result.existing_claim_id}"
+            #             )
+            #         else:
+            #             # Unique claim - prepare for insertion
+            #             claim.metadata["embedding"] = embedding
+            #             unique_claims_for_db.append(claim)
+            #
+            #     stage_timings["database_deduplication"] = time.time() - stage_start
+            #     logger.info(
+            #         f"  ✓ Found {len(duplicate_details)} duplicates, "
+            #         f"{len(unique_claims_for_db)} unique claims to save"
+            #     )
+            # else:
 
-                for claim in claims_with_quotes:
-                    # Generate embedding for database search
-                    embedding = await self.embedder.embed_text(claim.claim_text)
+            logger.info("Step 11/13: Cross-episode deduplication disabled (commented out)")
 
-                    # Check against database
-                    dedup_result = await self.claim_deduplicator.deduplicate_against_database(
-                        claim.claim_text,
-                        embedding,
-                        episode_id,
-                        db_session
-                    )
+            # Generate embeddings for all claims
+            for claim in claims_with_quotes:
+                embedding = await self.embedder.embed_text(claim.claim_text)
+                claim.metadata["embedding"] = embedding
+                unique_claims_for_db.append(claim)
 
-                    if dedup_result.is_duplicate:
-                        # Found duplicate - merge quotes to existing claim
-                        # Type narrowing: existing_claim_id must be set when is_duplicate is True
-                        assert dedup_result.existing_claim_id is not None, "existing_claim_id must be set when is_duplicate is True"
+            logger.info(f"  ✓ Prepared {len(unique_claims_for_db)} claims for saving")
 
-                        duplicate_details.append({
-                            "claim_text": claim.claim_text,
-                            "existing_claim_id": dedup_result.existing_claim_id,
-                            "reranker_score": dedup_result.reranker_score,
-                            "new_quotes_count": len(claim.quotes)
-                        })
-
-                        # Track database duplicate (limit to 3 samples)
-                        if len(filtered_items_log.database_duplicates) < 3:
-                            filtered_items_log.database_duplicates.append(FilteredItem(
-                                text=claim.claim_text,
-                                reason=f"Duplicate of claim {dedup_result.existing_claim_id} (score={dedup_result.reranker_score:.2f})",
-                                metadata={
-                                    "existing_claim_id": dedup_result.existing_claim_id,
-                                    "reranker_score": dedup_result.reranker_score
-                                }
-                            ))
-
-                        # Merge quotes to existing claim
-                        repo = ClaimRepository(db_session)
-                        await repo.merge_quotes_to_existing_claim(
-                            dedup_result.existing_claim_id,
-                            claim.quotes,
-                            episode_id
-                        )
-
-                        logger.info(
-                            f"  Merged {len(claim.quotes)} quotes to existing claim {dedup_result.existing_claim_id}"
-                        )
-                    else:
-                        # Unique claim - prepare for insertion
-                        claim.metadata["embedding"] = embedding
-                        unique_claims_for_db.append(claim)
-
-                stage_timings["database_deduplication"] = time.time() - stage_start
-                logger.info(
-                    f"  ✓ Found {len(duplicate_details)} duplicates, "
-                    f"{len(unique_claims_for_db)} unique claims to save"
-                )
-            else:
-                logger.info("Step 11/13: Cross-episode deduplication disabled, treating all claims as unique")
-
-                # Generate embeddings for all claims without deduplication
-                for claim in claims_with_quotes:
-                    embedding = await self.embedder.embed_text(claim.claim_text)
-                    claim.metadata["embedding"] = embedding
-                    unique_claims_for_db.append(claim)
-
-                logger.info(f"  ✓ Prepared {len(unique_claims_for_db)} claims for saving (dedup disabled)")
-
-            # Track merged count
+            # Track merged count (will be 0 since dedup is disabled)
             claims_merged_to_existing = len(duplicate_details)
 
-            # Step 12: Save to PostgreSQL (same session as chunks)
-            logger.info("Step 12/13: Saving claims and quotes to database...")
-            stage_start = time.time()
+            # ========================================================================
+            # OPEN DATABASE SESSION NOW - All extraction work is complete
+            # ========================================================================
+            # We only open the DB connection after all LLM processing is done
+            # This prevents holding connections during the slow extraction (~5-6 min)
+            logger.info("Step 12/13: Opening database session for atomic save...")
+            db_session = get_db_session()
 
-            if unique_claims_for_db:
-                repo = ClaimRepository(db_session)
+            try:
+                # Save chunks to database FIRST
+                logger.info("  Saving transcript chunks to database...")
+                chunk_repo = ChunkRepository(db_session)
+                chunk_db_ids = await chunk_repo.save_chunks(chunks, episode_id)
 
-                # Save claims (without embeddings first)
-                saved_claim_ids = await repo.save_claims(unique_claims_for_db, episode_id)
-
-                # Update embeddings
-                embeddings_dict = {
-                    claim_id: claim.metadata["embedding"]
-                    for claim_id, claim in zip(saved_claim_ids, unique_claims_for_db)
+                # Create mapping from ephemeral chunk_id to database ID
+                chunk_id_mapping = {
+                    chunk.chunk_id: db_id
+                    for chunk, db_id in zip(chunks, chunk_db_ids)
                 }
-                await repo.update_claim_embeddings(embeddings_dict)
+                logger.info(f"  ✓ Saved {len(chunk_db_ids)} chunks to database")
 
-                # Count unique quotes saved
-                unique_quote_positions = set()
+                # Map claim source_chunk_ids from ephemeral to database IDs
                 for claim in unique_claims_for_db:
-                    for quote in claim.quotes:
-                        unique_quote_positions.add((quote.start_position, quote.end_position))
-                quotes_saved = len(unique_quote_positions)
+                    claim.source_chunk_id = chunk_id_mapping[claim.source_chunk_id]
 
-                logger.info(
-                    f"  ✓ Saved {len(saved_claim_ids)} claims, {quotes_saved} unique quotes"
-                )
-            else:
-                saved_claim_ids = []
-                quotes_saved = 0
-                logger.info("  ✓ No new claims to save (all were duplicates)")
+                # Save claims and quotes to database
+                logger.info("  Saving claims and quotes to database...")
+                stage_start = time.time()
 
-            stage_timings["database_save"] = time.time() - stage_start
+                if unique_claims_for_db:
+                    repo = ClaimRepository(db_session)
 
-            # Step 13: Commit atomic transaction (chunks + claims together)
-            logger.info("Step 13/13: Committing atomic transaction (chunks + claims)...")
-            db_session.commit()
-            logger.info("  ✓ Transaction committed successfully")
+                    # Save claims (without embeddings first)
+                    saved_claim_ids = await repo.save_claims(unique_claims_for_db, episode_id)
+
+                    # Update embeddings
+                    embeddings_dict = {
+                        claim_id: claim.metadata["embedding"]
+                        for claim_id, claim in zip(saved_claim_ids, unique_claims_for_db)
+                    }
+                    await repo.update_claim_embeddings(embeddings_dict)
+
+                    # Count unique quotes saved
+                    unique_quote_positions = set()
+                    for claim in unique_claims_for_db:
+                        for quote in claim.quotes:
+                            unique_quote_positions.add((quote.start_position, quote.end_position))
+                    quotes_saved = len(unique_quote_positions)
+
+                    logger.info(
+                        f"  ✓ Saved {len(saved_claim_ids)} claims, {quotes_saved} unique quotes"
+                    )
+                else:
+                    saved_claim_ids = []
+                    quotes_saved = 0
+                    logger.info("  ✓ No new claims to save")
+
+                stage_timings["database_save"] = time.time() - stage_start
+
+                # Step 13: Commit atomic transaction (chunks + claims together)
+                logger.info("Step 13/13: Committing atomic transaction (chunks + claims)...")
+                db_session.commit()
+                logger.info("  ✓ Transaction committed successfully")
+
+            except Exception as e:
+                logger.error(f"Error saving to database: {e}", exc_info=True)
+                db_session.rollback()
+                logger.warning("Transaction rolled back")
+                raise
+            finally:
+                db_session.close()
 
         except Exception as e:
-            logger.error(f"Error in pipeline: {e}", exc_info=True)
-            db_session.rollback()
-            logger.warning("Transaction rolled back")
+            # Outer exception handler for extraction failures (before DB session opens)
+            logger.error(f"Error during extraction: {e}", exc_info=True)
             raise
-        finally:
-            db_session.close()
 
         # Calculate final stats
         total_quotes = sum(len(c.quotes) for c in claims_with_quotes)

@@ -85,7 +85,9 @@ class EntailmentValidatorModel:
 
             # Configure DSPy
             lm = dspy.LM(
-                f"ollama/{settings.ollama_model}", api_base=settings.ollama_url
+                f"ollama/{settings.ollama_model}",
+                api_base=settings.ollama_url,
+                num_ctx=32768
             )
             dspy.configure(lm=lm)
 
@@ -110,7 +112,9 @@ class EntailmentValidatorModel:
 
             # Configure DSPy for baseline
             lm = dspy.LM(
-                f"ollama/{settings.ollama_model}", api_base=settings.ollama_url
+                f"ollama/{settings.ollama_model}",
+                api_base=settings.ollama_url,
+                num_ctx=32768
             )
             dspy.configure(lm=lm)
 

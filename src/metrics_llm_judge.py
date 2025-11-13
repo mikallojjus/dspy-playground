@@ -28,6 +28,7 @@ class ClaimQualityJudge(dspy.Signature):
     - "The new bill will help people" (Which bill? Which people? Vague)
     - "His approval rating is 44.9%" (Whose approval? Missing context)
     - "Get your subscription today for $9.99" (Advertisement, not a claim)
+    - "The speaker proposes searching for artificial lights on exoplanets" (Unclear who the speaker is)
 
     Be strict: claims must be understandable on their own.
     """

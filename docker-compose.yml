@@ -17,7 +17,6 @@ services:
       - /dev/nvidiactl:/dev/nvidiactl
     environment:
       - OLLAMA_HOST=0.0.0.0:11434
-      - OLLAMA_KEEP_ALIVE=-1
       - OLLAMA_MAX_LOADED_MODELS=1
       - LD_LIBRARY_PATH=/usr/local/nvidia/lib64
     restart: unless-stopped
@@ -44,7 +43,6 @@ services:
       - /dev/nvidiactl:/dev/nvidiactl
     environment:
       - OLLAMA_HOST=0.0.0.0:11434
-      - OLLAMA_KEEP_ALIVE=-1
       - OLLAMA_MAX_LOADED_MODELS=1
       - LD_LIBRARY_PATH=/usr/local/nvidia/lib64
     restart: unless-stopped

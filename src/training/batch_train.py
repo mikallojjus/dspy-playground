@@ -2,9 +2,8 @@
 Batch training script for overnight experimentation with different max_demos values.
 
 Runs multiple training sessions to gather statistics for model comparison:
-- Claim Extractor: 5 runs each with max_demos=4, 10, 16 (15 runs)
-- Entailment Validator: 5 runs each with max_demos=4, 10, 16 (15 runs)
-Total: 30 training runs
+- Claim Extractor: 2 runs with max_demos=3, 2 runs with max_demos=4 (4 runs total)
+Total: 4 training runs
 
 Usage:
     uv run python -m src.training.batch_train
@@ -32,7 +31,7 @@ class TrainingConfig:
         self.run_number = run_number
 
     def __repr__(self):
-        return f"{self.model_type} ({self.optimizer}, max_demos={self.max_demos}, run {self.run_number}/5)"
+        return f"{self.model_type} ({self.optimizer}, max_demos={self.max_demos}, run {self.run_number}/2)"
 
 
 class BatchTrainer:
@@ -64,27 +63,12 @@ class BatchTrainer:
         """Generate all training configurations."""
         configs = []
 
-        # BootstrapFewShot optimizer (30 runs)
-        # Claim extractor: 5 runs each for max_demos=4, 6, 8
-        for max_demos in [4, 6, 8]:
-            for run_num in range(1, 6):
-                configs.append(TrainingConfig("claim_extractor", "BootstrapFewShot", max_demos, run_num))
-
-        # Entailment validator: 5 runs each for max_demos=4, 6, 8
-        for max_demos in [4, 6, 8]:
-            for run_num in range(1, 6):
-                configs.append(TrainingConfig("entailment_validator", "BootstrapFewShot", max_demos, run_num))
-
-        # MIPROv2 optimizer (30 runs)
-        # Claim extractor: 5 runs each for max_demos=4, 6, 8
-        for max_demos in [4, 6, 8]:
-            for run_num in range(1, 6):
-                configs.append(TrainingConfig("claim_extractor", "MIPROv2", max_demos, run_num))
-
-        # Entailment validator: 5 runs each for max_demos=4, 6, 8
-        for max_demos in [4, 6, 8]:
-            for run_num in range(1, 6):
-                configs.append(TrainingConfig("entailment_validator", "MIPROv2", max_demos, run_num))
+        # BootstrapFewShot optimizer (4 runs)
+        # Claim extractor: 2 runs with max_demos=3, 2 runs with max_demos=4
+        configs.append(TrainingConfig("claim_extractor", "BootstrapFewShot", 3, 1))
+        configs.append(TrainingConfig("claim_extractor", "BootstrapFewShot", 3, 2))
+        configs.append(TrainingConfig("claim_extractor", "BootstrapFewShot", 4, 1))
+        configs.append(TrainingConfig("claim_extractor", "BootstrapFewShot", 4, 2))
 
         return configs
 
@@ -249,12 +233,8 @@ class BatchTrainer:
 
             self.log("")
             self.log(f"Generated {self.total_runs} training configurations:")
-            self.log(f"  BootstrapFewShot (30 runs):")
-            self.log(f"    - Claim Extractor: 15 runs (5 × max_demos 4, 10, 16)")
-            self.log(f"    - Entailment Validator: 15 runs (5 × max_demos 4, 10, 16)")
-            self.log(f"  MIPROv2 (30 runs):")
-            self.log(f"    - Claim Extractor: 15 runs (5 × max_demos 4, 10, 16)")
-            self.log(f"    - Entailment Validator: 15 runs (5 × max_demos 4, 10, 16)")
+            self.log(f"  BootstrapFewShot (4 runs):")
+            self.log(f"    - Claim Extractor: 2 runs with max_demos=3, 2 runs with max_demos=4")
             self.log("")
 
             # Run all trainings
@@ -284,7 +264,6 @@ class BatchTrainer:
             if self.successful_runs > 0:
                 self.log("")
                 self.run_comparison("claim_extractor")
-                self.run_comparison("entailment_validator")
 
             self.log("")
             self.log(f"Full log saved to: {self.log_path}")
@@ -315,13 +294,9 @@ def main():
     print("Batch Training Script")
     print("=" * 80)
     print()
-    print("This will run 60 training sessions:")
-    print("  BootstrapFewShot (30 runs):")
-    print("    - Claim Extractor: 15 runs (5 runs × 3 max_demos values)")
-    print("    - Entailment Validator: 15 runs (5 runs × 3 max_demos values)")
-    print("  MIPROv2 (30 runs):")
-    print("    - Claim Extractor: 15 runs (5 runs × 3 max_demos values)")
-    print("    - Entailment Validator: 15 runs (5 runs × 3 max_demos values)")
+    print("This will run 4 training sessions:")
+    print("  BootstrapFewShot (4 runs):")
+    print("    - Claim Extractor: 2 runs with max_demos=3, 2 runs with max_demos=4")
     print()
     print()
 

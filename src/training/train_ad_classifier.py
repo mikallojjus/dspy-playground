@@ -212,7 +212,8 @@ def main():
     print(f"Configuring DSPy with Ollama at {settings.ollama_url}")
     lm = dspy.LM(
         f"ollama/{settings.ollama_model}",
-        api_base=settings.ollama_url
+        api_base=settings.ollama_url,
+        num_ctx=32768
     )
     dspy.configure(lm=lm)
     print()
