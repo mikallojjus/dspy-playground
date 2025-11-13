@@ -11,8 +11,8 @@ Usage:
     # Process specific episode by ID
     uv run python -m src.cli.process_episodes --episode-id 123
 
-    # Process specific podcast, limit to 5 episodes
-    uv run python -m src.cli.process_episodes --podcast-id 9 --limit 5
+    # Ensure specific podcast has 20 episodes with claims
+    uv run python -m src.cli.process_episodes --podcast-ids 9 --target 20
 
     # Continue processing on errors
     uv run python -m src.cli.process_episodes --continue-on-error
@@ -24,8 +24,10 @@ Examples:
     # Process a specific episode
     uv run python -m src.cli.process_episodes --episode-id 456
 
-    # Process latest 10 episodes from Bankless podcast
-    uv run python -m src.cli.process_episodes --podcast-id 1 --limit 10
+    # Ensure podcasts 1,2,3 each have 20 episodes with claims
+    # If podcast 1 has 16 claims, will process 4 more
+    # If podcast 2 has 25 claims, will skip it
+    uv run python -m src.cli.process_episodes --podcast-ids 1,2,3 --target 20
 
     # Process all unprocessed episodes, continue on errors
     uv run python -m src.cli.process_episodes --continue-on-error
@@ -94,8 +96,9 @@ Examples:
   # Process a specific episode by ID
   %(prog)s --episode-id 456
 
-  # Process specific podcasts, limit to 100 episodes per podcast
-  %(prog)s --podcast-ids 1,2,3 --limit 100
+  # Ensure specific podcasts each have 20 episodes with claims
+  # If podcast already has 20+ episodes with claims, skips it
+  %(prog)s --podcast-ids 1,2,3 --target 20
 
   # Continue processing on errors
   %(prog)s --continue-on-error
@@ -119,14 +122,15 @@ Examples:
         "--episode-id",
         type=int,
         default=None,
-        help="Process a specific episode by ID (overrides --podcast-id and --limit)"
+        help="Process a specific episode by ID (overrides --podcast-ids and --target)"
     )
 
     parser.add_argument(
-        "--limit",
+        "--target",
         type=int,
         default=0,
-        help="Maximum number of episodes to process (default: 0 = all)"
+        help="Target number of episodes with claims per podcast (default: 0 = process all unprocessed). "
+             "Requires --podcast-ids. If podcast already has target episodes with claims, skips it."
     )
 
     parser.add_argument(
@@ -637,26 +641,15 @@ async def main():
     else:
         episodes = query_service.get_episodes_to_process(
             podcast_ids=args.podcast_ids,
-            limit=args.limit,
+            target=args.target,
             force=args.force
         )
 
-        # Filter episodes to only those with transcripts
-        total_retrieved = len(episodes)
-        episodes_with_transcripts = [ep for ep in episodes if ep.podscribe_transcript is not None]
-        episodes_without_transcripts = total_retrieved - len(episodes_with_transcripts)
-
-        # Log statistics
-        if total_retrieved > 0:
+        # Log statistics (all episodes have transcripts - filtered at SQL level)
+        if len(episodes) > 0:
             console.print()
-            console.print(f"[cyan]Retrieved {total_retrieved} episode(s)[/cyan]")
-            console.print(f"[green]  ✓ {len(episodes_with_transcripts)} with transcripts (will process)[/green]")
-            if episodes_without_transcripts > 0:
-                console.print(f"[yellow]  ⊘ {episodes_without_transcripts} without transcripts (skipping)[/yellow]")
+            console.print(f"[cyan]Retrieved {len(episodes)} episode(s) with transcripts[/cyan]")
             console.print()
-
-        # Update episodes to only those with transcripts
-        episodes = episodes_with_transcripts
 
     # Display summary
     should_continue = display_summary(episodes, args.podcast_ids, args.episode_id, args.force)

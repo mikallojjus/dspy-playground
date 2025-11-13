@@ -105,116 +105,143 @@ class EpisodeQueryService:
         logger.info(f"Found episode {episode_id}: {episode.name}")
         return episode
 
+    def _count_episodes_with_claims(self, podcast_id: int) -> int:
+        """
+        Count episodes with claims for a podcast.
+
+        Only counts episodes that have transcripts.
+
+        Args:
+            podcast_id: Podcast ID to count for
+
+        Returns:
+            Number of episodes with at least one claim
+        """
+        count = (
+            self.session.query(func.count(func.distinct(Claim.episode_id)))
+            .join(PodcastEpisode, Claim.episode_id == PodcastEpisode.id)
+            .filter(
+                PodcastEpisode.podcast_id == podcast_id,
+                PodcastEpisode.podscribe_transcript.isnot(None)
+            )
+            .scalar()
+        )
+
+        return count or 0
+
     def get_episodes_to_process(
-        self, podcast_ids: Optional[List[int]] = None, limit: int = 0, force: bool = False
+        self, podcast_ids: Optional[List[int]] = None, target: int = 0, force: bool = False
     ) -> List[PodcastEpisode]:
         """
-        Get episodes to process based on filters.
+        Get episodes to process with target-based selection.
+
+        When target > 0 and podcast_ids are provided, ensures each podcast
+        has at least `target` episodes WITH claims (not just processed).
 
         Query logic:
-        1. Retrieve latest episodes (NO transcript filter - we get actual latest episodes)
-        2. Filter by podcast_ids if provided
-        3. If limit > 0 AND podcast_ids provided:
-           - First, identify the latest N episodes per podcast (using ROW_NUMBER window function)
-           - Then, filter out already-processed episodes unless force=True
-           - This ensures we only consider episodes within the latest N, not N unprocessed episodes
-        4. Order by published_at DESC (newest first), NULL dates last
-        5. If limit > 0 but no podcast_ids: get limit total across all podcasts
-
-        Note: Transcript filtering happens in the main processing logic to ensure
-        we truly get the LATEST episodes, not just the latest with transcripts.
+        1. For each podcast (when podcast_ids + target specified):
+           a. Count existing episodes with claims
+           b. Calculate needed: max(0, target - existing_count)
+           c. Get `needed` unprocessed episodes with transcripts (newest first)
+        2. When target=0 or no podcast_ids: get all unprocessed episodes with transcripts
+        3. All queries filter for transcripts at SQL level
+        4. Skip already-processed episodes unless force=True
 
         Args:
             podcast_ids: Optional list of podcast IDs to filter by (None = all podcasts)
-            limit: Maximum number of episodes per podcast when podcast_ids specified,
-                   or total when no podcast_ids (0 = no limit). The limit is applied to the
-                   latest episodes overall, not the latest unprocessed episodes.
-            force: If True, include already-processed episodes
+            target: Target number of episodes with claims per podcast (0 = no limit).
+                   When specified with podcast_ids, ensures each podcast has at least
+                   this many episodes with claims. If already met, skips that podcast.
+                   Requires podcast_ids to be specified.
+            force: If True, include already-processed episodes (not yet implemented for target mode)
 
         Returns:
             List of PodcastEpisode objects to process
 
+        Raises:
+            ValueError: If target > 0 but podcast_ids is None
+
         Example:
             ```python
-            # Get all unprocessed episodes from all podcasts
+            # Ensure podcasts 1,2,3 each have 20 episodes with claims
+            # If podcast 1 has 16 claims, will process 4 more
+            # If podcast 2 has 25 claims, will skip it
+            # If podcast 3 has 0 claims, will process 20
+            episodes = service.get_episodes_to_process(
+                podcast_ids=[1,2,3],
+                target=20
+            )
+
+            # Get all unprocessed episodes with transcripts
             episodes = service.get_episodes_to_process()
 
-            # Get unprocessed episodes from the latest 100 episodes of each podcast
-            # (Not the latest 100 unprocessed episodes, which could span further back)
-            episodes = service.get_episodes_to_process(podcast_ids=[1,2,3], limit=100)
-
-            # Reprocess all episodes (force=True)
-            episodes = service.get_episodes_to_process(force=True)
+            # Get all episodes from specific podcasts (no target)
+            episodes = service.get_episodes_to_process(podcast_ids=[1,2,3])
             ```
         """
         logger.info(
             f"Querying episodes: podcast_ids={podcast_ids}, "
-            f"limit={limit}, force={force}"
+            f"target={target}, force={force}"
         )
 
-        # If we have podcast_ids AND a limit, query each podcast separately
-        if podcast_ids is not None and limit > 0:
-            logger.debug(f"Querying {len(podcast_ids)} podcasts separately with limit={limit} each")
+        # If we have podcast_ids AND a target, ensure each podcast has target episodes with claims
+        if podcast_ids is not None and target > 0:
+            logger.debug(f"Using target-based selection: ensuring {len(podcast_ids)} podcast(s) each have {target} episodes with claims")
             all_episodes = []
+
             for podcast_id in podcast_ids:
-                # Use a subquery with ROW_NUMBER to get the latest N episodes first
-                # THEN filter by processed status - this ensures we get episodes from the
-                # actual latest N, not the latest N unprocessed (which could span further back)
-                from sqlalchemy import select
+                # Count existing episodes with claims for this podcast
+                existing_count = self._count_episodes_with_claims(podcast_id)
+                logger.debug(f"Podcast {podcast_id}: {existing_count} episodes already have claims")
 
-                # Create subquery that ranks episodes by published_at within this podcast
-                ranked_subquery = (
-                    select(
-                        PodcastEpisode.id.label('episode_id'),
-                        func.row_number().over(
-                            partition_by=PodcastEpisode.podcast_id,
-                            order_by=PodcastEpisode.published_at.desc().nulls_last()
-                        ).label('episode_rank')
-                    )
-                    .where(PodcastEpisode.podcast_id == podcast_id)
-                ).subquery()
+                # Calculate how many more we need to reach target
+                needed = max(0, target - existing_count)
 
-                # Get the IDs of the latest N episodes for this podcast
-                latest_episode_ids = (
-                    self.session.query(ranked_subquery.c.episode_id)
-                    .filter(ranked_subquery.c.episode_rank <= limit)
-                    .all()
-                )
-                latest_episode_ids = [row[0] for row in latest_episode_ids]
-
-                if not latest_episode_ids:
-                    logger.debug(f"Podcast {podcast_id}: No episodes found")
+                if needed == 0:
+                    logger.info(f"Podcast {podcast_id}: Already has {target} episodes with claims, skipping")
                     continue
 
-                # Now query for these specific episodes
-                query = self.session.query(PodcastEpisode).filter(
-                    PodcastEpisode.id.in_(latest_episode_ids)
+                logger.debug(f"Podcast {podcast_id}: Need {needed} more episode(s) to reach target of {target}")
+
+                # Get `needed` unprocessed episodes with transcripts (newest first)
+                query = (
+                    self.session.query(PodcastEpisode)
+                    .filter(
+                        PodcastEpisode.podcast_id == podcast_id,
+                        PodcastEpisode.podscribe_transcript.isnot(None)
+                    )
+                    .outerjoin(Claim, Claim.episode_id == PodcastEpisode.id)
+                    .filter(Claim.id.is_(None))  # Unprocessed only
+                    .order_by(PodcastEpisode.published_at.desc().nulls_last())
+                    .limit(needed)
                 )
 
-                # Skip already-processed episodes unless force=True
-                if not force:
-                    # LEFT JOIN to find episodes without claims
-                    query = query.outerjoin(
-                        Claim, Claim.episode_id == PodcastEpisode.id
-                    ).filter(
-                        Claim.id.is_(None)
-                    )  # No claims = not processed
-                    logger.debug(f"Podcast {podcast_id}: Filtering to unprocessed episodes only")
-
-                # Order by newest first to maintain consistent ordering
-                query = query.order_by(PodcastEpisode.published_at.desc().nulls_last())
-
-                # Execute query for this podcast
                 podcast_episodes = query.all()
-                logger.debug(f"Podcast {podcast_id}: Found {len(podcast_episodes)} episodes from latest {limit}")
+                logger.debug(f"Podcast {podcast_id}: Found {len(podcast_episodes)} unprocessed episode(s) to process")
+
+                if len(podcast_episodes) < needed:
+                    logger.warning(
+                        f"Podcast {podcast_id}: Only {len(podcast_episodes)} unprocessed episodes available "
+                        f"(needed {needed} to reach target of {target})"
+                    )
+
                 all_episodes.extend(podcast_episodes)
 
-            logger.info(f"Found {len(all_episodes)} total episodes across {len(podcast_ids)} podcasts")
+            logger.info(f"Found {len(all_episodes)} total episode(s) to process across {len(podcast_ids)} podcast(s)")
             return all_episodes
         else:
-            # Single query for all podcasts or when no limit specified
-            # Base query
+            # Single query for all podcasts or when no target specified
+
+            # Error if target is specified without podcast_ids
+            if target > 0 and podcast_ids is None:
+                raise ValueError(
+                    "target parameter requires podcast_ids to be specified. "
+                    "Target-based selection works per podcast, so you must specify which podcasts."
+                )
+
+            # Base query - only episodes with transcripts
             query = self.session.query(PodcastEpisode)
+            query = query.filter(PodcastEpisode.podscribe_transcript.isnot(None))
 
             # Filter by podcast_ids if provided
             if podcast_ids is not None:
@@ -234,10 +261,8 @@ class EpisodeQueryService:
             # Order by newest first (published_at DESC), NULL dates last
             query = query.order_by(PodcastEpisode.published_at.desc().nulls_last())
 
-            # Apply limit if specified
-            if limit > 0:
-                query = query.limit(limit)
-                logger.debug(f"Applying limit={limit}")
+            # Note: target is not applied in this path (target=0 means no limit)
+            # This path is used for: get all unprocessed episodes
 
             # Execute query
             episodes = query.all()
