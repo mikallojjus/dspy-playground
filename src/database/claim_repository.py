@@ -391,3 +391,242 @@ class ClaimRepository:
         """
         logger.info("Committing transaction")
         self.session.commit()
+
+    def get_claims_by_episodes(
+        self,
+        episode_ids: List[int],
+        include_flagged: bool = False,
+        include_verified: bool = False
+    ) -> Dict[int, List[Claim]]:
+        """
+        Get all claims for specific episodes, grouped by episode.
+
+        Args:
+            episode_ids: List of episode IDs
+            include_flagged: If True, include already flagged claims
+            include_verified: If True, include already verified claims
+
+        Returns:
+            Dict mapping episode_id to list of claims
+
+        Example:
+            ```python
+            repo = ClaimRepository(session)
+
+            # Get only unverified, unflagged claims for validation
+            claims_by_episode = repo.get_claims_by_episodes([123, 456])
+
+            # Get all claims including verified ones
+            all_claims = repo.get_claims_by_episodes([123, 456], include_verified=True)
+            ```
+        """
+        logger.info(
+            f"Fetching claims for {len(episode_ids)} episodes "
+            f"(include_flagged={include_flagged}, include_verified={include_verified})"
+        )
+
+        query = self.session.query(Claim).filter(Claim.episode_id.in_(episode_ids))
+
+        if not include_flagged:
+            query = query.filter(Claim.is_flagged == False)
+
+        if not include_verified:
+            query = query.filter(Claim.is_verified == False)
+
+        claims = query.all()
+
+        # Group by episode
+        claims_by_episode = {}
+        for claim in claims:
+            episode_id = claim.episode_id
+            if episode_id not in claims_by_episode:
+                claims_by_episode[episode_id] = []
+            claims_by_episode[episode_id].append(claim)
+
+        logger.info(
+            f"Found {len(claims)} claims across {len(claims_by_episode)} episodes"
+        )
+
+        return claims_by_episode
+
+    def get_episode_claim_counts(
+        self,
+        episode_ids: List[int],
+        only_unverified: bool = True
+    ) -> Dict[int, int]:
+        """
+        Get claim counts for specific episodes.
+
+        Args:
+            episode_ids: List of episode IDs
+            only_unverified: If True, only count unverified claims (default: True)
+
+        Returns:
+            Dict mapping episode_id to claim count (unflagged, optionally unverified)
+
+        Example:
+            ```python
+            repo = ClaimRepository(session)
+
+            # Get count of unverified claims (for validation)
+            counts = repo.get_episode_claim_counts([123, 456])
+            print(f"Episode 123 has {counts[123]} unverified claims")
+
+            # Get total claim counts
+            total_counts = repo.get_episode_claim_counts([123, 456], only_unverified=False)
+            ```
+        """
+        from sqlalchemy import func
+
+        logger.info(
+            f"Fetching claim counts for {len(episode_ids)} episodes "
+            f"(only_unverified={only_unverified})"
+        )
+
+        query = (
+            self.session.query(
+                Claim.episode_id,
+                func.count(Claim.id).label("count")
+            )
+            .filter(
+                Claim.episode_id.in_(episode_ids),
+                Claim.is_flagged == False
+            )
+        )
+
+        if only_unverified:
+            query = query.filter(Claim.is_verified == False)
+
+        results = query.group_by(Claim.episode_id).all()
+
+        counts = {episode_id: count for episode_id, count in results}
+
+        # Ensure all requested episodes have an entry (even if 0)
+        for episode_id in episode_ids:
+            if episode_id not in counts:
+                counts[episode_id] = 0
+
+        logger.info(f"Retrieved claim counts for {len(counts)} episodes")
+
+        return counts
+
+    def flag_claims(
+        self,
+        claim_ids: List[int],
+        dry_run: bool = False
+    ) -> int:
+        """
+        Flag claims as bad using batch update.
+
+        Args:
+            claim_ids: List of claim IDs to flag
+            dry_run: If True, don't actually update the database
+
+        Returns:
+            Number of claims flagged
+
+        Example:
+            ```python
+            repo = ClaimRepository(session)
+
+            # Flag specific claims
+            count = repo.flag_claims([123, 456, 789])
+            print(f"Flagged {count} claims")
+
+            session.commit()
+            ```
+        """
+        if not claim_ids:
+            logger.warning("No claims to flag")
+            return 0
+
+        logger.info(f"Flagging {len(claim_ids)} claims (dry_run={dry_run})")
+
+        if dry_run:
+            logger.info("[DRY RUN] Would flag claims but not updating database")
+            return len(claim_ids)
+
+        try:
+            # Batch update using SQLAlchemy
+            flagged_count = (
+                self.session.query(Claim)
+                .filter(Claim.id.in_(claim_ids))
+                .update(
+                    {"is_flagged": True},
+                    synchronize_session=False
+                )
+            )
+
+            self.session.flush()
+
+            logger.info(f"✅ Flagged {flagged_count} claims")
+            return flagged_count
+
+        except Exception as e:
+            logger.error(f"Error flagging claims: {e}", exc_info=True)
+            self.session.rollback()
+            raise
+
+    def mark_claims_verified(
+        self,
+        claim_ids: List[int],
+        dry_run: bool = False
+    ) -> int:
+        """
+        Mark claims as verified (validation completed) using batch update.
+
+        Sets is_verified = TRUE for all provided claim IDs, indicating they
+        have been validated by Gemini. This prevents re-validation when
+        increasing target counts.
+
+        Args:
+            claim_ids: List of claim IDs to mark as verified
+            dry_run: If True, don't actually update the database
+
+        Returns:
+            Number of claims marked as verified
+
+        Example:
+            ```python
+            repo = ClaimRepository(session)
+
+            # Mark claims as verified after validation
+            claim_ids = [123, 456, 789]
+            count = repo.mark_claims_verified(claim_ids)
+            print(f"Marked {count} claims as verified")
+
+            session.commit()
+            ```
+        """
+        if not claim_ids:
+            logger.warning("No claims to mark as verified")
+            return 0
+
+        logger.info(
+            f"Marking {len(claim_ids)} claims as verified (dry_run={dry_run})"
+        )
+
+        if dry_run:
+            logger.info("[DRY RUN] Would mark claims as verified but not updating database")
+            return len(claim_ids)
+
+        try:
+            # Batch update using SQLAlchemy
+            verified_count = (
+                self.session.query(Claim)
+                .filter(Claim.id.in_(claim_ids))
+                .update(
+                    {"is_verified": True},
+                    synchronize_session=False
+                )
+            )
+
+            self.session.flush()
+
+            logger.info(f"✅ Marked {verified_count} claims as verified")
+            return verified_count
+
+        except Exception as e:
+            logger.error(f"Error marking claims as verified: {e}", exc_info=True)
+            self.session.rollback()
+            raise
