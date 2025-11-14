@@ -278,11 +278,8 @@ class ExtractionPipeline:
 
         episode = self._load_episode(episode_id)
 
-        # SQLAlchemy's typing shows Column[str], but at runtime it's actually str | None
-        # Use cast to tell the type checker what the actual runtime type is
-        transcript = cast(Optional[str], episode.podscribe_transcript)
-        if not transcript:
-            raise ValueError(f"Episode {episode_id} has no transcript")
+        # Select transcript with priority: Podscribe > Bankless
+        transcript, transcript_format = self._select_transcript(episode)
 
         transcript_length = len(transcript)
 
@@ -292,7 +289,7 @@ class ExtractionPipeline:
         )
 
         logger.info("Step 1/9: Parsing transcript...")
-        parsed_transcript = self.parser.parse(transcript)
+        parsed_transcript = self.parser.parse(transcript, format=transcript_format)
         logger.info(f"  ✓ Parsed {len(parsed_transcript.segments)} segments")
 
         logger.info("Step 2/13: Chunking transcript...")
@@ -955,6 +952,41 @@ class ExtractionPipeline:
 
         finally:
             session.close()
+
+    def _select_transcript(self, episode: PodcastEpisode) -> tuple[str, str]:
+        """
+        Select transcript from episode with priority-based format detection.
+
+        Priority order:
+        1. Podscribe transcript (if available)
+        2. Bankless transcript (if available)
+        3. Raise error if neither available
+
+        Args:
+            episode: Episode to get transcript from
+
+        Returns:
+            Tuple of (transcript_text, format_name)
+            format_name is "podscribe" or "bankless"
+
+        Raises:
+            ValueError: If episode has no transcript in any format
+        """
+        # Priority 1: Podscribe
+        podscribe_transcript = cast(Optional[str], episode.podscribe_transcript)
+        if podscribe_transcript:
+            return (podscribe_transcript, "podscribe")
+
+        # Priority 2: Bankless
+        bankless_transcript = cast(Optional[str], episode.bankless_transcript)
+        if bankless_transcript:
+            return (bankless_transcript, "bankless")
+
+        # No transcript available
+        raise ValueError(
+            f"Episode {episode.id} has no transcript "
+            f"(checked podscribe_transcript and bankless_transcript)"
+        )
 
     def _remap_quotes_to_claims(
         self,

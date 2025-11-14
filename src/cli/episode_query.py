@@ -98,7 +98,7 @@ class EpisodeQueryService:
             logger.error(f"Episode {episode_id} not found")
             return None
 
-        if episode.podscribe_transcript is None:
+        if episode.podscribe_transcript is None and episode.bankless_transcript is None:
             logger.error(f"Episode {episode_id} has no transcript")
             raise ValueError(f"Episode {episode_id} has no transcript")
 
@@ -122,7 +122,10 @@ class EpisodeQueryService:
             .join(PodcastEpisode, Claim.episode_id == PodcastEpisode.id)
             .filter(
                 PodcastEpisode.podcast_id == podcast_id,
-                PodcastEpisode.podscribe_transcript.isnot(None)
+                or_(
+                    PodcastEpisode.podscribe_transcript.isnot(None),
+                    PodcastEpisode.bankless_transcript.isnot(None)
+                )
             )
             .scalar()
         )
@@ -208,7 +211,10 @@ class EpisodeQueryService:
                     self.session.query(PodcastEpisode)
                     .filter(
                         PodcastEpisode.podcast_id == podcast_id,
-                        PodcastEpisode.podscribe_transcript.isnot(None)
+                        or_(
+                            PodcastEpisode.podscribe_transcript.isnot(None),
+                            PodcastEpisode.bankless_transcript.isnot(None)
+                        )
                     )
                     .outerjoin(Claim, Claim.episode_id == PodcastEpisode.id)
                     .filter(Claim.id.is_(None))  # Unprocessed only
@@ -241,7 +247,12 @@ class EpisodeQueryService:
 
             # Base query - only episodes with transcripts
             query = self.session.query(PodcastEpisode)
-            query = query.filter(PodcastEpisode.podscribe_transcript.isnot(None))
+            query = query.filter(
+                or_(
+                    PodcastEpisode.podscribe_transcript.isnot(None),
+                    PodcastEpisode.bankless_transcript.isnot(None)
+                )
+            )
 
             # Filter by podcast_ids if provided
             if podcast_ids is not None:
@@ -328,7 +339,10 @@ class EpisodeQueryService:
             ```
         """
         # Base filter
-        episode_filter = PodcastEpisode.podscribe_transcript.isnot(None)
+        episode_filter = or_(
+            PodcastEpisode.podscribe_transcript.isnot(None),
+            PodcastEpisode.bankless_transcript.isnot(None)
+        )
         if podcast_id is not None:
             episode_filter = and_(
                 episode_filter, PodcastEpisode.podcast_id == podcast_id
