@@ -138,23 +138,23 @@ class EpisodeQueryService:
         """
         Get episodes to process with target-based selection.
 
-        When target > 0 and podcast_ids are provided, ensures each podcast
-        has at least `target` episodes WITH claims (not just processed).
+        When target > 0 and podcast_ids are provided, maintains a rolling window
+        of the latest `target` episodes with claims for each podcast.
 
         Query logic:
         1. For each podcast (when podcast_ids + target specified):
-           a. Count existing episodes with claims
-           b. Calculate needed: max(0, target - existing_count)
-           c. Get `needed` unprocessed episodes with transcripts (newest first)
+           a. Get the latest `target` episodes with transcripts (by published_at DESC)
+           b. Among those, find which don't have claims yet
+           c. Return those for processing
         2. When target=0 or no podcast_ids: get all unprocessed episodes with transcripts
         3. All queries filter for transcripts at SQL level
         4. Skip already-processed episodes unless force=True
 
         Args:
             podcast_ids: Optional list of podcast IDs to filter by (None = all podcasts)
-            target: Target number of episodes with claims per podcast (0 = no limit).
-                   When specified with podcast_ids, ensures each podcast has at least
-                   this many episodes with claims. If already met, skips that podcast.
+            target: Maintain claims for the latest N episodes per podcast (0 = no limit).
+                   When specified with podcast_ids, ensures the latest N episodes all
+                   have claims. New episodes will be processed even if target is already met.
                    Requires podcast_ids to be specified.
             force: If True, include already-processed episodes (not yet implemented for target mode)
 
@@ -166,13 +166,13 @@ class EpisodeQueryService:
 
         Example:
             ```python
-            # Ensure podcasts 1,2,3 each have 20 episodes with claims
-            # If podcast 1 has 16 claims, will process 4 more
-            # If podcast 2 has 25 claims, will skip it
-            # If podcast 3 has 0 claims, will process 20
+            # Maintain claims for the latest 100 episodes of podcasts 1,2,3
+            # If podcast 1's latest 100 includes 7 without claims, will process those 7
+            # If podcast 2's latest 100 all have claims, will skip it
+            # If 5 new episodes arrive tomorrow, will process those 5
             episodes = service.get_episodes_to_process(
                 podcast_ids=[1,2,3],
-                target=20
+                target=100
             )
 
             # Get all unprocessed episodes with transcripts
@@ -187,28 +187,15 @@ class EpisodeQueryService:
             f"target={target}, force={force}"
         )
 
-        # If we have podcast_ids AND a target, ensure each podcast has target episodes with claims
+        # If we have podcast_ids AND a target, maintain rolling window of latest N episodes
         if podcast_ids is not None and target > 0:
-            logger.debug(f"Using target-based selection: ensuring {len(podcast_ids)} podcast(s) each have {target} episodes with claims")
+            logger.debug(f"Using rolling window selection: maintaining latest {target} episodes with claims for {len(podcast_ids)} podcast(s)")
             all_episodes = []
 
             for podcast_id in podcast_ids:
-                # Count existing episodes with claims for this podcast
-                existing_count = self._count_episodes_with_claims(podcast_id)
-                logger.debug(f"Podcast {podcast_id}: {existing_count} episodes already have claims")
-
-                # Calculate how many more we need to reach target
-                needed = max(0, target - existing_count)
-
-                if needed == 0:
-                    logger.info(f"Podcast {podcast_id}: Already has {target} episodes with claims, skipping")
-                    continue
-
-                logger.debug(f"Podcast {podcast_id}: Need {needed} more episode(s) to reach target of {target}")
-
-                # Get `needed` unprocessed episodes with transcripts (newest first)
-                query = (
-                    self.session.query(PodcastEpisode)
+                # Step 1: Get IDs of the latest `target` episodes with transcripts
+                latest_episode_ids_query = (
+                    self.session.query(PodcastEpisode.id)
                     .filter(
                         PodcastEpisode.podcast_id == podcast_id,
                         or_(
@@ -216,20 +203,32 @@ class EpisodeQueryService:
                             PodcastEpisode.bankless_transcript.isnot(None)
                         )
                     )
-                    .outerjoin(Claim, Claim.episode_id == PodcastEpisode.id)
-                    .filter(Claim.id.is_(None))  # Unprocessed only
                     .order_by(PodcastEpisode.published_at.desc().nulls_last())
-                    .limit(needed)
+                    .limit(target)
+                )
+                latest_episode_ids = [row[0] for row in latest_episode_ids_query.all()]
+
+                if not latest_episode_ids:
+                    logger.info(f"Podcast {podcast_id}: No episodes with transcripts found, skipping")
+                    continue
+
+                logger.debug(f"Podcast {podcast_id}: Found {len(latest_episode_ids)} episodes in latest {target} window")
+
+                # Step 2: Among those latest episodes, find which don't have claims
+                unprocessed_episodes_query = (
+                    self.session.query(PodcastEpisode)
+                    .filter(PodcastEpisode.id.in_(latest_episode_ids))
+                    .outerjoin(Claim, Claim.episode_id == PodcastEpisode.id)
+                    .filter(Claim.id.is_(None))  # No claims = unprocessed
+                    .order_by(PodcastEpisode.published_at.desc().nulls_last())
                 )
 
-                podcast_episodes = query.all()
-                logger.debug(f"Podcast {podcast_id}: Found {len(podcast_episodes)} unprocessed episode(s) to process")
+                podcast_episodes = unprocessed_episodes_query.all()
 
-                if len(podcast_episodes) < needed:
-                    logger.warning(
-                        f"Podcast {podcast_id}: Only {len(podcast_episodes)} unprocessed episodes available "
-                        f"(needed {needed} to reach target of {target})"
-                    )
+                if podcast_episodes:
+                    logger.info(f"Podcast {podcast_id}: Processing {len(podcast_episodes)} unprocessed episode(s) from latest {target} window")
+                else:
+                    logger.info(f"Podcast {podcast_id}: All episodes in latest {target} window have claims, skipping")
 
                 all_episodes.extend(podcast_episodes)
 
