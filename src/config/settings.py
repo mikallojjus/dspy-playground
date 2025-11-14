@@ -178,6 +178,28 @@ class Settings(BaseSettings):
         description="Anthropic API key for Claude models"
     )
 
+    # Gemini Claim Validation
+    gemini_api_key: str | None = Field(
+        default=None,
+        description="Google Gemini API key for claim validation"
+    )
+    gemini_model: str = Field(
+        default="gemini-2.0-flash-exp",
+        description="Gemini model for claim validation (gemini-2.0-flash-exp recommended)"
+    )
+    gemini_validation_batch_size: int = Field(
+        default=50,
+        description="Number of claims to validate per Gemini API call"
+    )
+    gemini_timeout: int = Field(
+        default=30,
+        description="Gemini API request timeout in seconds"
+    )
+    min_claims_for_validation: int = Field(
+        default=5,
+        description="Minimum number of unverified claims an episode must have to be eligible for validation"
+    )
+
 
 # Global settings instance
 settings = Settings()

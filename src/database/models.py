@@ -17,6 +17,7 @@ from typing import List, Optional
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     Column,
     Date,
     Float,
@@ -138,6 +139,8 @@ class Claim(Base):
     embedding = Column(Vector(768))  # pgvector for similarity search
     confidence_components = Column(JSONB)
     reranker_scores = Column(JSONB)
+    is_verified = Column(Boolean, default=False, nullable=False)
+    is_flagged = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

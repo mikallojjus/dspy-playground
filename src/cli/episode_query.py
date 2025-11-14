@@ -387,6 +387,157 @@ class EpisodeQueryService:
 
         return stats
 
+    def get_episodes_to_validate(
+        self, podcast_ids: Optional[List[int]] = None, target: int = 0
+    ) -> List[PodcastEpisode]:
+        """
+        Get episodes to validate with target-based selection.
+
+        Mirrors get_episodes_to_process() logic but selects episodes WITH claims
+        that have unverified claims (is_verified = FALSE).
+
+        When target > 0 and podcast_ids are provided, maintains a rolling window
+        of the latest `target` episodes with claims for each podcast.
+
+        Query logic:
+        1. For each podcast (when podcast_ids + target specified):
+           a. Get the latest `target` episodes with transcripts (by published_at DESC)
+           b. Among those, find which have unverified claims
+           c. Return those for validation
+        2. When target=0 or no podcast_ids: get all episodes with unverified claims
+        3. All queries filter for transcripts at SQL level
+
+        Args:
+            podcast_ids: Optional list of podcast IDs to filter by (None = all podcasts)
+            target: Maintain validation for the latest N episodes per podcast (0 = no limit).
+                   When specified with podcast_ids, ensures the latest N episodes all
+                   have validated claims. Requires podcast_ids to be specified.
+
+        Returns:
+            List of PodcastEpisode objects to validate
+
+        Raises:
+            ValueError: If target > 0 but podcast_ids is None
+
+        Example:
+            ```python
+            # Validate claims from the latest 20 episodes of podcasts 1,2,3
+            episodes = service.get_episodes_to_validate(
+                podcast_ids=[1,2,3],
+                target=20
+            )
+
+            # Get all episodes with unverified claims
+            episodes = service.get_episodes_to_validate()
+            ```
+        """
+        logger.info(
+            f"Querying episodes for validation: podcast_ids={podcast_ids}, "
+            f"target={target}"
+        )
+
+        # If we have podcast_ids AND a target, maintain rolling window of latest N episodes
+        if podcast_ids is not None and target > 0:
+            logger.debug(
+                f"Using rolling window selection: validating claims from latest "
+                f"{target} episodes for {len(podcast_ids)} podcast(s)"
+            )
+            all_episodes = []
+
+            for podcast_id in podcast_ids:
+                # Step 1: Get IDs of the latest `target` episodes with transcripts
+                latest_episode_ids_query = (
+                    self.session.query(PodcastEpisode.id)
+                    .filter(
+                        PodcastEpisode.podcast_id == podcast_id,
+                        or_(
+                            PodcastEpisode.podscribe_transcript.isnot(None),
+                            PodcastEpisode.bankless_transcript.isnot(None)
+                        )
+                    )
+                    .order_by(PodcastEpisode.published_at.desc().nulls_last())
+                    .limit(target)
+                )
+                latest_episode_ids = [row[0] for row in latest_episode_ids_query.all()]
+
+                if not latest_episode_ids:
+                    logger.info(f"Podcast {podcast_id}: No episodes with transcripts found, skipping")
+                    continue
+
+                logger.debug(
+                    f"Podcast {podcast_id}: Found {len(latest_episode_ids)} episodes "
+                    f"in latest {target} window"
+                )
+
+                # Step 2: Among those latest episodes, find which have unverified claims
+                episodes_with_unverified_query = (
+                    self.session.query(PodcastEpisode)
+                    .filter(PodcastEpisode.id.in_(latest_episode_ids))
+                    .join(Claim, Claim.episode_id == PodcastEpisode.id)
+                    .filter(Claim.is_verified == False)  # Has unverified claims
+                    .distinct()
+                    .order_by(PodcastEpisode.published_at.desc().nulls_last())
+                )
+
+                podcast_episodes = episodes_with_unverified_query.all()
+
+                if podcast_episodes:
+                    logger.info(
+                        f"Podcast {podcast_id}: Validating {len(podcast_episodes)} "
+                        f"episode(s) with unverified claims from latest {target} window"
+                    )
+                else:
+                    logger.info(
+                        f"Podcast {podcast_id}: All claims in latest {target} window "
+                        f"are verified, skipping"
+                    )
+
+                all_episodes.extend(podcast_episodes)
+
+            logger.info(
+                f"Found {len(all_episodes)} total episode(s) to validate across "
+                f"{len(podcast_ids)} podcast(s)"
+            )
+            return all_episodes
+        else:
+            # Single query for all podcasts or when no target specified
+
+            # Error if target is specified without podcast_ids
+            if target > 0 and podcast_ids is None:
+                raise ValueError(
+                    "target parameter requires podcast_ids to be specified. "
+                    "Target-based selection works per podcast, so you must specify which podcasts."
+                )
+
+            # Base query - only episodes with transcripts AND unverified claims
+            query = (
+                self.session.query(PodcastEpisode)
+                .filter(
+                    or_(
+                        PodcastEpisode.podscribe_transcript.isnot(None),
+                        PodcastEpisode.bankless_transcript.isnot(None)
+                    )
+                )
+                .join(Claim, Claim.episode_id == PodcastEpisode.id)
+                .filter(Claim.is_verified == False)  # Has unverified claims
+                .distinct()
+            )
+
+            # Filter by podcast_ids if provided
+            if podcast_ids is not None:
+                query = query.filter(PodcastEpisode.podcast_id.in_(podcast_ids))
+                logger.debug(f"Filtering by podcast_ids={podcast_ids}")
+
+            # Order by newest first (published_at DESC), NULL dates last
+            query = query.order_by(PodcastEpisode.published_at.desc().nulls_last())
+
+            # Execute query
+            episodes = query.all()
+
+            logger.info(f"Found {len(episodes)} episodes to validate")
+
+            return episodes
+
     def get_podcast_name(self, podcast_id: int) -> Optional[str]:
         """
         Get podcast name from first episode.
