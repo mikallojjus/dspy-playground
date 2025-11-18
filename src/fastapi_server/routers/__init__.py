@@ -1,1 +1,2 @@
 from .guest_extraction import router as guest_extraction_router
+from .keyword_extraction import router as keyword_extraction_router
