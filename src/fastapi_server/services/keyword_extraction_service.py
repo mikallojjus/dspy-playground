@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any, Dict, List, Tuple
 from prompts.keyword_extraction_prompt import KEYWORD_EXTRACTION_PROMPT
 from utils import llm_model
@@ -34,12 +35,23 @@ def extract_keyword_and_topics(
   try:
     response = json.loads(raw_response)
   except Exception as e:
-    raise Exception("Failed parsing response")
+    try:
+      response_text = raw_response.strip()
+      fenced_match = re.search(r"```(?:json)?\s*(.*?)\s*```", response_text, re.DOTALL | re.IGNORECASE)
+
+      # Strip markdown code fences if the LLM wrapped the JSON in a ```json block
+      if fenced_match:
+        response_text = fenced_match.group(1)
+
+      response = json.loads(response_text)
+    except Exception as e:
+      raise Exception("Failed parsing response")
+  
   
   try:
     keywords =  response["keywords"]
   except KeyError:
-    raise Exception("Failed extracting guests")
+    raise Exception("Failed extracting keywords")
 
   try:
     topics =  response["topics"]
@@ -47,4 +59,3 @@ def extract_keyword_and_topics(
     raise Exception("Failed extracting topics")
  
   return keywords, topics
-

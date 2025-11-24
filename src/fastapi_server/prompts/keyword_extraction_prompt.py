@@ -21,10 +21,7 @@ Select {min_topics}-{max_topics} topics from the Available Topics list above tha
 - If no topics are clearly relevant, you may select 0 topics
 
 Output Format:
-Return ONLY valid JSON in this format without markdown block:
-{{
-  "keywords": ["Keyword One", "Keyword Two", "Keyword Three"],
-  "topics": ["Topic from list", "Another topic from list"]
-}}
+Return ONLY valid JSON without markdown block in this format:
+{{"keywords": ["Keyword One", "Keyword Two", "Keyword Three"], "topics": ["Topic from list", "Another topic from list"]}}
 
 Be precise, relevant, and follow the exact JSON format."""
