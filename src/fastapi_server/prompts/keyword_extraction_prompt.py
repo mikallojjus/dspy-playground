@@ -1,5 +1,8 @@
 KEYWORD_EXTRACTION_PROMPT="""You are an expert at analyzing podcast episodes and extracting relevant information.
 
+Episode Data:
+{episode}
+
 Available Topics (select from this list for topics field):
 {topics_list}
 
