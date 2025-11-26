@@ -14,7 +14,6 @@ def guest_extraction(request: GuestExtractionRequest) -> JSONResponse:
     guests = extract_podcast_guests(
       title=request.title,
       description=request.description,
-      transcript=request.transcript,
     )
     return JSONResponse(
       content={
