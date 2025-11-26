@@ -1,5 +1,12 @@
 KEYWORD_EXTRACTION_PROMPT="""You are an expert at analyzing podcast episodes and extracting relevant information.
 
+Each episode includes:
+- Title: The episode title
+- Description: The episode description
+- Claims: Key claims or statements from the episode (use these for additional context)
+
+Use ALL available information (title, description, and claims) to understand the episode content.
+
 Episode Data:
 {episode}
 
@@ -15,12 +22,19 @@ Generate {min_keywords}-{max_keywords} NEW keywords that capture the main themes
 - Examples of good keywords: "Neural networks", "Quantum computing", "Climate policy", "Economic growth", "Military strategy", "Game design", "Cryptocurrency trading"
 - Focus on specific concepts, technologies, people, events, or ideas discussed
 - Keywords should be searchable and descriptive
+- Focus on providing relevant keywords that help people understand what this episode is about
+- Do not use guests of the episode as keywords
+- Make each topic about a single, atomic idea. Avoid using 'A and B' as a keyword if that is not the canonical form of the idea. Use 'A' and 'B' as seperate topics preferrably.
+- Use the standard, canonical name, prefer the wording you’d expect as a Wikipedia article title.
+- Use full names: European Central Bank, Google DeepMind, European Union, etc.
+- Disambiguate explicitly. If a term has multiple meanings or interpretations., add a clear qualifier that makes the meaning clear in context. Pattern: Inflation (Economy), Inflation (cosmology), AI Alignment, Marketing alignment etc.
 
 PART 2 - Select Topics (From provided list):
 Select {min_topics}-{max_topics} topics from the Available Topics list above that are relevant to the episode.
 - ONLY use topics from the provided list above
 - Use exact capitalization as shown in the list
-- Select the most relevant broad categories
+- Inspect the claims and use them to understand what the conversation is about, Select the relevant categories, be very strict, do not include marginal matches but do not miss obvious mathces either.
+- Make sure to select all of the clearly relevant topics, the aim is to help users understand what the episode is about.
 - If no topics are clearly relevant, you may select 0 topics
 
 Output Format:
