@@ -4,6 +4,7 @@ Transcript parser for extracting speakers, timestamps, and text segments.
 Supports multiple transcript formats:
 - Podscribe: "0 (30s):\nText here"
 - Bankless: "David:\n[0:03] Text here"
+- Assembly: "Speaker A (0s):\nText here"
 
 Example:
     parser = TranscriptParser()
@@ -20,7 +21,7 @@ from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
 
-TranscriptFormat = Literal["podscribe", "bankless"]
+TranscriptFormat = Literal["podscribe", "bankless", "assembly"]
 
 
 @dataclass
@@ -356,6 +357,187 @@ class BanklessParser(TranscriptParserProtocol):
         return total_seconds
 
 
+class AssemblyParser(TranscriptParserProtocol):
+    """
+    Parser for Assembly transcript format.
+
+    Format:
+        Speaker <letter> (<timestamp>):
+        <text content>
+
+    Example:
+        Speaker A (0s):
+        Hi, I'm Solana Pyne.
+
+        Speaker B (2s):
+        I'm the director of video at the New York Times.
+    """
+
+    # Pattern: Speaker <letter> (<timestamp>):
+    # Examples: "Speaker A (0s):", "Speaker B (2s):", "Speaker C (1m 16s):"
+    SEGMENT_PATTERN = re.compile(
+        r'^Speaker\s+([A-Z])\s+\(([^)]+)\):',
+        re.MULTILINE
+    )
+
+    # Timestamp patterns: "2s", "1m 16s", "1h 8m 9s", "2h 30m"
+    TIMESTAMP_PATTERN = re.compile(
+        r'(?:(\d+)h)?(?:\s*(\d+)m)?(?:\s*(\d+)s)?'
+    )
+
+    def parse(self, transcript: str) -> ParsedTranscript:
+        """
+        Parse Assembly transcript into segments.
+
+        Args:
+            transcript: Raw Assembly transcript text
+
+        Returns:
+            ParsedTranscript with segments and full clean text
+        """
+        if not transcript or not transcript.strip():
+            logger.warning("Empty transcript provided")
+            return ParsedTranscript(segments=[], full_text="")
+
+        # Remove AssemblyAI header if present
+        transcript = self._remove_header(transcript)
+
+        # Find all segment markers
+        matches = list(self.SEGMENT_PATTERN.finditer(transcript))
+
+        if not matches:
+            logger.warning("No Assembly speaker segments found in transcript")
+            # Return entire transcript as single segment
+            return ParsedTranscript(
+                segments=[
+                    TranscriptSegment(
+                        speaker="Speaker_Unknown",
+                        clean_text=transcript.strip(),
+                        start_position=0,
+                        end_position=len(transcript),
+                        timestamp_seconds=0
+                    )
+                ],
+                full_text=transcript.strip()
+            )
+
+        segments: List[TranscriptSegment] = []
+
+        for i, match in enumerate(matches):
+            # Extract speaker letter and timestamp
+            speaker_letter = match.group(1)
+            timestamp_str = match.group(2)
+
+            # Parse timestamp to seconds
+            timestamp_seconds = self._parse_timestamp(timestamp_str)
+
+            # Find start of text (after ":")
+            text_start = match.end()
+
+            # Find end of text (start of next segment or end of transcript)
+            if i + 1 < len(matches):
+                text_end = matches[i + 1].start()
+            else:
+                text_end = len(transcript)
+
+            # Extract text
+            text = transcript[text_start:text_end].strip()
+
+            # Create segment
+            segment = TranscriptSegment(
+                speaker=f"Speaker_{speaker_letter}",
+                clean_text=text,
+                start_position=text_start,
+                end_position=text_end,
+                timestamp_seconds=timestamp_seconds
+            )
+
+            segments.append(segment)
+
+            logger.debug(
+                f"Parsed segment: {segment.speaker} at {timestamp_seconds}s "
+                f"({len(text)} chars)"
+            )
+
+        # Create full clean text (all segments concatenated)
+        full_text = "\n\n".join(seg.clean_text for seg in segments)
+
+        logger.info(
+            f"Parsed {len(segments)} Assembly segments from transcript "
+            f"({len(transcript)} chars → {len(full_text)} clean chars)"
+        )
+
+        return ParsedTranscript(segments=segments, full_text=full_text)
+
+    def _parse_timestamp(self, timestamp_str: str) -> int:
+        """
+        Parse Assembly timestamp string to seconds.
+
+        Args:
+            timestamp_str: Timestamp like "2s", "1m 16s", "1h 8m 9s", "2h 30m"
+
+        Returns:
+            Total seconds
+        """
+        match = self.TIMESTAMP_PATTERN.search(timestamp_str)
+
+        if not match:
+            logger.warning(f"Could not parse timestamp: {timestamp_str}")
+            return 0
+
+        hours_str = match.group(1)
+        minutes_str = match.group(2)
+        seconds_str = match.group(3)
+
+        # Check if at least one part matched
+        if not hours_str and not minutes_str and not seconds_str:
+            logger.warning(f"Could not parse timestamp: {timestamp_str}")
+            return 0
+
+        hours = int(hours_str) if hours_str else 0
+        minutes = int(minutes_str) if minutes_str else 0
+        seconds = int(seconds_str) if seconds_str else 0
+
+        total_seconds = hours * 3600 + minutes * 60 + seconds
+
+        return total_seconds
+
+    def _remove_header(self, transcript: str) -> str:
+        """
+        Remove AssemblyAI header from transcript if present.
+
+        The header looks like:
+            AssemblyAI Transcription Result
+            Processing Time: 23.80 seconds
+            ============================================================
+
+        Args:
+            transcript: Raw transcript text (may contain header)
+
+        Returns:
+            Clean transcript without header
+        """
+        lines = transcript.split('\n')
+
+        # Find first line starting with "Speaker"
+        for i, line in enumerate(lines):
+            if line.strip().startswith('Speaker'):
+                # Return everything from first speaker line onward
+                logger.debug(f"Removed AssemblyAI header ({i} lines)")
+                return '\n'.join(lines[i:])
+
+        # No Speaker line found, check if header exists and remove it
+        # This handles edge case where transcript has header but is malformed
+        if lines and 'AssemblyAI' in lines[0]:
+            # Skip first 4 lines (header + separator + blank line)
+            if len(lines) > 4:
+                logger.debug("Removed AssemblyAI header (fallback method)")
+                return '\n'.join(lines[4:])
+
+        # No header found, return original
+        return transcript
+
+
 class TranscriptParser:
     """
     Factory/dispatcher for transcript parsers.
@@ -373,6 +555,7 @@ class TranscriptParser:
         self._parsers = {
             "podscribe": PodscribeParser(),
             "bankless": BanklessParser(),
+            "assembly": AssemblyParser(),
         }
 
     def parse(self, transcript: str, format: TranscriptFormat = "podscribe") -> ParsedTranscript:

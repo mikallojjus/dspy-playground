@@ -58,6 +58,7 @@ class PodcastEpisode(Base):
     audio_url = Column(Text)
     podscribe_transcript = Column(Text)
     bankless_transcript = Column(Text)
+    assembly_transcript = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

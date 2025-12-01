@@ -63,7 +63,6 @@ app = FastAPI(
     ## Processing
     - Claims are extracted using DSPy LLM models (Ollama)
     - Guests and keywords are extracted using Google Gemini
-    - Average processing time: ~6 minutes per episode (claims)
 
     ## Authentication
     All endpoints require API key authentication via X-API-Key header.

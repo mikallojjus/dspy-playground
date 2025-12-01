@@ -240,13 +240,16 @@ class ExtractionPipeline:
 
     async def process_episode(
         self,
-        episode_id: int
+        episode_id: int,
+        save_to_db: bool = True
     ) -> PipelineResult:
         """
         Process a single episode through the full pipeline.
 
         Args:
             episode_id: Database ID of episode to process
+            save_to_db: Whether to save results to database (default True).
+                       Set to False for API mode where results are returned instead.
 
         Returns:
             PipelineResult with claims, quotes, and statistics
@@ -260,7 +263,12 @@ class ExtractionPipeline:
             pipeline = ExtractionPipeline()
 
             try:
-                result = await pipeline.process_episode(episode_id=123)
+                # CLI mode - save to database
+                result = await pipeline.process_episode(episode_id=123, save_to_db=True)
+
+                # API mode - return results without saving
+                result = await pipeline.process_episode(episode_id=123, save_to_db=False)
+
                 print(f"✅ Processed episode {result.episode_id}")
                 print(f"   {len(result.claims)} claims extracted")
             except ValueError as e:
@@ -756,72 +764,79 @@ class ExtractionPipeline:
             # ========================================================================
             # We only open the DB connection after all LLM processing is done
             # This prevents holding connections during the slow extraction (~5-6 min)
-            logger.info("Step 12/13: Opening database session for atomic save...")
-            db_session = get_db_session()
 
-            try:
-                # Save chunks to database FIRST
-                logger.info("  Saving transcript chunks to database...")
-                chunk_repo = ChunkRepository(db_session)
-                chunk_db_ids = await chunk_repo.save_chunks(chunks, episode_id)
+            if save_to_db:
+                logger.info("Step 12/13: Opening database session for atomic save...")
+                db_session = get_db_session()
 
-                # Create mapping from ephemeral chunk_id to database ID
-                chunk_id_mapping = {
-                    chunk.chunk_id: db_id
-                    for chunk, db_id in zip(chunks, chunk_db_ids)
-                }
-                logger.info(f"  ✓ Saved {len(chunk_db_ids)} chunks to database")
+                try:
+                    # Save chunks to database FIRST
+                    logger.info("  Saving transcript chunks to database...")
+                    chunk_repo = ChunkRepository(db_session)
+                    chunk_db_ids = await chunk_repo.save_chunks(chunks, episode_id)
 
-                # Map claim source_chunk_ids from ephemeral to database IDs
-                for claim in unique_claims_for_db:
-                    claim.source_chunk_id = chunk_id_mapping[claim.source_chunk_id]
-
-                # Save claims and quotes to database
-                logger.info("  Saving claims and quotes to database...")
-                stage_start = time.time()
-
-                if unique_claims_for_db:
-                    repo = ClaimRepository(db_session)
-
-                    # Save claims (without embeddings first)
-                    saved_claim_ids = await repo.save_claims(unique_claims_for_db, episode_id)
-
-                    # Update embeddings
-                    embeddings_dict = {
-                        claim_id: claim.metadata["embedding"]
-                        for claim_id, claim in zip(saved_claim_ids, unique_claims_for_db)
+                    # Create mapping from ephemeral chunk_id to database ID
+                    chunk_id_mapping = {
+                        chunk.chunk_id: db_id
+                        for chunk, db_id in zip(chunks, chunk_db_ids)
                     }
-                    await repo.update_claim_embeddings(embeddings_dict)
+                    logger.info(f"  ✓ Saved {len(chunk_db_ids)} chunks to database")
 
-                    # Count unique quotes saved
-                    unique_quote_positions = set()
+                    # Map claim source_chunk_ids from ephemeral to database IDs
                     for claim in unique_claims_for_db:
-                        for quote in claim.quotes:
-                            unique_quote_positions.add((quote.start_position, quote.end_position))
-                    quotes_saved = len(unique_quote_positions)
+                        claim.source_chunk_id = chunk_id_mapping[claim.source_chunk_id]
 
-                    logger.info(
-                        f"  ✓ Saved {len(saved_claim_ids)} claims, {quotes_saved} unique quotes"
-                    )
-                else:
-                    saved_claim_ids = []
-                    quotes_saved = 0
-                    logger.info("  ✓ No new claims to save")
+                    # Save claims and quotes to database
+                    logger.info("  Saving claims and quotes to database...")
+                    stage_start = time.time()
 
-                stage_timings["database_save"] = time.time() - stage_start
+                    if unique_claims_for_db:
+                        repo = ClaimRepository(db_session)
 
-                # Step 13: Commit atomic transaction (chunks + claims together)
-                logger.info("Step 13/13: Committing atomic transaction (chunks + claims)...")
-                db_session.commit()
-                logger.info("  ✓ Transaction committed successfully")
+                        # Save claims (without embeddings first)
+                        saved_claim_ids = await repo.save_claims(unique_claims_for_db, episode_id)
 
-            except Exception as e:
-                logger.error(f"Error saving to database: {e}", exc_info=True)
-                db_session.rollback()
-                logger.warning("Transaction rolled back")
-                raise
-            finally:
-                db_session.close()
+                        # Update embeddings
+                        embeddings_dict = {
+                            claim_id: claim.metadata["embedding"]
+                            for claim_id, claim in zip(saved_claim_ids, unique_claims_for_db)
+                        }
+                        await repo.update_claim_embeddings(embeddings_dict)
+
+                        # Count unique quotes saved
+                        unique_quote_positions = set()
+                        for claim in unique_claims_for_db:
+                            for quote in claim.quotes:
+                                unique_quote_positions.add((quote.start_position, quote.end_position))
+                        quotes_saved = len(unique_quote_positions)
+
+                        logger.info(
+                            f"  ✓ Saved {len(saved_claim_ids)} claims, {quotes_saved} unique quotes"
+                        )
+                    else:
+                        saved_claim_ids = []
+                        quotes_saved = 0
+                        logger.info("  ✓ No new claims to save")
+
+                    stage_timings["database_save"] = time.time() - stage_start
+
+                    # Step 13: Commit atomic transaction (chunks + claims together)
+                    logger.info("Step 13/13: Committing atomic transaction (chunks + claims)...")
+                    db_session.commit()
+                    logger.info("  ✓ Transaction committed successfully")
+
+                except Exception as e:
+                    logger.error(f"Error saving to database: {e}", exc_info=True)
+                    db_session.rollback()
+                    logger.warning("Transaction rolled back")
+                    raise
+                finally:
+                    db_session.close()
+            else:
+                # API mode - skip database save
+                logger.info("Step 12/13: Skipping database save (API mode)")
+                saved_claim_ids = []
+                quotes_saved = 0
 
         except Exception as e:
             # Outer exception handler for extraction failures (before DB session opens)
@@ -960,14 +975,15 @@ class ExtractionPipeline:
         Priority order:
         1. Podscribe transcript (if available)
         2. Bankless transcript (if available)
-        3. Raise error if neither available
+        3. Assembly transcript (if available)
+        4. Raise error if none available
 
         Args:
             episode: Episode to get transcript from
 
         Returns:
             Tuple of (transcript_text, format_name)
-            format_name is "podscribe" or "bankless"
+            format_name is "podscribe", "bankless", or "assembly"
 
         Raises:
             ValueError: If episode has no transcript in any format
@@ -982,10 +998,15 @@ class ExtractionPipeline:
         if bankless_transcript:
             return (bankless_transcript, "bankless")
 
+        # Priority 3: Assembly
+        assembly_transcript = cast(Optional[str], episode.assembly_transcript)
+        if assembly_transcript:
+            return (assembly_transcript, "assembly")
+
         # No transcript available
         raise ValueError(
             f"Episode {episode.id} has no transcript "
-            f"(checked podscribe_transcript and bankless_transcript)"
+            f"(checked podscribe_transcript, bankless_transcript, and assembly_transcript)"
         )
 
     def _remap_quotes_to_claims(
