@@ -1,8 +1,8 @@
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
-from services.keyword_extraction_service import extract_keyword_and_topics
-from schemas.keyword_extraction_schema import (
+from src.api.services.keyword_extraction_service import extract_keyword_and_topics
+from src.api.schemas.keyword_extraction_schema import (
   KeywordExtractionRequest,
 )
 

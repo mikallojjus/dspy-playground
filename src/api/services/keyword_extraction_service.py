@@ -1,8 +1,8 @@
 import json
 import re
 from typing import Any, Dict, List, Tuple
-from prompts.keyword_extraction_prompt import KEYWORD_EXTRACTION_PROMPT
-from utils import llm_model
+from src.config.prompts.keyword_extraction_prompt import KEYWORD_EXTRACTION_PROMPT
+from src.api.utils import llm_model
 
 
 def extract_keyword_and_topics(

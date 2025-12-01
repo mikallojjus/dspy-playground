@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List
-from prompts.guest_extraction_prompt import GUEST_EXTRACTION_PROMPT
-from utils import llm_model
+from src.config.prompts.guest_extraction_prompt import GUEST_EXTRACTION_PROMPT
+from src.api.utils import llm_model
 
 
 def extract_podcast_guests(

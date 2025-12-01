@@ -1,8 +1,8 @@
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
-from services.guest_extraction_service import extract_podcast_guests
-from schemas.guest_extraction_schema import (
+from src.api.services.guest_extraction_service import extract_podcast_guests
+from src.api.schemas.guest_extraction_schema import (
   GuestExtractionRequest,
 )
 
