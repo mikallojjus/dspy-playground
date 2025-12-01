@@ -200,6 +200,28 @@ class Settings(BaseSettings):
         description="Minimum number of unverified claims an episode must have to be eligible for validation"
     )
 
+    # API Configuration
+    api_host: str = Field(
+        default="0.0.0.0",
+        description="API server host"
+    )
+    api_port: int = Field(
+        default=8000,
+        description="API server port"
+    )
+    api_timeout: int = Field(
+        default=0,
+        description="Maximum request timeout in seconds (0 = no timeout)"
+    )
+    cors_origins: str = Field(
+        default="http://localhost:3000,http://localhost:4000",
+        description="Comma-separated list of allowed CORS origins"
+    )
+    api_key: str = Field(
+        default="change-me-in-production",
+        description="API key for authentication (X-API-Key header)"
+    )
+
 
 # Global settings instance
 settings = Settings()

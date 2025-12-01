@@ -98,7 +98,9 @@ class EpisodeQueryService:
             logger.error(f"Episode {episode_id} not found")
             return None
 
-        if episode.podscribe_transcript is None and episode.bankless_transcript is None:
+        if (episode.podscribe_transcript is None and
+            episode.bankless_transcript is None and
+            episode.assembly_transcript is None):
             logger.error(f"Episode {episode_id} has no transcript")
             raise ValueError(f"Episode {episode_id} has no transcript")
 
@@ -124,7 +126,8 @@ class EpisodeQueryService:
                 PodcastEpisode.podcast_id == podcast_id,
                 or_(
                     PodcastEpisode.podscribe_transcript.isnot(None),
-                    PodcastEpisode.bankless_transcript.isnot(None)
+                    PodcastEpisode.bankless_transcript.isnot(None),
+                    PodcastEpisode.assembly_transcript.isnot(None)
                 )
             )
             .scalar()
@@ -200,7 +203,8 @@ class EpisodeQueryService:
                         PodcastEpisode.podcast_id == podcast_id,
                         or_(
                             PodcastEpisode.podscribe_transcript.isnot(None),
-                            PodcastEpisode.bankless_transcript.isnot(None)
+                            PodcastEpisode.bankless_transcript.isnot(None),
+                            PodcastEpisode.assembly_transcript.isnot(None)
                         )
                     )
                     .order_by(PodcastEpisode.published_at.desc().nulls_last())
@@ -249,7 +253,8 @@ class EpisodeQueryService:
             query = query.filter(
                 or_(
                     PodcastEpisode.podscribe_transcript.isnot(None),
-                    PodcastEpisode.bankless_transcript.isnot(None)
+                    PodcastEpisode.bankless_transcript.isnot(None),
+                    PodcastEpisode.assembly_transcript.isnot(None)
                 )
             )
 
@@ -340,7 +345,8 @@ class EpisodeQueryService:
         # Base filter
         episode_filter = or_(
             PodcastEpisode.podscribe_transcript.isnot(None),
-            PodcastEpisode.bankless_transcript.isnot(None)
+            PodcastEpisode.bankless_transcript.isnot(None),
+            PodcastEpisode.assembly_transcript.isnot(None)
         )
         if podcast_id is not None:
             episode_filter = and_(
@@ -452,7 +458,8 @@ class EpisodeQueryService:
                         PodcastEpisode.podcast_id == podcast_id,
                         or_(
                             PodcastEpisode.podscribe_transcript.isnot(None),
-                            PodcastEpisode.bankless_transcript.isnot(None)
+                            PodcastEpisode.bankless_transcript.isnot(None),
+                            PodcastEpisode.assembly_transcript.isnot(None)
                         )
                     )
                     .order_by(PodcastEpisode.published_at.desc().nulls_last())
@@ -515,7 +522,8 @@ class EpisodeQueryService:
                 .filter(
                     or_(
                         PodcastEpisode.podscribe_transcript.isnot(None),
-                        PodcastEpisode.bankless_transcript.isnot(None)
+                        PodcastEpisode.bankless_transcript.isnot(None),
+                        PodcastEpisode.assembly_transcript.isnot(None)
                     )
                 )
                 .join(Claim, Claim.episode_id == PodcastEpisode.id)
