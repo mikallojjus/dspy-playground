@@ -74,6 +74,10 @@ class EntailmentValidatorModel:
             print(result["relationship"])  # "SUPPORTS"
             ```
         """
+        # Note: This model uses global DSPy configuration (no custom overrides needed)
+        # Global config happens at import in src/config/dspy_config.py
+        # No dspy.context() needed because we don't require JSON schema or other customization
+
         if model_path is None:
             model_path = settings.entailment_validator_model_path
 
@@ -83,13 +87,8 @@ class EntailmentValidatorModel:
         if self.model_path.exists():
             logger.info(f"Loading optimized entailment validator from {model_path}")
 
-            # Configure DSPy
-            lm = dspy.LM(
-                f"ollama/{settings.ollama_model}",
-                api_base=settings.ollama_url,
-                num_ctx=32768
-            )
-            dspy.configure(lm=lm)
+            # Don't call dspy.configure() - use global configuration from dspy_config.py
+            # No custom LM needed (no JSON schema required)
 
             # Load optimized model
             self.model = dspy.ChainOfThought(EntailmentValidation)
@@ -110,13 +109,8 @@ class EntailmentValidatorModel:
                 "Run src/experiments/exp_4_1_optimize_entailment.py to create optimized model."
             )
 
-            # Configure DSPy for baseline
-            lm = dspy.LM(
-                f"ollama/{settings.ollama_model}",
-                api_base=settings.ollama_url,
-                num_ctx=32768
-            )
-            dspy.configure(lm=lm)
+            # Don't call dspy.configure() - use global configuration
+            # No custom LM needed
 
             # Create baseline model
             self.model = dspy.ChainOfThought(EntailmentValidation)

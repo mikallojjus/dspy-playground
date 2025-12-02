@@ -17,6 +17,8 @@ dependencies = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
     "rich>=13.7.0",
-    "fastapi>=0.110.0",
+    "fastapi[standard]>=0.121.2",
+    "langchain-core>=1.0.4",
+    "langchain-google-genai>=3.0.3",
     "uvicorn[standard]>=0.27.0",
 ]

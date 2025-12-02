@@ -1,5 +1,7 @@
 """Main FastAPI application."""
 
+import signal
+import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,7 +9,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 import requests
 
-from src.api.routers import extraction
+from src.api.routers import extraction, guest_extraction, keyword_extraction
 from src.api.exceptions import (
     database_exception_handler,
     generic_exception_handler,
@@ -19,12 +21,30 @@ from src.infrastructure.logger import get_logger
 logger = get_logger(__name__)
 
 
+# Signal handlers for graceful shutdown on Windows
+def handle_shutdown_signal(signum, frame):
+    """Handle shutdown signals (Ctrl+C) gracefully."""
+    logger.info(f"Received signal {signum}, initiating shutdown...")
+    # Close DSPy connections immediately
+    try:
+        from src.config.dspy_config import shutdown_dspy_configuration
+        shutdown_dspy_configuration()
+    except Exception as e:
+        logger.error(f"Error closing DSPy connections: {e}")
+    sys.exit(0)
+
+
+# Register signal handlers for both SIGINT (Ctrl+C) and SIGTERM
+signal.signal(signal.SIGINT, handle_shutdown_signal)
+signal.signal(signal.SIGTERM, handle_shutdown_signal)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     # Startup
     logger.info("=" * 80)
-    logger.info("Claim Extraction API Starting")
+    logger.info("Podcast Extraction API Starting")
     logger.info("=" * 80)
     logger.info(f"Host: {settings.api_host}:{settings.api_port}")
     logger.info(f"Timeout: {settings.api_timeout}s (0 = no timeout)")
@@ -36,37 +56,57 @@ async def lifespan(app: FastAPI):
     )
     logger.info(f"Quote Processing: {settings.enable_quote_processing}")
     logger.info("=" * 80)
+
+    # Validate DSPy configuration (fail-fast if Ollama unreachable)
+    logger.info("Validating DSPy configuration...")
+    try:
+        from src.config.dspy_startup import validate_dspy_configuration
+        validate_dspy_configuration()
+        logger.info("DSPy validation complete - models will initialize lazily on first request")
+    except Exception as e:
+        logger.error(f"DSPy validation failed: {e}", exc_info=True)
+        logger.critical("API cannot start without valid DSPy configuration")
+        raise
+
     logger.info("API Documentation: http://localhost:8000/docs")
     logger.info("=" * 80)
 
     yield
 
     # Shutdown
-    logger.info("Claim Extraction API shutting down")
+    logger.info("Podcast Extraction API shutting down")
+
+    # Close DSPy connections to prevent hanging on shutdown
+    try:
+        from src.config.dspy_config import shutdown_dspy_configuration
+        shutdown_dspy_configuration()
+    except Exception as e:
+        logger.error(f"Error during DSPy shutdown: {e}", exc_info=True)
+
+    logger.info("Shutdown complete")
 
 
 # Create FastAPI app
 app = FastAPI(
     lifespan=lifespan,
-    title="Claim Extraction API",
+    title="Podcast Extraction API",
     description="""
-    API for extracting claims and supporting quotes from podcast transcripts using DSPy.
+    API for extracting claims, guests, and keywords from podcast transcripts.
 
     ## Features
-    - Extract claims from single episodes
+    - **Claim Extraction**: Extract claims and supporting quotes from podcast transcripts using DSPy
+    - **Guest Extraction**: Extract podcast guest names and URLs using Gemini
+    - **Keyword Extraction**: Extract keywords and topics from episode data using Gemini
     - Batch processing across multiple podcasts
     - Automatic quote finding and validation
     - Confidence scoring and filtering
-    - Health checks for all services
 
     ## Processing
-    - Claims are extracted using DSPy LLM models
-    - Quotes are found via semantic search and validated for entailment
-    - Results are returned in the API response (not saved to database)
-    - Average processing time: ~6 minutes per episode
+    - Claims are extracted using DSPy LLM models (Ollama)
+    - Guests and keywords are extracted using Google Gemini
 
     ## Authentication
-    Currently no authentication is required. Add API key authentication as needed.
+    All endpoints require API key authentication via X-API-Key header.
     """,
     version="1.0.0",
     docs_url="/docs",
@@ -116,7 +156,9 @@ async def verify_api_key(request: Request, call_next):
 
 
 # Register routers
-app.include_router(extraction.router)
+app.include_router(extraction.router, tags=["claims"])
+app.include_router(guest_extraction.router, prefix="/extract", tags=["guests"])
+app.include_router(keyword_extraction.router, prefix="/extract", tags=["keywords"])
 
 # Register exception handlers
 app.add_exception_handler(SQLAlchemyError, database_exception_handler)
