@@ -125,7 +125,12 @@ class ClaimExtractorModel:
                 "Run claim extraction optimization experiment first."
             )
 
-        # Configure DSPy with Ollama
+        # Note: We use dspy.context() instead of dspy.configure() because:
+        # 1. Global dspy.configure() happens at module import (src/config/dspy_config.py)
+        # 2. This __init__ may run in async contexts during lazy initialization
+        # 3. dspy.context() is safe for async tasks, dspy.configure() is not
+        # 4. dspy.asyncify() captures the context-configured model for async execution
+
         logger.info(f"Configuring DSPy with Ollama at {settings.ollama_url}")
 
         # 🎯 STRUCTURED OUTPUT FIX: Use JSON schema for guided decoding
@@ -154,19 +159,18 @@ class ClaimExtractorModel:
             "required": ["reasoning", "claims"]
         }
 
-        lm = dspy.LM(
-            f"ollama/{settings.ollama_model}",
-            api_base=settings.ollama_url,
-            format=claims_schema,  # Constrain output to exact JSON schema (guided decoding)
-            num_ctx=32768,  # Set 32K context window to prevent truncation with large few-shot examples
-        )
-        dspy.configure(lm=lm)
-        logger.info("Configured with structured output (JSON schema for guided decoding)")
+        # Use dspy.context() to override global config with JSON schema
+        # This is safe in async contexts (recommended by DSPy)
+        from src.config.dspy_config import get_lm_with_schema
+        custom_lm = get_lm_with_schema(claims_schema)
 
-        # Load optimized model
-        logger.info(f"Loading optimized claim extractor from {model_path}")
-        self.model = dspy.ChainOfThought(ClaimExtraction)
-        self.model.load(str(self.model_path))
+        with dspy.context(lm=custom_lm):
+            logger.info("Configured with structured output (JSON schema for guided decoding)")
+
+            # Load optimized model
+            logger.info(f"Loading optimized claim extractor from {model_path}")
+            self.model = dspy.ChainOfThought(ClaimExtraction)
+            self.model.load(str(self.model_path))
 
         # Log few-shot examples count
         if hasattr(self.model, 'demos') and self.model.demos:

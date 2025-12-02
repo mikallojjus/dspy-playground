@@ -1,5 +1,7 @@
 """Main FastAPI application."""
 
+import signal
+import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +21,24 @@ from src.infrastructure.logger import get_logger
 logger = get_logger(__name__)
 
 
+# Signal handlers for graceful shutdown on Windows
+def handle_shutdown_signal(signum, frame):
+    """Handle shutdown signals (Ctrl+C) gracefully."""
+    logger.info(f"Received signal {signum}, initiating shutdown...")
+    # Close DSPy connections immediately
+    try:
+        from src.config.dspy_config import shutdown_dspy_configuration
+        shutdown_dspy_configuration()
+    except Exception as e:
+        logger.error(f"Error closing DSPy connections: {e}")
+    sys.exit(0)
+
+
+# Register signal handlers for both SIGINT (Ctrl+C) and SIGTERM
+signal.signal(signal.SIGINT, handle_shutdown_signal)
+signal.signal(signal.SIGTERM, handle_shutdown_signal)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
@@ -36,6 +56,18 @@ async def lifespan(app: FastAPI):
     )
     logger.info(f"Quote Processing: {settings.enable_quote_processing}")
     logger.info("=" * 80)
+
+    # Validate DSPy configuration (fail-fast if Ollama unreachable)
+    logger.info("Validating DSPy configuration...")
+    try:
+        from src.config.dspy_startup import validate_dspy_configuration
+        validate_dspy_configuration()
+        logger.info("DSPy validation complete - models will initialize lazily on first request")
+    except Exception as e:
+        logger.error(f"DSPy validation failed: {e}", exc_info=True)
+        logger.critical("API cannot start without valid DSPy configuration")
+        raise
+
     logger.info("API Documentation: http://localhost:8000/docs")
     logger.info("=" * 80)
 
@@ -43,6 +75,15 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Podcast Extraction API shutting down")
+
+    # Close DSPy connections to prevent hanging on shutdown
+    try:
+        from src.config.dspy_config import shutdown_dspy_configuration
+        shutdown_dspy_configuration()
+    except Exception as e:
+        logger.error(f"Error during DSPy shutdown: {e}", exc_info=True)
+
+    logger.info("Shutdown complete")
 
 
 # Create FastAPI app

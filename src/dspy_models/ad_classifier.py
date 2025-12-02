@@ -241,14 +241,13 @@ class AdClassifierModel:
                 "Run src/training/train_ad_classifier.py to create optimized model."
             )
 
-        # Configure DSPy with Ollama
-        logger.info(f"Configuring DSPy with Ollama at {settings.ollama_url}")
-        lm = dspy.LM(
-            f"ollama/{settings.ollama_model}",
-            api_base=settings.ollama_url,
-            num_ctx=32768
-        )
-        dspy.configure(lm=lm)
+        # Note: This model uses global DSPy configuration (no custom overrides needed)
+        # Global config happens at import in src/config/dspy_config.py
+
+        logger.info("Configuring DSPy with Ollama")
+
+        # Don't call dspy.configure() - use global configuration from dspy_config.py
+        # No custom LM needed (no JSON schema required)
 
         # Load optimized model (must use AdClassifier wrapper to match training structure)
         logger.info(f"Loading optimized ad classifier from {model_path}")
