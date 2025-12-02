@@ -116,8 +116,8 @@ async def verify_api_key(request: Request, call_next):
 
 # Register routers
 app.include_router(extraction.router, tags=["claims"])
-app.include_router(guest_extraction.router, prefix="/api", tags=["guest_extraction"])
-app.include_router(keyword_extraction.router, prefix="/api", tags=["keyword_extraction"])
+app.include_router(guest_extraction.router, prefix="/extract", tags=["guests"])
+app.include_router(keyword_extraction.router, prefix="/extract", tags=["keywords"])
 
 # Register exception handlers
 app.add_exception_handler(SQLAlchemyError, database_exception_handler)

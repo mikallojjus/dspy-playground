@@ -8,7 +8,7 @@ from src.api.schemas.guest_extraction_schema import (
 
 router = APIRouter()
 
-@router.post("/guest_extraction")
+@router.post("/guests")
 def guest_extraction(request: GuestExtractionRequest) -> JSONResponse:
   try:
     guests = extract_podcast_guests(

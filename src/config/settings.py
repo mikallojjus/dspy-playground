@@ -223,10 +223,6 @@ class Settings(BaseSettings):
         default=0,
         description="Maximum request timeout in seconds (0 = no timeout)"
     )
-    cors_origins: str = Field(
-        default="http://localhost:3000,http://localhost:4000",
-        description="Comma-separated list of allowed CORS origins"
-    )
     api_key: str = Field(
         default="change-me-in-production",
         description="API key for authentication (X-API-Key header)"
