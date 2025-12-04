@@ -17,8 +17,8 @@ router = APIRouter(prefix="/tags", tags=["tags"])
     response_model=TagQueryResponse,
     summary="Find and merge synonymous tags",
     description=(
-        "Returns merge directives (source -> target) and a delete list for synonymous tags "
-        "created between start_datetime and end_datetime (inclusive)."
+        "Returns merge directives (source -> target) for synonymous tags created between "
+        "start_datetime and end_datetime (inclusive)."
     ),
 )
 def merge_tags(
@@ -34,12 +34,9 @@ def merge_tags(
     )
 
     service = TagService(db)
-    merges, deletes = service.fetch_tag_merge_snapshot(
+    merges = service.fetch_tag_merge_snapshot(
         start_datetime=request.start_datetime,
         end_datetime=request.end_datetime,
     )
 
-    return TagQueryResponse(
-        merges=[TagMergeDirectiveResponse(**merge) for merge in merges],
-        deletes=deletes,
-    )
+    return TagQueryResponse(merges=[TagMergeDirectiveResponse(**merge) for merge in merges])

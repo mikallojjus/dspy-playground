@@ -3,7 +3,7 @@
 import json
 import re
 from datetime import datetime
-from typing import Dict, Tuple
+from typing import Dict
 
 import faiss
 import numpy as np
@@ -44,9 +44,9 @@ class TagService:
 
     def fetch_tag_merge_snapshot(
         self, start_datetime: datetime, end_datetime: datetime
-    ) -> Tuple[list[Dict[str, int]], list[int]]:
+    ) -> list[Dict[str, int]]:
         """
-        Return merge directives (by id) and tags that should be deleted (by id).
+        Return merge directives (by id) for tags created in the given window.
         """
         tags_in_range = self.fetch_tags_in_range(start_datetime, end_datetime)
         all_tags = self.fetch_all_tags()
@@ -63,8 +63,7 @@ class TagService:
             logger.exception("Failed to build tag synonym suggestions", extra={"error": str(exc)})
             synonym_suggestions = self._build_fallback_suggestions(tags_in_range, candidate_map)
 
-        merges, deletes = self._build_merge_plan(synonym_suggestions, tags_in_range, all_tags)
-        return merges, deletes
+        return self._build_merge_plan(synonym_suggestions, tags_in_range, all_tags)
 
     def _find_synonym_candidates(
         self,
@@ -246,13 +245,12 @@ class TagService:
         synonym_suggestions: list[Dict[str, list[str]]],
         tags_in_range: list[Tag],
         all_tags: list[Tag],
-    ) -> Tuple[list[Dict[str, int]], list[int]]:
+    ) -> list[Dict[str, int]]:
         """
-        Build a list of merge directives (source -> target) and tags to delete,
-        flattening transitive chains (e.g., 1->2->3 becomes 1->3,2->3).
+        Build a list of merge directives (source -> target) using direct suggestions.
         """
         if not synonym_suggestions:
-            return [], []
+            return []
 
         tag_by_name: Dict[str, Tag] = {tag.name: tag for tag in all_tags}
         tag_by_id: Dict[int, Tag] = {tag.id: tag for tag in all_tags}
@@ -287,40 +285,18 @@ class TagService:
             direct_mapping[source_tag.id] = target_tag.id
 
         if not direct_mapping:
-            return [], []
-
-        def find_root(tag_id: int) -> int:
-            seen: set[int] = set()
-            current = tag_id
-            while current in direct_mapping and current not in seen:
-                seen.add(current)
-                current = direct_mapping[current]
-            root = current
-            for visited in seen:
-                direct_mapping[visited] = root
-            return root
+            return []
 
         merges: list[Dict[str, int]] = []
-        merges_seen: set[Tuple[int, int]] = set()
-        delete_ids: set[int] = set()
-
-        for source_id in list(direct_mapping.keys()):
-            target_id = find_root(source_id)
-            if target_id == source_id:
+        for source_id, target_id in direct_mapping.items():
+            if source_id == target_id:
                 continue
-            delete_ids.add(source_id)
-            pair_key = (source_id, target_id)
-            if pair_key in merges_seen:
-                continue
-            merges_seen.add(pair_key)
             source_tag = tag_by_id.get(source_id)
             target_tag = tag_by_id.get(target_id)
             if source_tag and target_tag:
                 merges.append({"source_tag_id": source_tag.id, "target_tag_id": target_tag.id})
 
-        # Include intermediate sources that became part of a chain in delete set.
-        delete_ids = {tag_id for tag_id in delete_ids if tag_id in tag_by_id}
-        return merges, sorted(delete_ids)
+        return merges
 
     @staticmethod
     def _tag_to_text(tag: Tag) -> str:

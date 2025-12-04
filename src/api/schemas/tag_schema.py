@@ -44,13 +44,9 @@ class TagMergeDirectiveResponse(BaseModel):
 
 
 class TagQueryResponse(BaseModel):
-    """Response containing merge directives and tags to delete."""
+    """Response containing merge directives."""
 
     merges: list[TagMergeDirectiveResponse] = Field(
         default_factory=list,
         description="Simplified merge directives (source -> target)",
-    )
-    deletes: list[int] = Field(
-        default_factory=list,
-        description="Tag ids that should be deleted after merging",
     )
