@@ -55,6 +55,9 @@ class TagService:
         candidate_map: Dict[int, list[Tag]] = {}
         try:
             candidate_map = self._find_synonym_candidates(tags_in_range, all_tags)
+            candidate_map = {
+                tag_id: candidates for tag_id, candidates in candidate_map.items() if candidates
+            }
             synonym_suggestions = self._score_candidates_with_llm(tags_in_range, candidate_map)
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.exception("Failed to build tag synonym suggestions", extra={"error": str(exc)})
@@ -139,20 +142,19 @@ class TagService:
         """
         Run the merge prompt to pick exact synonym matches from the embedding candidates.
         """
-        batch_size = 5
-        prompt_payload = [
-            {
-                "keyword": tag.name,
-                "candidate_tags": [candidate.name for candidate in candidates_by_tag.get(tag.id, [])],
-            }
-            for tag in tags_in_range
-        ]
+        batch_size = 100
+        prompt_payload: list[dict[str, list[str]]] = []
+        skipped_keywords: list[str] = []
+
+        for tag in tags_in_range:
+            candidate_tags = [candidate.name for candidate in candidates_by_tag.get(tag.id, [])]
+            if candidate_tags:
+                prompt_payload.append({"keyword": tag.name, "candidate_tags": candidate_tags})
+            else:
+                skipped_keywords.append(tag.name)
 
         if not prompt_payload:
-            return []
-
-        if not any(entry["candidate_tags"] for entry in prompt_payload):
-            return [{"keyword": entry["keyword"], "exact_synonyms": []} for entry in prompt_payload]
+            return [{"keyword": keyword, "exact_synonyms": []} for keyword in skipped_keywords]
 
         chain = llm_model.build_chain(prompt=MERGE_TAG_PROMPT)
         results: list[Dict[str, list[str]]] = []
@@ -165,7 +167,12 @@ class TagService:
             parsed_response = self._parse_llm_json_response(raw_response)
             results.extend(self._normalize_llm_output(batch, parsed_response))
 
-        return results
+        results_by_keyword = {entry["keyword"]: entry.get("exact_synonyms", []) for entry in results}
+
+        return [
+            {"keyword": tag.name, "exact_synonyms": results_by_keyword.get(tag.name, [])}
+            for tag in tags_in_range
+        ]
 
     @staticmethod
     def _parse_llm_json_response(raw_response: str) -> list:
