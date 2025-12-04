@@ -21,4 +21,5 @@ dependencies = [
     "langchain-core>=1.0.4",
     "langchain-google-genai>=3.0.3",
     "uvicorn[standard]>=0.27.0",
+    "sentence-transformers>=5.1.2",
 ]
