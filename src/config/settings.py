@@ -210,6 +210,16 @@ class Settings(BaseSettings):
         description="Temperature for extraction tasks (0 = deterministic)"
     )
 
+    # Premium Claim Extraction (Gemini 3)
+    gemini_premium_model: str = Field(
+        default="gemini-3-pro-preview",
+        description="Gemini 3 model for premium claim extraction (1M context)"
+    )
+    gemini_premium_temperature: float = Field(
+        default=0.2,
+        description="Temperature for premium extraction (0 = deterministic)"
+    )
+
     # API Configuration
     api_host: str = Field(
         default="0.0.0.0",

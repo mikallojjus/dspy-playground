@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 import requests
 
-from src.api.routers import extraction, guest_extraction, keyword_extraction, tags
+from src.api.routers import extraction, guest_extraction, keyword_extraction, validation, tags
 from src.api.exceptions import (
     database_exception_handler,
     generic_exception_handler,
@@ -160,6 +160,7 @@ async def verify_api_key(request: Request, call_next):
 app.include_router(extraction.router, tags=["claims"])
 app.include_router(guest_extraction.router, prefix="/extract", tags=["guests"])
 app.include_router(keyword_extraction.router, prefix="/extract", tags=["keywords"])
+app.include_router(validation.router, tags=["validation"])
 app.include_router(tags.router, prefix="/extract", tags=["tags"])
 
 # Register exception handlers
