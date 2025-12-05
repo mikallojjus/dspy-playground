@@ -33,7 +33,7 @@ class EpisodeQueryService:
     Features:
     - Filter by podcast_id (or all podcasts)
     - Skip already-processed episodes (unless force=True)
-    - Order by newest first (published_at DESC)
+    - Order by newest first (air_date DESC)
     - Limit number of episodes
     - Check processing status
 
@@ -146,7 +146,7 @@ class EpisodeQueryService:
 
         Query logic:
         1. For each podcast (when podcast_ids + target specified):
-           a. Get the latest `target` episodes with transcripts (by published_at DESC)
+           a. Get the latest `target` episodes with transcripts (by air_date DESC)
            b. Among those, find which don't have claims yet
            c. Return those for processing
         2. When target=0 or no podcast_ids: get all unprocessed episodes with transcripts
@@ -207,7 +207,7 @@ class EpisodeQueryService:
                             PodcastEpisode.assembly_transcript.isnot(None)
                         )
                     )
-                    .order_by(PodcastEpisode.published_at.desc().nulls_last())
+                    .order_by(PodcastEpisode.air_date.desc().nulls_last())
                     .limit(target)
                 )
                 latest_episode_ids = [row[0] for row in latest_episode_ids_query.all()]
@@ -224,7 +224,7 @@ class EpisodeQueryService:
                     .filter(PodcastEpisode.id.in_(latest_episode_ids))
                     .outerjoin(Claim, Claim.episode_id == PodcastEpisode.id)
                     .filter(Claim.id.is_(None))  # No claims = unprocessed
-                    .order_by(PodcastEpisode.published_at.desc().nulls_last())
+                    .order_by(PodcastEpisode.air_date.desc().nulls_last())
                 )
 
                 podcast_episodes = unprocessed_episodes_query.all()
@@ -273,8 +273,8 @@ class EpisodeQueryService:
                 )  # No claims = not processed
                 logger.debug("Filtering to unprocessed episodes only (force=False)")
 
-            # Order by newest first (published_at DESC), NULL dates last
-            query = query.order_by(PodcastEpisode.published_at.desc().nulls_last())
+            # Order by newest first (air_date DESC), NULL dates last
+            query = query.order_by(PodcastEpisode.air_date.desc().nulls_last())
 
             # Note: target is not applied in this path (target=0 means no limit)
             # This path is used for: get all unprocessed episodes
@@ -407,7 +407,7 @@ class EpisodeQueryService:
 
         Query logic:
         1. For each podcast (when podcast_ids + target specified):
-           a. Get the latest `target` episodes with transcripts (by published_at DESC)
+           a. Get the latest `target` episodes with transcripts (by air_date DESC)
            b. Among those, find which have unverified claims
            c. Return those for validation
         2. When target=0 or no podcast_ids: get all episodes with unverified claims
@@ -462,7 +462,7 @@ class EpisodeQueryService:
                             PodcastEpisode.assembly_transcript.isnot(None)
                         )
                     )
-                    .order_by(PodcastEpisode.published_at.desc().nulls_last())
+                    .order_by(PodcastEpisode.air_date.desc().nulls_last())
                     .limit(target)
                 )
                 latest_episode_ids = [row[0] for row in latest_episode_ids_query.all()]
@@ -483,7 +483,7 @@ class EpisodeQueryService:
                     .join(Claim, Claim.episode_id == PodcastEpisode.id)
                     .filter(Claim.is_verified == False)  # Has unverified claims
                     .distinct()
-                    .order_by(PodcastEpisode.published_at.desc().nulls_last())
+                    .order_by(PodcastEpisode.air_date.desc().nulls_last())
                 )
 
                 podcast_episodes = episodes_with_unverified_query.all()
@@ -536,8 +536,8 @@ class EpisodeQueryService:
                 query = query.filter(PodcastEpisode.podcast_id.in_(podcast_ids))
                 logger.debug(f"Filtering by podcast_ids={podcast_ids}")
 
-            # Order by newest first (published_at DESC), NULL dates last
-            query = query.order_by(PodcastEpisode.published_at.desc().nulls_last())
+            # Order by newest first (air_date DESC), NULL dates last
+            query = query.order_by(PodcastEpisode.air_date.desc().nulls_last())
 
             # Execute query
             episodes = query.all()

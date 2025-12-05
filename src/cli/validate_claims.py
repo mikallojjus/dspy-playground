@@ -186,7 +186,7 @@ def display_summary(
     if len(episodes) > 0:
         console.print("[bold]Episodes to validate (first 5):[/bold]")
         for i, episode in enumerate(episodes[:5], 1):
-            date_str = episode.published_at.strftime("%Y-%m-%d") if episode.published_at is not None else "No date"
+            date_str = episode.air_date.strftime("%Y-%m-%d") if episode.air_date is not None else "No date"
             console.print(f"  {i}. [cyan]Episode {episode.id}[/cyan]: {episode.name} ({date_str})")
 
         if len(episodes) > 5:
