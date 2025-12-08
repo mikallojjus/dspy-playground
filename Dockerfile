@@ -28,5 +28,5 @@ ENV PORT=8000
 # Expose port (Railway will override with its own PORT)
 EXPOSE 8000
 
-# Start command (Railway will use this if no Procfile/railway.toml)
-CMD ["sh", "-c", "uv run uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start command (uses server.py which reads PORT from env or defaults to 8000)
+CMD ["uv", "run", "python", "-m", "src.api.server"]
