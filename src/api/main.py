@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 80)
     logger.info("Podcast Extraction API Starting")
     logger.info("=" * 80)
-    logger.info(f"Host: {settings.api_host}:{settings.api_port}")
+    logger.info(f"Host: {settings.api_host}:{settings.port}")
     logger.info(f"Timeout: {settings.api_timeout}s (0 = no timeout)")
     logger.info(f"Database: {settings.database_url}")
     logger.info(f"Ollama: {settings.ollama_url}")

@@ -11,7 +11,7 @@ Usage:
     print(settings.ollama_url)
 """
 
-from pydantic import Field, AliasChoices
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -231,10 +231,9 @@ class Settings(BaseSettings):
         default="0.0.0.0",
         description="API server host"
     )
-    api_port: int = Field(
+    port: int = Field(
         default=8000,
-        description="API server port (Railway sets this via PORT env var)",
-        validation_alias=AliasChoices("api_port", "PORT")
+        description="API server port (Railway sets this via PORT env var)"
     )
     api_timeout: int = Field(
         default=0,
