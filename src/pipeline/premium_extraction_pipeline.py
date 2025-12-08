@@ -55,9 +55,14 @@ class PremiumExtractionPipeline:
 
         self.parser = TranscriptParser()
         self.premium_extractor = PremiumClaimExtractor()
-        self.embedder = EmbeddingService()
 
-        logger.info("Premium pipeline ready (no chunking, no dedup, no quotes)")
+        # Only initialize embedder if embeddings are enabled
+        if settings.enable_embeddings:
+            self.embedder = EmbeddingService()
+            logger.info("Premium pipeline ready (no chunking, no dedup, no quotes)")
+        else:
+            self.embedder = None
+            logger.info("Premium pipeline ready (no chunking, no dedup, no quotes, no embeddings)")
 
     async def process_episode(
         self,
@@ -142,23 +147,27 @@ class PremiumExtractionPipeline:
             db_session = get_db_session()
 
             try:
-                # Generate embeddings for all claims
-                logger.info("  Generating embeddings for claims...")
-                for claim in claims:
-                    embedding = await self.embedder.embed_text(claim.claim_text)
-                    claim.metadata["embedding"] = embedding
+                # Generate embeddings for all claims (if enabled)
+                if settings.enable_embeddings:
+                    logger.info("  Generating embeddings for claims...")
+                    for claim in claims:
+                        embedding = await self.embedder.embed_text(claim.claim_text)
+                        claim.metadata["embedding"] = embedding
+                else:
+                    logger.info("  Skipping embedding generation (ENABLE_EMBEDDINGS=false)")
 
                 # Save claims to database
                 logger.info("  Saving claims to database...")
                 repo = ClaimRepository(db_session)
                 saved_claim_ids = await repo.save_claims(claims, episode_id)
 
-                # Update embeddings
-                embeddings_dict = {
-                    claim_id: claim.metadata["embedding"]
-                    for claim_id, claim in zip(saved_claim_ids, claims)
-                }
-                await repo.update_claim_embeddings(embeddings_dict)
+                # Update embeddings (if enabled)
+                if settings.enable_embeddings:
+                    embeddings_dict = {
+                        claim_id: claim.metadata["embedding"]
+                        for claim_id, claim in zip(saved_claim_ids, claims)
+                    }
+                    await repo.update_claim_embeddings(embeddings_dict)
 
                 logger.info(f"  ✓ Saved {len(saved_claim_ids)} claims to database")
 

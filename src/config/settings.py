@@ -11,7 +11,7 @@ Usage:
     print(settings.ollama_url)
 """
 
-from pydantic import Field
+from pydantic import Field, AliasChoices
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     enable_quote_processing: bool = Field(
         default=True,
         description="Enable quote finding and entailment validation (disable for faster extraction without quotes)"
+    )
+
+    # Embeddings
+    enable_embeddings: bool = Field(
+        default=True,
+        description="Enable embedding generation and storage (disable for deployment without embedding service)"
     )
 
     # Chunking
@@ -227,7 +233,8 @@ class Settings(BaseSettings):
     )
     api_port: int = Field(
         default=8000,
-        description="API server port"
+        description="API server port (Railway sets this via PORT env var)",
+        validation_alias=AliasChoices("api_port", "PORT")
     )
     api_timeout: int = Field(
         default=0,
