@@ -17,7 +17,7 @@ Your task has THREE parts:
 
 PART 1 - Generate Keywords (Free-form):
 Generate {min_keywords}-{max_keywords} NEW keywords that capture the main themes and concepts discussed in the episode.
-- Create NEW keywords based on episode content (do NOT limit to topics list above)
+- Create NEW keywords based on episode content (do NOT use the topics list above)
 - Use sentence case capitalization (first letter capitalized, rest lowercase unless proper noun)
 - Examples of good keywords: "Neural networks", "Quantum computing", "Climate policy", "Economic growth", "Military strategy", "Game design", "Cryptocurrency trading"
 - Focus on specific concepts, technologies, people, events, or ideas discussed
@@ -28,6 +28,8 @@ Generate {min_keywords}-{max_keywords} NEW keywords that capture the main themes
 - Use the standard, canonical name, prefer the wording you’d expect as a Wikipedia article title.
 - Use full names: European Central Bank, Google DeepMind, European Union, etc.
 - Disambiguate explicitly. If a term has multiple meanings or interpretations., add a clear qualifier that makes the meaning clear in context. Pattern: Inflation (Economy), Inflation (cosmology), AI Alignment, Marketing alignment etc.
+- Do not include the guest or host of the episode as the keyword
+- Make sure the keywords are not ambiguous and have distinct meaning
 
 PART 2 - Select Topics (From provided list):
 Select {min_topics}-{max_topics} topics from the Available Topics list above that are relevant to the episode.
