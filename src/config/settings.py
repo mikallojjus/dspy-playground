@@ -148,6 +148,10 @@ class Settings(BaseSettings):
     vector_distance_threshold: float = Field(
         default=0.15, description="pgvector L2 distance threshold for database search"
     )
+    tag_fetch_batch_size: int = Field(
+        default=1000,
+        description="Batch size when streaming tags for merge suggestions or embedding searches",
+    )
 
     # Scoring
     min_confidence: float = Field(

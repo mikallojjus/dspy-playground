@@ -3,7 +3,7 @@
 import json
 import re
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List, Tuple
 
 import faiss
 import numpy as np
@@ -28,6 +28,7 @@ class TagService:
         self._query_service = TagQueryService(db_session)
         self._encoder = SentenceTransformer("all-MiniLM-L6-v2")
         self._similarity_threshold = settings.embedding_similarity_threshold
+        self._tag_batch_size = settings.tag_fetch_batch_size
 
     def fetch_tags_in_range(self, start_datetime: datetime, end_datetime: datetime) -> list[Tag]:
         """Return tags created within the provided datetime window."""
@@ -49,18 +50,22 @@ class TagService:
         Return merge directives (by id) for tags created in the given window.
         """
         tags_in_range = self.fetch_tags_in_range(start_datetime, end_datetime)
-        all_tags = self.fetch_all_tags()
 
         synonym_suggestions: list[Dict[str, list[str]]] = []
         candidate_map: Dict[int, list[Tag]] = {}
+        all_tags: list[Tag] = []
         try:
-            candidate_map = self._find_synonym_candidates(tags_in_range, all_tags)
+            candidate_map, all_tags = self._find_synonym_candidates(
+                tags_in_range, top_k=10, batch_size=self._tag_batch_size
+            )
             candidate_map = {
                 tag_id: candidates for tag_id, candidates in candidate_map.items() if candidates
             }
             synonym_suggestions = self._score_candidates_with_llm(tags_in_range, candidate_map)
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.exception("Failed to build tag synonym suggestions", extra={"error": str(exc)})
+            if not all_tags:
+                all_tags = self._collect_all_tags()
             synonym_suggestions = self._build_fallback_suggestions(tags_in_range, candidate_map)
 
         return self._build_merge_plan(synonym_suggestions, tags_in_range, all_tags)
@@ -68,49 +73,67 @@ class TagService:
     def _find_synonym_candidates(
         self,
         tags_in_range: list[Tag],
-        all_tags: list[Tag],
         top_k: int = 10,
-    ) -> Dict[int, list[Tag]]:
+        batch_size: int | None = None,
+    ) -> Tuple[Dict[int, list[Tag]], list[Tag]]:
         """
-        Use FAISS to find likely synonym candidates between range tags and the global set.
-        Returns a mapping of tag_id -> candidate tags.
+        Use FAISS to find likely synonym candidates between range tags and the global set,
+        fetching tags in batches to reduce memory pressure.
+
+        Returns:
+            (mapping of tag_id -> candidate tags, all indexed tags)
         """
-        if not tags_in_range or not all_tags:
-            return {}
+        if not tags_in_range:
+            return {}, []
 
-        tag_texts = [self._tag_to_text(tag) for tag in all_tags]
-        all_embeddings = self._encoder.encode(
-            tag_texts,
-            convert_to_numpy=True,
-            normalize_embeddings=True,
-            show_progress_bar=False,
-        )
-        all_embeddings = np.asarray(all_embeddings, dtype="float32")
-        faiss.normalize_L2(all_embeddings)
+        batch_size = batch_size or self._tag_batch_size
+        range_tag_ids = {tag.id for tag in tags_in_range if tag.id is not None}
 
-        if all_embeddings.size == 0:
-            return {}
+        index: faiss.IndexFlatIP | None = None
+        indexed_tags: list[Tag] = []
+        tag_index_by_id: Dict[int, int] = {}
+        cached_range_embeddings: Dict[int, np.ndarray] = {}
 
-        index = faiss.IndexFlatIP(all_embeddings.shape[1])
-        index.add(all_embeddings)
+        for batch in self._query_service.iter_all_tags(batch_size=batch_size):
+            if not batch:
+                continue
 
-        # Prefer the embedding we already computed if the tag exists in all_tags.
-        tag_index_by_id = {tag.id: idx for idx, tag in enumerate(all_tags)}
-        search_k = min(len(all_tags), top_k + 1)  # +1 to allow skipping self-match.
+            tag_texts = [self._tag_to_text(tag) for tag in batch]
+            embeddings = self._encode_tag_texts(tag_texts)
+            if embeddings.size == 0:
+                continue
 
+            if index is None:
+                index = faiss.IndexFlatIP(embeddings.shape[1])
+            index.add(embeddings)
+
+            start_idx = len(indexed_tags)
+            indexed_tags.extend(batch)
+
+            for offset, tag in enumerate(batch):
+                global_idx = start_idx + offset
+                tag_index_by_id[tag.id] = global_idx
+                if tag.id in range_tag_ids:
+                    cached_range_embeddings[tag.id] = embeddings[offset : offset + 1]
+
+        if index is None or not indexed_tags:
+            return {}, indexed_tags
+
+        # Ensure merge planning can see the queried tags even if they were filtered out of the stream.
+        indexed_tag_ids = {tag.id for tag in indexed_tags}
+        for tag in tags_in_range:
+            if tag.id not in indexed_tag_ids:
+                indexed_tags.append(tag)
+
+        search_k = min(index.ntotal, top_k + 1)  # +1 to allow skipping self-match.
+        if search_k == 0:
+            return {}, indexed_tags
         candidates_by_tag: Dict[int, list[Tag]] = {}
 
         for source_tag in tags_in_range:
-            if source_tag.id in tag_index_by_id:
-                query_vector = all_embeddings[tag_index_by_id[source_tag.id]].reshape(1, -1)
-            else:
-                query_vector = self._encoder.encode(
-                    [self._tag_to_text(source_tag)],
-                    convert_to_numpy=True,
-                    normalize_embeddings=True,
-                    show_progress_bar=False,
-                ).astype("float32")
-                faiss.normalize_L2(query_vector)
+            query_vector = cached_range_embeddings.get(source_tag.id)
+            if query_vector is None:
+                query_vector = self._encode_tag_texts([self._tag_to_text(source_tag)])
 
             similarities, neighbor_indices = index.search(query_vector, search_k)
 
@@ -118,7 +141,7 @@ class TagService:
             for score, neighbor_idx in zip(similarities[0], neighbor_indices[0]):
                 if neighbor_idx == -1:
                     continue
-                candidate_tag = all_tags[neighbor_idx]
+                candidate_tag = indexed_tags[neighbor_idx]
                 if candidate_tag.id == source_tag.id:
                     continue
                 if score < self._similarity_threshold:
@@ -131,7 +154,7 @@ class TagService:
 
             candidates_by_tag.setdefault(source_tag.id, [])
 
-        return candidates_by_tag
+        return candidates_by_tag, indexed_tags
 
     def _score_candidates_with_llm(
         self,
@@ -314,3 +337,27 @@ class TagService:
             show_progress_bar=False,
         )
         return np.asarray(embedding, dtype="float32").tolist()
+
+    def _encode_tag_texts(self, tag_texts: List[str]) -> np.ndarray:
+        """Encode a batch of tag texts into normalized embeddings."""
+        if not tag_texts:
+            return np.asarray([], dtype="float32")
+
+        embeddings = self._encoder.encode(
+            tag_texts,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+            show_progress_bar=False,
+        )
+        embeddings = np.asarray(embeddings, dtype="float32")
+        if embeddings.ndim == 1:
+            embeddings = embeddings.reshape(1, -1)
+        faiss.normalize_L2(embeddings)
+        return embeddings
+
+    def _collect_all_tags(self) -> list[Tag]:
+        """Collect all tags in batches to avoid a single large fetch."""
+        collected: list[Tag] = []
+        for batch in self._query_service.iter_all_tags(batch_size=self._tag_batch_size):
+            collected.extend(batch)
+        return collected

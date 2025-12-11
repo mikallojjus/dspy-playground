@@ -5,7 +5,7 @@ Provides helpers to fetch tags or filter them by creation date.
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -54,6 +54,34 @@ class TagQueryService:
             .order_by(Tag.created_at.desc().nulls_last(), Tag.id.desc())
             .all()
         )
+
+    def iter_all_tags(self, batch_size: int = 1000) -> Iterable[List[Tag]]:
+        """
+        Stream all tags in descending creation order in batches.
+
+        Args:
+            batch_size: Number of rows to fetch per batch
+
+        Yields:
+            Lists of Tag objects up to batch_size in length
+        """
+        logger.info("Streaming all tags in batches", extra={"batch_size": batch_size})
+
+        query = (
+            self.session.query(Tag)
+            .order_by(Tag.created_at.desc().nulls_last(), Tag.id.desc())
+            .yield_per(batch_size)
+        )
+
+        batch: List[Tag] = []
+        for tag in query:
+            batch.append(tag)
+            if len(batch) >= batch_size:
+                yield batch
+                batch = []
+
+        if batch:
+            yield batch
 
     def get_tags_created_between(self, start: datetime, end: datetime) -> List[Tag]:
         """
