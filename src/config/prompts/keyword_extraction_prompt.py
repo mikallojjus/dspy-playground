@@ -28,7 +28,7 @@ Generate {min_keywords}-{max_keywords} NEW keywords that capture the main themes
 - Use the standard, canonical name, prefer the wording you’d expect as a Wikipedia article title.
 - Use full names: European Central Bank, Google DeepMind, European Union, etc.
 - Disambiguate explicitly. If a term has multiple meanings or interpretations., add a clear qualifier that makes the meaning clear in context. Pattern: Inflation (Economy), Inflation (cosmology), AI Alignment, Marketing alignment etc.
-- Do not include the guest or host of the episode as the keyword
+- Do not include the guest or host of the episode as the keyword, Do not include any person's name as a keyword
 - Make sure the keywords are not ambiguous and have distinct meaning
 
 PART 2 - Select Topics (From provided list):
