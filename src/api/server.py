@@ -9,7 +9,7 @@ def main():
     uvicorn.run(
         "src.api.main:app",
         host=settings.api_host,
-        port=settings.api_port,
+        port=settings.port,
         reload=False,  # Set to True for development
         log_level="info",
         timeout_keep_alive=settings.api_timeout,

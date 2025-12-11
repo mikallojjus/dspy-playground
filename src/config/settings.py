@@ -62,6 +62,12 @@ class Settings(BaseSettings):
         description="Enable quote finding and entailment validation (disable for faster extraction without quotes)"
     )
 
+    # Embeddings
+    enable_embeddings: bool = Field(
+        default=True,
+        description="Enable embedding generation and storage (disable for deployment without embedding service)"
+    )
+
     # Chunking
     chunk_size: int = Field(
         default=16000, description="Maximum chunk size in characters"
@@ -225,9 +231,9 @@ class Settings(BaseSettings):
         default="0.0.0.0",
         description="API server host"
     )
-    api_port: int = Field(
+    port: int = Field(
         default=8000,
-        description="API server port"
+        description="API server port (Railway sets this via PORT env var)"
     )
     api_timeout: int = Field(
         default=0,
