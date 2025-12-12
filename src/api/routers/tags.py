@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from src.api.dependencies import get_db
-from src.api.schemas.tag_schema import TagMergeDirectiveResponse, TagQueryRequest, TagQueryResponse
+from src.api.schemas.tag_schema import (
+    TagMergeDirectiveResponse,
+    TagQueryRequest,
+    TagQueryResponse,
+    TagUpdateDirectiveResponse,
+)
 from src.api.services.tag_service import TagService
 from src.infrastructure.logger import get_logger
 
@@ -34,9 +39,12 @@ def merge_tags(
     )
 
     service = TagService(db)
-    merges = service.fetch_tag_merge_snapshot(
+    merge_snapshot = service.fetch_tag_merge_snapshot(
         start_datetime=request.start_datetime,
         end_datetime=request.end_datetime,
     )
 
-    return TagQueryResponse(merges=[TagMergeDirectiveResponse(**merge) for merge in merges])
+    merges = [TagMergeDirectiveResponse(**merge) for merge in merge_snapshot.get("merges", [])]
+    updates = [TagUpdateDirectiveResponse(**update) for update in merge_snapshot.get("updates", [])]
+
+    return TagQueryResponse(merges=merges, updates=updates)

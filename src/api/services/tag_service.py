@@ -12,7 +12,7 @@ from sentence_transformers import SentenceTransformer
 
 from src.api.utils import llm_model
 from src.cli.tag_query import TagQueryService
-from src.config.prompts.merge_tag_prompt import MERGE_TAG_PROMPT
+from src.config.prompts.merge_tag_prompt import MERGE_TAG_PROMPT, TAG_CHECKER_PROMPT
 from src.config.settings import settings
 from src.database.models import Tag
 from src.infrastructure.logger import get_logger
@@ -45,15 +45,16 @@ class TagService:
 
     def fetch_tag_merge_snapshot(
         self, start_datetime: datetime, end_datetime: datetime
-    ) -> list[Dict[str, int]]:
+    ) -> dict[str, list[Dict[str, int | str]]]:
         """
-        Return merge directives (by id) for tags created in the given window.
+        Return merge directives (by id) and tag update suggestions for tags created in the window.
         """
         tags_in_range = self.fetch_tags_in_range(start_datetime, end_datetime)
 
         synonym_suggestions: list[Dict[str, list[str]]] = []
         candidate_map: Dict[int, list[Tag]] = {}
         all_tags: list[Tag] = []
+        merge_plan: dict[str, list[Dict[str, int | str]]] = {"merges": [], "updates": []}
         try:
             candidate_map, all_tags = self._find_synonym_candidates(
                 tags_in_range, top_k=10, batch_size=self._tag_batch_size
@@ -68,7 +69,32 @@ class TagService:
                 all_tags = self._collect_all_tags()
             synonym_suggestions = self._build_fallback_suggestions(tags_in_range, candidate_map)
 
-        return self._build_merge_plan(synonym_suggestions, tags_in_range, all_tags)
+        merge_plan = self._build_merge_plan(synonym_suggestions, tags_in_range, all_tags)
+        try:
+            updates, extra_merges = self._build_tag_updates(
+                synonym_suggestions,
+                merge_plan.get("merges", []),
+                tags_in_range,
+                all_tags,
+            )
+            merge_plan["updates"] = updates
+            if extra_merges:
+                existing_pairs = {
+                    (merge["source_tag_id"], merge["target_tag_id"])
+                    for merge in merge_plan.get("merges", [])
+                    if isinstance(merge, dict)
+                }
+                for merge in extra_merges:
+                    pair = (merge.get("source_tag_id"), merge.get("target_tag_id"))
+                    if pair in existing_pairs:
+                        continue
+                    merge_plan.setdefault("merges", []).append(merge)
+                    existing_pairs.add(pair)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.exception("Failed to build tag update suggestions", extra={"error": str(exc)})
+            merge_plan["updates"] = []
+
+        return merge_plan
 
     def _find_synonym_candidates(
         self,
@@ -197,7 +223,7 @@ class TagService:
         ]
 
     @staticmethod
-    def _parse_llm_json_response(raw_response: str) -> list:
+    def _parse_llm_json_response(raw_response: str) -> list | dict:
         """
         Parse the LLM response into JSON, handling optional fenced code blocks.
         """
@@ -268,12 +294,12 @@ class TagService:
         synonym_suggestions: list[Dict[str, list[str]]],
         tags_in_range: list[Tag],
         all_tags: list[Tag],
-    ) -> list[Dict[str, int]]:
+    ) -> dict[str, list[Dict[str, int]]]:
         """
         Build a list of merge directives (source -> target) using direct suggestions.
         """
         if not synonym_suggestions:
-            return []
+            return {"merges": [], "updates": []}
 
         tag_by_name: Dict[str, Tag] = {tag.name: tag for tag in all_tags}
         tag_by_id: Dict[int, Tag] = {tag.id: tag for tag in all_tags}
@@ -308,7 +334,7 @@ class TagService:
             direct_mapping[source_tag.id] = target_tag.id
 
         if not direct_mapping:
-            return []
+            return {"merges": [], "updates": []}
 
         merges: list[Dict[str, int]] = []
         for source_id, target_id in direct_mapping.items():
@@ -319,7 +345,126 @@ class TagService:
             if source_tag and target_tag:
                 merges.append({"source_tag_id": source_tag.id, "target_tag_id": target_tag.id})
 
-        return merges
+        return {"merges": merges, "updates": []}
+
+    def _build_tag_updates(
+        self,
+        synonym_suggestions: list[Dict[str, list[str]]],
+        merges: list[Dict[str, int]],
+        tags_in_range: list[Tag],
+        all_tags: list[Tag],
+    ) -> tuple[list[Dict[str, int | str]], list[Dict[str, int]]]:
+        """
+        Use TAG_CHECKER_PROMPT to vet tags lacking synonyms and merge targets in the window.
+        """
+        labels_to_check = self._collect_labels_for_tag_checker(
+            synonym_suggestions, merges, tags_in_range
+        )
+        if not labels_to_check:
+            return [], []
+
+        tag_checker_results = self._run_tag_checker(labels_to_check)
+        if not tag_checker_results:
+            return [], []
+
+        tags_by_name: Dict[str, Tag] = {tag.name: tag for tag in tags_in_range if tag.id is not None}
+        all_tags_by_name: Dict[str, Tag] = {tag.name: tag for tag in all_tags if tag.id is not None}
+        updates: list[Dict[str, int | str]] = []
+        extra_merges: list[Dict[str, int]] = []
+        seen_ids: set[int] = set()
+        existing_merge_pairs = {
+            (merge.get("source_tag_id"), merge.get("target_tag_id"))
+            for merge in merges
+            if isinstance(merge, dict)
+        }
+
+        for label in labels_to_check:
+            result = tag_checker_results.get(label, {})
+            if not isinstance(result, dict):
+                continue
+            if result.get("is_valid") is True:
+                continue
+            alternatives = result.get("suggested_alternatives", [])
+            if not isinstance(alternatives, list) or not alternatives:
+                continue
+            new_tag = next((alt for alt in alternatives if isinstance(alt, str)), None)
+            if not new_tag:
+                continue
+            if new_tag == label:
+                continue
+            tag = tags_by_name.get(label)
+            if not tag or tag.id is None or tag.id in seen_ids:
+                continue
+            if new_tag in all_tags_by_name:
+                target_tag = all_tags_by_name[new_tag]
+                if target_tag.id is None:
+                    continue
+                pair = (tag.id, target_tag.id)
+                if pair in existing_merge_pairs or tag.id == target_tag.id:
+                    continue
+                extra_merges.append({"source_tag_id": tag.id, "target_tag_id": target_tag.id})
+                existing_merge_pairs.add(pair)
+                continue
+
+            seen_ids.add(tag.id)
+            updates.append({"id": tag.id, "old_tag": label, "new_tag": new_tag})
+
+        return updates, extra_merges
+
+    @staticmethod
+    def _collect_labels_for_tag_checker(
+        synonym_suggestions: list[Dict[str, list[str]]],
+        merges: list[Dict[str, int]],
+        tags_in_range: list[Tag],
+    ) -> list[str]:
+        """Collect labels needing validation: empty-synonym keywords and in-range merge targets."""
+        tag_by_id: Dict[int, Tag] = {tag.id: tag for tag in tags_in_range if tag.id is not None}
+        labels: list[str] = []
+        seen_labels: set[str] = set()
+
+        for suggestion in synonym_suggestions:
+            keyword = suggestion.get("keyword")
+            synonyms = suggestion.get("exact_synonyms", [])
+            if (
+                keyword
+                and isinstance(synonyms, list)
+                and len(synonyms) == 0
+                and keyword not in seen_labels
+            ):
+                seen_labels.add(keyword)
+                labels.append(keyword)
+
+        for merge in merges:
+            target_id = merge.get("target_tag_id")
+            if not isinstance(target_id, int):
+                continue
+            target_tag = tag_by_id.get(target_id)
+            if not target_tag:
+                continue
+            if target_tag.name in seen_labels:
+                continue
+            seen_labels.add(target_tag.name)
+            labels.append(target_tag.name)
+
+        return labels
+
+    @staticmethod
+    def _run_tag_checker(labels: list[str]) -> Dict[str, Dict[str, object]]:
+        """Run the TAG_CHECKER_PROMPT against a list of labels."""
+        if not labels:
+            return {}
+
+        chain = llm_model.build_chain(prompt=TAG_CHECKER_PROMPT)
+        raw_response = chain.invoke(
+            {"labels_arr": json.dumps(labels, ensure_ascii=False, indent=2)}
+        )
+        parsed_response = TagService._parse_llm_json_response(raw_response)
+
+        if isinstance(parsed_response, dict):
+            return parsed_response
+
+        logger.warning("Tag checker returned unexpected format", extra={"raw_response": raw_response})
+        return {}
 
     @staticmethod
     def _tag_to_text(tag: Tag) -> str:

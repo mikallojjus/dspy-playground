@@ -43,10 +43,22 @@ class TagMergeDirectiveResponse(BaseModel):
     target_tag_id: int = Field(..., description="Canonical tag id to merge into")
 
 
+class TagUpdateDirectiveResponse(BaseModel):
+    """Directive to rename/update a tag."""
+
+    id: int = Field(..., description="Tag id that should be updated")
+    old_tag: str = Field(..., description="Original tag label")
+    new_tag: str = Field(..., description="Suggested replacement label")
+
+
 class TagQueryResponse(BaseModel):
     """Response containing merge directives."""
 
     merges: list[TagMergeDirectiveResponse] = Field(
         default_factory=list,
         description="Simplified merge directives (source -> target)",
+    )
+    updates: list[TagUpdateDirectiveResponse] = Field(
+        default_factory=list,
+        description="Tag rename suggestions from the tag checker",
     )
