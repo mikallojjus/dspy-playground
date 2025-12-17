@@ -62,6 +62,12 @@ class Settings(BaseSettings):
         description="Enable quote finding and entailment validation (disable for faster extraction without quotes)"
     )
 
+    # Embeddings
+    enable_embeddings: bool = Field(
+        default=True,
+        description="Enable embedding generation and storage (disable for deployment without embedding service)"
+    )
+
     # Chunking
     chunk_size: int = Field(
         default=16000, description="Maximum chunk size in characters"
@@ -210,14 +216,24 @@ class Settings(BaseSettings):
         description="Temperature for extraction tasks (0 = deterministic)"
     )
 
+    # Premium Claim Extraction (Gemini 3)
+    gemini_premium_model: str = Field(
+        default="gemini-3-pro-preview",
+        description="Gemini 3 model for premium claim extraction (1M context)"
+    )
+    gemini_premium_temperature: float = Field(
+        default=0.2,
+        description="Temperature for premium extraction (0 = deterministic)"
+    )
+
     # API Configuration
     api_host: str = Field(
         default="0.0.0.0",
         description="API server host"
     )
-    api_port: int = Field(
+    port: int = Field(
         default=8000,
-        description="API server port"
+        description="API server port (Railway sets this via PORT env var)"
     )
     api_timeout: int = Field(
         default=0,

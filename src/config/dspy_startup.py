@@ -13,7 +13,15 @@ def validate_dspy_configuration() -> None:
 
     This runs at FastAPI startup to ensure fail-fast behavior.
     Does NOT initialize heavy models, just validates connectivity.
+
+    When ENABLE_EMBEDDINGS=false, skips Ollama validation (for Railway deployment).
     """
+    # Skip Ollama validation if embeddings are disabled (Railway deployment mode)
+    if not settings.enable_embeddings:
+        logger.info("Skipping Ollama validation (ENABLE_EMBEDDINGS=false - Railway mode)")
+        logger.info("Premium API will use Gemini for all operations")
+        return
+
     try:
         # Test Ollama connectivity
         response = requests.get(f"{settings.ollama_url}/api/tags", timeout=5)
@@ -34,7 +42,7 @@ def validate_dspy_configuration() -> None:
         logger.error(f"Failed to connect to Ollama at {settings.ollama_url}: {e}")
         raise RuntimeError(
             f"DSPy initialization failed: Cannot connect to Ollama at {settings.ollama_url}. "
-            f"Ensure Ollama is running."
+            f"Ensure Ollama is running or set ENABLE_EMBEDDINGS=false for Railway deployment."
         ) from e
     except Exception as e:
         logger.error(f"Unexpected error during DSPy validation: {e}")

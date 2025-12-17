@@ -9,7 +9,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 import requests
 
-from src.api.routers import extraction, guest_extraction, keyword_extraction, claim_keyword_extraction
+from src.api.routers import extraction, guest_extraction, keyword_extraction, claim_keyword_extraction, validation
 from src.api.exceptions import (
     database_exception_handler,
     generic_exception_handler,
@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 80)
     logger.info("Podcast Extraction API Starting")
     logger.info("=" * 80)
-    logger.info(f"Host: {settings.api_host}:{settings.api_port}")
+    logger.info(f"Host: {settings.api_host}:{settings.port}")
     logger.info(f"Timeout: {settings.api_timeout}s (0 = no timeout)")
     logger.info(f"Database: {settings.database_url}")
     logger.info(f"Ollama: {settings.ollama_url}")
@@ -160,6 +160,7 @@ app.include_router(extraction.router, tags=["claims"])
 app.include_router(guest_extraction.router, prefix="/extract", tags=["guests"])
 app.include_router(keyword_extraction.router, prefix="/extract", tags=["keywords"])
 app.include_router(claim_keyword_extraction.router, prefix="/extract", tags=["claim-keywords"])
+app.include_router(validation.router, tags=["validation"])
 
 # Register exception handlers
 app.add_exception_handler(SQLAlchemyError, database_exception_handler)
