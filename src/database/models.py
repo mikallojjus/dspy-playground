@@ -22,6 +22,7 @@ from sqlalchemy import (
     Date,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -230,3 +231,37 @@ class ClaimQuote(Base):
             f"<ClaimQuote(claim_id={self.claim_id}, quote_id={self.quote_id}, "
             f"relevance={self.relevance_score:.2f}, entailment='{self.entailment_relationship}')>"
         )
+
+
+class Tag(Base):
+    """
+    Tag metadata for categorizing content.
+
+    Table: crypto.tags
+    """
+
+    __tablename__ = "tags"
+    __table_args__ = (
+        Index("idx_tags_name", "name"),
+        Index("idx_tags_preferred_tag_id", "preferred_tag_id"),
+        {"schema": "crypto"},
+    )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    label = Column(Integer, nullable=True)
+    name = Column(Text, nullable=False)
+    description = Column(Text)
+    logo = Column(Text)
+    preferred_tag_id = Column(
+        BigInteger,
+        ForeignKey("crypto.tags.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    tag_types = Column(ARRAY(BigInteger), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    preferred_tag = relationship("Tag", remote_side=[id], uselist=False)
+
+    def __repr__(self) -> str:
+        return f"<Tag(id={self.id}, name='{self.name}')>"

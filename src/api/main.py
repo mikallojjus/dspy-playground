@@ -7,9 +7,10 @@ from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
+
 import requests
 
-from src.api.routers import extraction, guest_extraction, keyword_extraction, validation
+from src.api.routers import extraction, guest_extraction, keyword_extraction, validation, tags
 from src.api.exceptions import (
     database_exception_handler,
     generic_exception_handler,
@@ -160,6 +161,7 @@ app.include_router(extraction.router, tags=["claims"])
 app.include_router(guest_extraction.router, prefix="/extract", tags=["guests"])
 app.include_router(keyword_extraction.router, prefix="/extract", tags=["keywords"])
 app.include_router(validation.router, tags=["validation"])
+app.include_router(tags.router, prefix="/extract", tags=["tags"])
 
 # Register exception handlers
 app.add_exception_handler(SQLAlchemyError, database_exception_handler)

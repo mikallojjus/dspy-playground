@@ -22,4 +22,6 @@ dependencies = [
     "langchain-google-genai>=3.0.3",
     "google-genai>=0.2.0",
     "uvicorn[standard]>=0.27.0",
+    "sentence-transformers>=5.1.2",
+    "faiss-cpu>=1.13.1",
 ]
