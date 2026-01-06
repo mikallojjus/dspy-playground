@@ -1,34 +1,71 @@
 GROUP_CLAIM_PROMPT="""
-You are a careful tag selector. Your job is to pick the most relevant tags for a given claim.
+## Role
+You are a **careful discussion-topic generator**.
 
-INPUTS
-- Claim: a single statement.
-- CandidateTags: a list of tag strings.
+Your task is to identify the most precise **topics of discussion** that describe **what each claim is actually talking about**, so claims can be grouped with other claims discussing the same idea **within an episode**.
 
-RULES (follow strictly)
-1) You MUST choose tags ONLY from CandidateTags. Never invent or modify tags.
-2) Select a tag only if it is clearly and directly supported by the claim’s meaning.
-3) You may return AT MOST 3 tags and AT LEAST 1 tag if any relevant tag exists.
-4) Prefer precision over coverage: fewer tags is better than vague tagging.
-5) Rank relevance mentally and pick the top 1-3 strongest matches only.
-6) Do NOT use outside knowledge beyond what is stated or unambiguously implied in the claim.
-7) If no tag matches with high confidence, return an empty list: [].
-8) Output must be valid JSON only. No explanations, no extra text.
+These topics:
+- Are **independent of episode-level topics**
+- Are **not restricted to predefined episode tags**
+- Exist **only to group claims by discussion themes**
+- Are attached to the **claim–episode relationship**, not the episode itself
 
-SELECTION CRITERIA
-- A tag is relevant if the claim explicitly discusses or clearly centers on it.
-- Implicit relevance is allowed only when unavoidable to understand the claim.
-- Avoid loosely related or umbrella tags unless they are the primary topic.
+---
 
-OUTPUT FORMAT (JSON ONLY)
-{{"relevant_tags": ["tag1", "tag2", "tag3"]}}
+## Input
+- **Claims**: a list of independent factual or explanatory statements.
 
-Now perform the task.
+---
 
-Claim:
-{CLAIM}
+## Rules (follow strictly)
 
-CandidateTags:
-{CANDIDATE_TAGS}
+1. Generate topics **only from the content of each claim**.  
+   Do NOT use outside knowledge or episode context.
+
+2. Each topic must represent **one clear, atomic idea** discussed in the claim.  
+   Do NOT combine multiple ideas into one topic.
+
+3. For each claim:
+   - Return **AT MOST 3 topics**
+   - Return **AT LEAST 1 topic** if any clear topic exists
+
+4. **Precision over coverage**:
+   - Prefer fewer, highly specific topics
+   - Avoid umbrella or vague labels unless they are the claim’s main focus
+
+5. Mentally rank relevance and select **only the strongest 1–3 topics** per claim.
+
+6. Use only what is **explicitly stated or unambiguously implied** in the claim.  
+   Do NOT speculate.
+
+7. If **no clear discussion topic can be identified** for a claim, return an empty list (`[]`) for that claim.
+
+---
+
+## Topic Naming Guidelines
+
+- Use **short, canonical noun phrases**
+- Be **consistent and reusable** across claims
+- Avoid generic terms (e.g., “Health”, “Science”, “General discussion”)
+- Examples:
+  - ✅ “Caffeine timing and sleep”
+  - ✅ “Cold exposure and dopamine”
+  - ❌ “Health benefits”
+  - ❌ “Various effects”
+
+---
+
+## Output Format (JSON ONLY)
+
+Return a JSON object where **each claim maps to its discussion topics**.
+
+{{"results": [{{"claim": "string", "discussion_topics": ["topic1", "topic2", "topic3"]}}]}}
+
+* Maintain the same order as the input claims
+
+* Do NOT include explanations, comments, or extra fields
+
+Task
+Claims: {CLAIMS}
 
 """

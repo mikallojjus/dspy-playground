@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 import json
 
 from src.api.schemas.group_claim_schema import GroupClaimRequest, GroupClaimResponse
-from src.api.services.group_claim_service import assign_claim_tag
+from src.api.services.group_claim_service import group_claims_by_topic
 from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
@@ -17,18 +17,17 @@ router = APIRouter()
 )
 async def group_claim(request: GroupClaimRequest) -> GroupClaimResponse | JSONResponse:
   logger.info(
-    f"Group claim request - Tags: {len(request.tags)}"
+    f"Group claim request - Claims: {len(request.claims)}"
   )
 
   try:
-    result = await assign_claim_tag(
-      claim=request.claim,
-      candidate_tags=request.tags,
+    results = await group_claims_by_topic(
+      claims=request.claims,
     )
 
     response_data = {
       "error": None,
-      **result,
+      "results": results,
     }
 
     logger.debug(f"Response body: {json.dumps(response_data)}")
@@ -40,9 +39,7 @@ async def group_claim(request: GroupClaimRequest) -> GroupClaimResponse | JSONRe
     return JSONResponse(
       content={
         "error": "An internal error occurred. Please try again later.",
-        "claim": request.claim,
-        "tags": request.tags,
-        "assigned_tag": None,
+        "results": [],
       },
       status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
