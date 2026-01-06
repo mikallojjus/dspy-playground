@@ -7,7 +7,10 @@ from src.api.utils import llm_model
 from src.config.prompts.group_claim_prompt import GROUP_CLAIM_PROMPT
 
 
-def _parse_results(raw_response: str) -> List[Dict[str, Any]]:
+def _parse_results(
+  raw_response: str,
+  claims: List[str] | None = None,
+) -> List[Dict[str, Any]]:
   try:
     response = json.loads(raw_response)
   except Exception:
@@ -26,29 +29,43 @@ def _parse_results(raw_response: str) -> List[Dict[str, Any]]:
     except Exception:
       raise Exception("Failed parsing response")
 
-  try:
-    results = response["results"]
-  except KeyError:
-    raise Exception("Failed extracting results")
+  if not isinstance(response, dict):
+    raise Exception("Invalid response format")
 
-  if not isinstance(results, list):
-    raise Exception("Invalid results format")
+  grouped_topics = response.get("grouped_topics")
+  if grouped_topics is not None:
+    if not isinstance(grouped_topics, dict):
+      raise Exception("Invalid grouped_topics format")
 
-  parsed_results = []
-  for result in results:
-    if not isinstance(result, dict):
-      raise Exception("Invalid result format")
-    claim = result.get("claim")
-    topics = result.get("discussion_topics")
-    if not isinstance(claim, str):
-      raise Exception("Invalid result format")
-    if not isinstance(topics, list):
-      raise Exception("Invalid result format")
+    claim_topics: Dict[str, List[str]] = {}
+    for topic, topic_claims in grouped_topics.items():
+      if not isinstance(topic, str):
+        raise Exception("Invalid grouped_topics format")
+      if not isinstance(topic_claims, list):
+        raise Exception("Invalid grouped_topics format")
 
-    cleaned_topics = [topic for topic in topics if isinstance(topic, str)]
-    parsed_results.append({"claim": claim, "discussion_topics": cleaned_topics})
+      for claim in topic_claims:
+        if not isinstance(claim, str):
+          continue
+        topics = claim_topics.setdefault(claim, [])
+        if topic not in topics:
+          topics.append(topic)
 
-  return parsed_results
+    if claims is not None:
+      parsed_results = []
+      for claim in claims:
+        topics = claim_topics.get(claim)
+        if topics is None:
+          continue
+        parsed_results.append({"claim": claim, "discussion_topics": topics})
+      return parsed_results
+
+    return [
+      {"claim": claim, "discussion_topics": topics}
+      for claim, topics in claim_topics.items()
+    ]
+  
+  raise Exception("Failed extracting grouped_topics")
 
 
 async def group_claims_by_topic(
@@ -74,4 +91,4 @@ async def group_claims_by_topic(
   except Exception as e:
     raise Exception("Failed invoking chain")
 
-  return _parse_results(raw_response)
+  return _parse_results(raw_response, claims=claims)
