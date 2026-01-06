@@ -21,13 +21,13 @@ async def group_claim(request: GroupClaimRequest) -> GroupClaimResponse | JSONRe
   )
 
   try:
-    results = await group_claims_by_topic(
+    grouped_topics = await group_claims_by_topic(
       claims=request.claims,
     )
 
     response_data = {
       "error": None,
-      "results": results,
+      "result": grouped_topics,
     }
 
     logger.debug(f"Response body: {json.dumps(response_data)}")
@@ -39,7 +39,7 @@ async def group_claim(request: GroupClaimRequest) -> GroupClaimResponse | JSONRe
     return JSONResponse(
       content={
         "error": "An internal error occurred. Please try again later.",
-        "results": [],
+        "grouped_topics": {},
       },
       status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
     )

@@ -1,7 +1,7 @@
 import asyncio
 import json
 import re
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from src.api.utils import llm_model
 from src.config.prompts.group_claim_prompt import GROUP_CLAIM_PROMPT
@@ -10,7 +10,7 @@ from src.config.prompts.group_claim_prompt import GROUP_CLAIM_PROMPT
 def _parse_results(
   raw_response: str,
   claims: List[str] | None = None,
-) -> List[Dict[str, Any]]:
+) -> Dict[str, List[str]]:
   try:
     response = json.loads(raw_response)
   except Exception:
@@ -32,47 +32,33 @@ def _parse_results(
   if not isinstance(response, dict):
     raise Exception("Invalid response format")
 
-  grouped_topics = response.get("grouped_topics")
-  if grouped_topics is not None:
-    if not isinstance(grouped_topics, dict):
+  grouped_topics = response.get("grouped_topics", response)
+  if not isinstance(grouped_topics, dict):
+    raise Exception("Invalid grouped_topics format")
+
+  filtered_topics: Dict[str, List[str]] = {}
+  claim_set = set(claims or [])
+
+  for topic, topic_claims in grouped_topics.items():
+    if not isinstance(topic, str):
+      raise Exception("Invalid grouped_topics format")
+    if not isinstance(topic_claims, list):
       raise Exception("Invalid grouped_topics format")
 
-    claim_topics: Dict[str, List[str]] = {}
-    for topic, topic_claims in grouped_topics.items():
-      if not isinstance(topic, str):
-        raise Exception("Invalid grouped_topics format")
-      if not isinstance(topic_claims, list):
-        raise Exception("Invalid grouped_topics format")
-
-      for claim in topic_claims:
-        if not isinstance(claim, str):
-          continue
-        topics = claim_topics.setdefault(claim, [])
-        if topic not in topics:
-          topics.append(topic)
-
-    if claims is not None:
-      parsed_results = []
-      for claim in claims:
-        topics = claim_topics.get(claim)
-        if topics is None:
-          continue
-        parsed_results.append({"claim": claim, "discussion_topics": topics})
-      return parsed_results
-
-    return [
-      {"claim": claim, "discussion_topics": topics}
-      for claim, topics in claim_topics.items()
+    cleaned_claims = [
+      claim for claim in topic_claims
+      if isinstance(claim, str) and (not claim_set or claim in claim_set)
     ]
-  
-  raise Exception("Failed extracting grouped_topics")
+    filtered_topics[topic] = cleaned_claims
+
+  return filtered_topics
 
 
 async def group_claims_by_topic(
   claims: List[str],
-) -> List[Dict[str, Any]]:
+) -> Dict[str, List[str]]:
   if not claims:
-    return []
+    return {}
 
   try:
     chain = llm_model.build_chain(
