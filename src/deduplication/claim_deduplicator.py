@@ -13,7 +13,7 @@ Usage:
     print(f"Deduplicated: {len(claims_with_quotes)} → {len(deduplicated)}")
 """
 
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, cast
 from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
@@ -21,7 +21,7 @@ from src.extraction.quote_finder import ClaimWithQuotes
 from src.infrastructure.embedding_service import EmbeddingService
 from src.infrastructure.reranker_service import RerankerService
 from src.deduplication.quote_deduplicator import QuoteDeduplicator
-from src.database.models import Claim
+from src.database.models import Claim, ClaimEpisode
 from src.config.settings import settings
 from src.infrastructure.logger import get_logger
 
@@ -77,8 +77,8 @@ class ClaimDeduplicator:
         self,
         embedder: EmbeddingService,
         reranker: RerankerService,
-        embedding_threshold: float = None,
-        reranker_threshold: float = None
+        embedding_threshold: Optional[float] = None,
+        reranker_threshold: Optional[float] = None
     ):
         """
         Initialize the claim deduplicator.
@@ -430,10 +430,16 @@ class ClaimDeduplicator:
         # 1. pgvector similarity search
         # L2 distance < 0.15 ≈ cosine similarity > 0.85
         try:
+            # Get claim IDs that are linked to the current episode (to exclude)
+            claims_in_current_episode = (
+                db_session.query(ClaimEpisode.claim_id)
+                .filter(ClaimEpisode.episode_id == episode_id)
+            )
+
             similar_claims = (
                 db_session.query(Claim)
                 .filter(
-                    Claim.episode_id != episode_id,  # Exclude current episode
+                    Claim.id.notin_(claims_in_current_episode),  # Exclude claims from current episode
                     Claim.embedding.l2_distance(claim_embedding) < settings.vector_distance_threshold
                 )
                 .order_by(Claim.embedding.l2_distance(claim_embedding))
@@ -455,7 +461,7 @@ class ClaimDeduplicator:
                 # Verify with reranker
                 reranked = await self.reranker.rerank_quotes(
                     claim_text,
-                    [existing_claim.claim_text],
+                    [cast(str, existing_claim.claim_text)],
                     top_k=1
                 )
 
@@ -482,8 +488,8 @@ class ClaimDeduplicator:
 
                     return DatabaseDeduplicationResult(
                         is_duplicate=True,
-                        existing_claim_id=existing_claim.id,
-                        existing_claim_text=existing_claim.claim_text,
+                        existing_claim_id=cast(int, existing_claim.id),
+                        existing_claim_text=str(existing_claim.claim_text),
                         reranker_score=reranker_score,
                         should_merge_quotes=True  # Always merge quotes for duplicates
                     )

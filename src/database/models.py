@@ -66,8 +66,8 @@ class PodcastEpisode(Base):
     transcript_chunks = relationship(
         "TranscriptChunk", back_populates="episode", cascade="all, delete-orphan"
     )
-    claims = relationship(
-        "Claim", back_populates="episode", cascade="all, delete-orphan"
+    claim_episodes = relationship(
+        "ClaimEpisode", back_populates="episode", cascade="all, delete-orphan"
     )
     quotes = relationship(
         "Quote", back_populates="episode", cascade="all, delete-orphan"
@@ -118,17 +118,16 @@ class Claim(Base):
     Extracted factual claim with embedding and confidence score.
 
     Table: crypto.claims
+
+    Note: Episode association is through the claim_episodes junction table,
+    not a direct foreign key.
     """
 
     __tablename__ = "claims"
     __table_args__ = {"schema": "crypto"}
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    episode_id = Column(
-        BigInteger,
-        ForeignKey("crypto.podcast_episodes.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    # Note: episode_id removed - use claim_episodes junction table
     source_chunk_id = Column(
         BigInteger,
         ForeignKey("crypto.transcript_chunks.id", ondelete="SET NULL"),
@@ -146,7 +145,9 @@ class Claim(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    episode = relationship("PodcastEpisode", back_populates="claims")
+    claim_episodes = relationship(
+        "ClaimEpisode", back_populates="claim", cascade="all, delete-orphan"
+    )
     source_chunk = relationship(
         "TranscriptChunk", back_populates="claims", foreign_keys=[source_chunk_id]
     )
@@ -230,3 +231,37 @@ class ClaimQuote(Base):
             f"<ClaimQuote(claim_id={self.claim_id}, quote_id={self.quote_id}, "
             f"relevance={self.relevance_score:.2f}, entailment='{self.entailment_relationship}')>"
         )
+
+
+class ClaimEpisode(Base):
+    """
+    Junction table for claim-episode relationships.
+
+    Allows claims to be associated with episodes through a many-to-many
+    relationship instead of a direct foreign key.
+
+    Table: crypto.claim_episodes
+    """
+
+    __tablename__ = "claim_episodes"
+    __table_args__ = {"schema": "crypto"}
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    claim_id = Column(
+        BigInteger,
+        ForeignKey("crypto.claims.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    episode_id = Column(
+        BigInteger,
+        ForeignKey("crypto.podcast_episodes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    claim = relationship("Claim", back_populates="claim_episodes")
+    episode = relationship("PodcastEpisode", back_populates="claim_episodes")
+
+    def __repr__(self) -> str:
+        return f"<ClaimEpisode(id={self.id}, claim_id={self.claim_id}, episode_id={self.episode_id})>"
