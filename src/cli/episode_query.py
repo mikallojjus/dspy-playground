@@ -19,7 +19,7 @@ from typing import List, Optional, Dict
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 
-from src.database.models import PodcastEpisode, Claim
+from src.database.models import PodcastEpisode, Claim, ClaimEpisode
 from src.database.connection import get_db_session
 from src.infrastructure.logger import get_logger
 
@@ -119,9 +119,10 @@ class EpisodeQueryService:
         Returns:
             Number of episodes with at least one claim
         """
+        # Join through claim_episodes junction table
         count = (
-            self.session.query(func.count(func.distinct(Claim.episode_id)))
-            .join(PodcastEpisode, Claim.episode_id == PodcastEpisode.id)
+            self.session.query(func.count(func.distinct(ClaimEpisode.episode_id)))
+            .join(PodcastEpisode, ClaimEpisode.episode_id == PodcastEpisode.id)
             .filter(
                 PodcastEpisode.podcast_id == podcast_id,
                 or_(
@@ -219,11 +220,12 @@ class EpisodeQueryService:
                 logger.debug(f"Podcast {podcast_id}: Found {len(latest_episode_ids)} episodes in latest {target} window")
 
                 # Step 2: Among those latest episodes, find which don't have claims
+                # Join through claim_episodes junction table
                 unprocessed_episodes_query = (
                     self.session.query(PodcastEpisode)
                     .filter(PodcastEpisode.id.in_(latest_episode_ids))
-                    .outerjoin(Claim, Claim.episode_id == PodcastEpisode.id)
-                    .filter(Claim.id.is_(None))  # No claims = unprocessed
+                    .outerjoin(ClaimEpisode, ClaimEpisode.episode_id == PodcastEpisode.id)
+                    .filter(ClaimEpisode.id.is_(None))  # No junction records = unprocessed
                     .order_by(PodcastEpisode.air_date.desc().nulls_last())
                 )
 
@@ -265,12 +267,12 @@ class EpisodeQueryService:
 
             # Skip already-processed episodes unless force=True
             if not force:
-                # LEFT JOIN to find episodes without claims
+                # LEFT JOIN through claim_episodes to find episodes without claims
                 query = query.outerjoin(
-                    Claim, Claim.episode_id == PodcastEpisode.id
+                    ClaimEpisode, ClaimEpisode.episode_id == PodcastEpisode.id
                 ).filter(
-                    Claim.id.is_(None)
-                )  # No claims = not processed
+                    ClaimEpisode.id.is_(None)
+                )  # No junction records = not processed
                 logger.debug("Filtering to unprocessed episodes only (force=False)")
 
             # Order by newest first (air_date DESC), NULL dates last
@@ -306,9 +308,10 @@ class EpisodeQueryService:
                 print("Episode 123 needs processing")
             ```
         """
+        # Query through claim_episodes junction table
         count = (
-            self.session.query(func.count(Claim.id))
-            .filter(Claim.episode_id == episode_id)
+            self.session.query(func.count(ClaimEpisode.id))
+            .filter(ClaimEpisode.episode_id == episode_id)
             .scalar()
         )
 
@@ -360,18 +363,19 @@ class EpisodeQueryService:
             .scalar()
         )
 
-        # Processed episodes (have claims)
+        # Processed episodes (have claims) - join through claim_episodes
         processed = (
-            self.session.query(func.count(func.distinct(Claim.episode_id)))
-            .join(PodcastEpisode, Claim.episode_id == PodcastEpisode.id)
+            self.session.query(func.count(func.distinct(ClaimEpisode.episode_id)))
+            .join(PodcastEpisode, ClaimEpisode.episode_id == PodcastEpisode.id)
             .filter(episode_filter)
             .scalar()
         )
 
-        # Total claims
+        # Total claims - join through claim_episodes
         total_claims = (
             self.session.query(func.count(Claim.id))
-            .join(PodcastEpisode, Claim.episode_id == PodcastEpisode.id)
+            .join(ClaimEpisode, Claim.id == ClaimEpisode.claim_id)
+            .join(PodcastEpisode, ClaimEpisode.episode_id == PodcastEpisode.id)
             .filter(episode_filter)
             .scalar()
         )
@@ -477,10 +481,12 @@ class EpisodeQueryService:
                 )
 
                 # Step 2: Among those latest episodes, find which have unverified claims
+                # Join through claim_episodes junction table
                 episodes_with_unverified_query = (
                     self.session.query(PodcastEpisode)
                     .filter(PodcastEpisode.id.in_(latest_episode_ids))
-                    .join(Claim, Claim.episode_id == PodcastEpisode.id)
+                    .join(ClaimEpisode, ClaimEpisode.episode_id == PodcastEpisode.id)
+                    .join(Claim, ClaimEpisode.claim_id == Claim.id)
                     .filter(Claim.is_verified == False)  # Has unverified claims
                     .distinct()
                     .order_by(PodcastEpisode.air_date.desc().nulls_last())
@@ -517,6 +523,7 @@ class EpisodeQueryService:
                 )
 
             # Base query - only episodes with transcripts AND unverified claims
+            # Join through claim_episodes junction table
             query = (
                 self.session.query(PodcastEpisode)
                 .filter(
@@ -526,7 +533,8 @@ class EpisodeQueryService:
                         PodcastEpisode.assembly_transcript.isnot(None)
                     )
                 )
-                .join(Claim, Claim.episode_id == PodcastEpisode.id)
+                .join(ClaimEpisode, ClaimEpisode.episode_id == PodcastEpisode.id)
+                .join(Claim, ClaimEpisode.claim_id == Claim.id)
                 .filter(Claim.is_verified == False)  # Has unverified claims
                 .distinct()
             )

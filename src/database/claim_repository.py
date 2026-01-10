@@ -14,7 +14,7 @@ from typing import List, Dict, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from src.database.models import Claim, Quote, ClaimQuote
+from src.database.models import Claim, Quote, ClaimQuote, ClaimEpisode
 from src.extraction.quote_finder import ClaimWithQuotes, Quote as ExtractedQuote
 from src.infrastructure.logger import get_logger
 
@@ -105,9 +105,8 @@ class ClaimRepository:
 
         try:
             for i, claim_with_quotes in enumerate(claims_with_quotes, 1):
-                # Save claim
+                # Save claim (without episode_id - use junction table)
                 claim = Claim(
-                    episode_id=episode_id,
                     claim_text=claim_with_quotes.claim_text,
                     confidence=claim_with_quotes.confidence,
                     source_chunk_id=claim_with_quotes.source_chunk_id,
@@ -122,6 +121,13 @@ class ClaimRepository:
                 self.session.add(claim)
                 self.session.flush()  # Get ID without committing
 
+                # Create junction record linking claim to episode
+                claim_episode = ClaimEpisode(
+                    claim_id=claim.id,
+                    episode_id=episode_id
+                )
+                self.session.add(claim_episode)
+
                 claim_ids.append(claim.id)
 
                 logger.debug(
@@ -132,7 +138,7 @@ class ClaimRepository:
                 # Save quotes and create links
                 if claim_with_quotes.quotes:
                     await self._save_quotes_and_links(
-                        claim.id,
+                        int(claim.id),
                         claim_with_quotes.quotes,
                         episode_id
                     )
@@ -425,7 +431,12 @@ class ClaimRepository:
             f"(include_flagged={include_flagged}, include_verified={include_verified})"
         )
 
-        query = self.session.query(Claim).filter(Claim.episode_id.in_(episode_ids))
+        # Join through claim_episodes junction table
+        query = (
+            self.session.query(Claim, ClaimEpisode.episode_id)
+            .join(ClaimEpisode, Claim.id == ClaimEpisode.claim_id)
+            .filter(ClaimEpisode.episode_id.in_(episode_ids))
+        )
 
         if not include_flagged:
             query = query.filter(Claim.is_flagged == False)
@@ -433,18 +444,18 @@ class ClaimRepository:
         if not include_verified:
             query = query.filter(Claim.is_verified == False)
 
-        claims = query.all()
+        results = query.all()
 
         # Group by episode
         claims_by_episode = {}
-        for claim in claims:
-            episode_id = claim.episode_id
+        for claim, episode_id in results:
             if episode_id not in claims_by_episode:
                 claims_by_episode[episode_id] = []
             claims_by_episode[episode_id].append(claim)
 
+        total_claims = sum(len(claims) for claims in claims_by_episode.values())
         logger.info(
-            f"Found {len(claims)} claims across {len(claims_by_episode)} episodes"
+            f"Found {total_claims} claims across {len(claims_by_episode)} episodes"
         )
 
         return claims_by_episode
@@ -483,13 +494,15 @@ class ClaimRepository:
             f"(only_unverified={only_unverified})"
         )
 
+        # Join through claim_episodes junction table
         query = (
             self.session.query(
-                Claim.episode_id,
+                ClaimEpisode.episode_id,
                 func.count(Claim.id).label("count")
             )
+            .join(Claim, ClaimEpisode.claim_id == Claim.id)
             .filter(
-                Claim.episode_id.in_(episode_ids),
+                ClaimEpisode.episode_id.in_(episode_ids),
                 Claim.is_flagged == False
             )
         )
@@ -497,7 +510,7 @@ class ClaimRepository:
         if only_unverified:
             query = query.filter(Claim.is_verified == False)
 
-        results = query.group_by(Claim.episode_id).all()
+        results = query.group_by(ClaimEpisode.episode_id).all()
 
         counts = {episode_id: count for episode_id, count in results}
 
