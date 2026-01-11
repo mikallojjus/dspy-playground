@@ -44,6 +44,10 @@ class PremiumPipelineResult:
     processing_time_seconds: float
     claims_extracted: int
     model_used: str  # "gemini-3-pro-preview"
+    topic_of_discussion: list[str]
+    claim_with_topic: dict[str, list[str]]
+    key_takeaways: list[str]
+
 
 
 class PremiumExtractionPipeline:
@@ -105,20 +109,51 @@ class PremiumExtractionPipeline:
         )
 
         # Step 2: Parse transcript
-        logger.info("Step 1/3: Parsing transcript...")
+        logger.info("Step 1/5: Parsing transcript...")
         parsed_transcript = self.parser.parse(transcript, format=transcript_format)
         logger.info(f"  ✓ Parsed {len(parsed_transcript.segments)} segments")
 
-        # Step 3: Extract claims from FULL transcript (no chunking!)
-        logger.info("Step 2/3: Extracting claims from full transcript (Gemini 3 Pro)...")
+        logger.info("Step 2/5: Extracting topics of discussion...")
         stage_start = time.time()
-        claim_texts = await self.premium_extractor.extract_claims_from_transcript(
-            parsed_transcript.full_text
+        topics = await self.premium_extractor.extract_topics_of_discussion_from_episode(
+            title=episode.name,
+            description=episode.description,
+            full_transcript=parsed_transcript.full_text
         )
         extraction_time = time.time() - stage_start
+        topics_extracted = len(topics)
+        logger.info(f"  ✓ Extracted {topics_extracted} topics in {extraction_time:.1f}s")
+        if not topics:
+            logger.warning("No topics extracted, ending pipeline")
+            processing_time = time.time() - start_time
+            return PremiumPipelineResult(
+                episode_id=episode_id,
+                claims=[],
+                processing_time_seconds=processing_time,
+                claims_extracted=0,
+                model_used=settings.gemini_premium_model,
+                topic_of_discussion=[],
+                claim_with_topic={},
+                key_takeaways=[]
+            )
+                
+
+        logger.info("Step 3/5: Extracting claims with topics...")
+        stage_start = time.time()
+        claims_with_topics = await self.premium_extractor.extract_claims_with_topics_from_transcript(
+            full_transcript=parsed_transcript.full_text,
+            topics_of_discussion=topics
+        )
+        extraction_time = time.time() - stage_start
+        
+        claim_texts = []
+        for _, claimList in claims_with_topics.items():
+            claim_texts.extend(claimList)
+
         claims_extracted = len(claim_texts)
         logger.info(f"  ✓ Extracted {claims_extracted} claims in {extraction_time:.1f}s")
 
+        
         # Convert to ClaimWithQuotes objects
         claims = [
             ClaimWithQuotes(
@@ -138,12 +173,36 @@ class PremiumExtractionPipeline:
                 claims=[],
                 processing_time_seconds=processing_time,
                 claims_extracted=0,
-                model_used=settings.gemini_premium_model
+                model_used=settings.gemini_premium_model,
+                topic_of_discussion=topics,
+                claim_with_topic={},
+                key_takeaways=[]
             )
 
-        # Step 4: Save to database
+        logger.info("Step 4/5 Extract key takeaways...")
+        stage_start = time.time()
+        key_takeaways = await self.premium_extractor.extract_key_takeaways_from_claims(
+            topics_with_claims=topics
+        )
+        extraction_time = time.time() - stage_start
+        logger.info(f"  ✓ Extracted {len(key_takeaways)} key takeaways in {extraction_time:.1f}s")
+
+        if not key_takeaways:
+            logger.warning("No key takeaways extracted, ending pipeline")
+            processing_time = time.time() - start_time
+            return PremiumPipelineResult(
+                episode_id=episode_id,
+                claims=claims,
+                processing_time_seconds=processing_time,
+                claims_extracted=claims_extracted,
+                model_used=settings.gemini_premium_model,
+                topic_of_discussion=topics,
+                claim_with_topic=claims_with_topics,
+                key_takeaways=[]
+            )
+            
         if save_to_db:
-            logger.info("Step 3/3: Saving claims to database...")
+            logger.info("Step 5/5: Saving claims to database...")
             db_session = get_db_session()
 
             try:
@@ -183,7 +242,7 @@ class PremiumExtractionPipeline:
             finally:
                 db_session.close()
         else:
-            logger.info("Step 3/3: Skipping database save (API mode)")
+            logger.info("Step 5/5: Skipping database save (API mode)")
 
         processing_time = time.time() - start_time
 
@@ -197,7 +256,10 @@ class PremiumExtractionPipeline:
             claims=claims,
             processing_time_seconds=processing_time,
             claims_extracted=claims_extracted,
-            model_used=settings.gemini_premium_model
+            model_used=settings.gemini_premium_model,
+            topic_of_discussion=topics,
+            claim_with_topic=claims_with_topics,
+            key_takeaways=key_takeaways
         )
 
     def _load_episode(self, episode_id: int) -> PodcastEpisode:
