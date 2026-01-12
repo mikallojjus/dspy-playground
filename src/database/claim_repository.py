@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from src.database.models import Claim, Quote, ClaimQuote
-from src.extraction.quote_finder import ClaimWithQuotes, Quote as ExtractedQuote
+from src.extraction.quote_finder import ClaimWithTopic, Quote as ExtractedQuote
 from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
@@ -70,9 +70,9 @@ class ClaimRepository:
 
     async def save_claims(
         self,
-        claims_with_quotes: List[ClaimWithQuotes],
+        claim_with_topics: List[ClaimWithTopic],
         episode_id: int
-    ) -> List[int]:
+    ) -> List[ClaimWithTopic]:
         """
         Save claims with their quotes to database.
 
@@ -95,50 +95,50 @@ class ClaimRepository:
             print(f"Saved {len(claim_ids)} claims")
             ```
         """
-        if not claims_with_quotes:
+        if not claim_with_topics:
             logger.warning("No claims to save")
             return []
 
-        logger.info(f"Saving {len(claims_with_quotes)} claims for episode {episode_id}")
+        logger.info(f"Saving {len(claim_with_topics)} claims for episode {episode_id}")
 
-        claim_ids = []
+        saved_claim_with_topics: List[ClaimWithTopic] = []
 
         try:
-            for i, claim_with_quotes in enumerate(claims_with_quotes, 1):
+            for i, claim_with_topic in enumerate(claim_with_topics):
                 # Save claim
                 claim = Claim(
-                    episode_id=episode_id,
-                    claim_text=claim_with_quotes.claim_text,
-                    confidence=claim_with_quotes.confidence,
-                    source_chunk_id=claim_with_quotes.source_chunk_id,
-                    merged_from_chunk_ids=claim_with_quotes.merged_from_chunk_ids,
+                    claim_text=claim_with_topic.claim_text,
+                    confidence=0.8,
+                    source_chunk_id=None,
+                    merged_from_chunk_ids=None,
                     embedding=None,  # Will be set after we get the ID
-                    confidence_components=(
-                        claim_with_quotes.confidence_components.__dict__
-                        if claim_with_quotes.confidence_components else None
-                    )
+                    confidence_components=None
                 )
 
                 self.session.add(claim)
                 self.session.flush()  # Get ID without committing
+                claim_with_topic.claim_id = claim.id
 
-                claim_ids.append(claim.id)
+
+                saved_claim_with_topics.append(
+                    claim_with_topic
+                )
 
                 logger.debug(
-                    f"Saved claim {i}/{len(claims_with_quotes)}: ID={claim.id}, "
+                    f"Saved claim {i}/{len(claim_with_topics)}: ID={claim.id}, "
                     f"text='{claim.claim_text[:60]}...'"
                 )
 
                 # Save quotes and create links
-                if claim_with_quotes.quotes:
-                    await self._save_quotes_and_links(
-                        claim.id,
-                        claim_with_quotes.quotes,
-                        episode_id
-                    )
+                # if claim_with_topic.quotes:
+                #     await self._save_quotes_and_links(
+                #         claim.id,
+                #         claim_with_topic.quotes,
+                #         episode_id
+                #     )
 
-            logger.info(f"✅ Saved {len(claim_ids)} claims")
-            return claim_ids
+            logger.info(f"✅ Saved {len(saved_claim_with_topics)} claims")
+            return saved_claim_with_topics
 
         except Exception as e:
             logger.error(f"Error saving claims: {e}", exc_info=True)

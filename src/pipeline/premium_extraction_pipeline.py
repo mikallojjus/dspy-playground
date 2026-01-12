@@ -20,16 +20,18 @@ Usage:
 """
 
 from dataclasses import dataclass
-from typing import cast, Optional
+from typing import List, cast, Optional
 import time
 
 from src.config.settings import settings
+from src.database.claim_episode_repository import ClaimEpisodeRepository
+from src.database.tag_map_repository import TagMapRepository
 from src.database.connection import get_db_session
 from src.database.models import PodcastEpisode
 from src.database.claim_repository import ClaimRepository
 from src.preprocessing.transcript_parser import TranscriptParser
 from src.extraction.premium_claim_extractor import PremiumClaimExtractor
-from src.extraction.quote_finder import ClaimWithQuotes
+from src.extraction.quote_finder import ClaimWithTopic
 from src.infrastructure.embedding_service import EmbeddingService
 from src.infrastructure.logger import get_logger
 
@@ -40,7 +42,7 @@ logger = get_logger(__name__)
 class PremiumPipelineResult:
     """Result from premium pipeline execution."""
     episode_id: int
-    claims: list[ClaimWithQuotes]
+    claims: list[ClaimWithTopic]
     processing_time_seconds: float
     claims_extracted: int
     model_used: str  # "gemini-3-pro-preview"
@@ -146,26 +148,25 @@ class PremiumExtractionPipeline:
         )
         extraction_time = time.time() - stage_start
         
-        claim_texts = []
+        claims_extracted = 0
         for _, claimList in claims_with_topics.items():
-            claim_texts.extend(claimList)
+            claims_extracted += len(claimList)
 
-        claims_extracted = len(claim_texts)
         logger.info(f"  ✓ Extracted {claims_extracted} claims in {extraction_time:.1f}s")
 
-        
-        # Convert to ClaimWithQuotes objects
-        claims = [
-            ClaimWithQuotes(
-                claim_text=text,
-                source_chunk_id=None,  # No chunks in premium pipeline
-                quotes=[],
-                confidence=0.8  # Default confidence (no quotes)
-            )
-            for text in claim_texts
-        ]
 
-        if not claims:
+        claim_topics: List[ClaimWithTopic] = []
+        for topic, claims in claims_with_topics.items():
+            for claim in claims:
+                claim_topics.append(
+                    ClaimWithTopic(
+                        claim_text=claim,
+                        topic=topic,
+                        episode_id=episode_id
+                    )
+                )
+
+        if not claim_topics:
             logger.warning("No claims extracted, ending pipeline")
             processing_time = time.time() - start_time
             return PremiumPipelineResult(
@@ -187,29 +188,29 @@ class PremiumExtractionPipeline:
         extraction_time = time.time() - stage_start
         logger.info(f"  ✓ Extracted {len(key_takeaways)} key takeaways in {extraction_time:.1f}s")
 
-        if not key_takeaways:
-            logger.warning("No key takeaways extracted, ending pipeline")
-            processing_time = time.time() - start_time
-            return PremiumPipelineResult(
-                episode_id=episode_id,
-                claims=claims,
-                processing_time_seconds=processing_time,
-                claims_extracted=claims_extracted,
-                model_used=settings.gemini_premium_model,
-                topic_of_discussion=topics,
-                claim_with_topic=claims_with_topics,
-                key_takeaways=[]
-            )
+        # if not key_takeaways:
+        #     logger.warning("No key takeaways extracted, ending pipeline")
+        #     processing_time = time.time() - start_time
+        #     return PremiumPipelineResult(
+        #         episode_id=episode_id,
+        #         claims=claim_topics,
+        #         processing_time_seconds=processing_time,
+        #         claims_extracted=claims_extracted,
+        #         model_used=settings.gemini_premium_model,
+        #         topic_of_discussion=topics,
+        #         claim_with_topic=claims_with_topics,
+        #         key_takeaways=[]
+        #     )
             
         if save_to_db:
-            logger.info("Step 5/5: Saving claims to database...")
+            logger.info("Step 5/5: Saving results to database...")
             db_session = get_db_session()
 
             try:
                 # Generate embeddings for all claims (if enabled)
                 if settings.enable_embeddings:
                     logger.info("  Generating embeddings for claims...")
-                    for claim in claims:
+                    for claim in claim_topics:
                         embedding = await self.embedder.embed_text(claim.claim_text)
                         claim.metadata["embedding"] = embedding
                 else:
@@ -217,18 +218,37 @@ class PremiumExtractionPipeline:
 
                 # Save claims to database
                 logger.info("  Saving claims to database...")
-                repo = ClaimRepository(db_session)
-                saved_claim_ids = await repo.save_claims(claims, episode_id)
+                claim_repo = ClaimRepository(db_session)
+                saved_claim_topics = await claim_repo.save_claims(claim_topics, episode_id)
 
                 # Update embeddings (if enabled)
-                if settings.enable_embeddings:
-                    embeddings_dict = {
-                        claim_id: claim.metadata["embedding"]
-                        for claim_id, claim in zip(saved_claim_ids, claims)
-                    }
-                    await repo.update_claim_embeddings(embeddings_dict)
+                # if settings.enable_embeddings:
+                #     embeddings_dict = {
+                #         claim_id: claim.metadata["embedding"]
+                #         for claim_id, claim in zip(saved_claim_ids, claims)
+                #     }
+                #     await claim_repo.update_claim_embeddings(embeddings_dict)
 
-                logger.info(f"  ✓ Saved {len(saved_claim_ids)} claims to database")
+                logger.info(f"  ✓ Saved {len(saved_claim_topics)} claims to database")
+
+                logger.info("  Saving claim-episode links to database...")
+
+                claim_episode_repo = ClaimEpisodeRepository(db_session)
+                saved_claim_topics = await claim_episode_repo.save_claim_episodes(
+                    claim_topics=saved_claim_topics,
+                    episode_id=episode_id
+                )
+
+                logger.info(f"  ✓ Saved {len(saved_claim_topics)} claim-episode links")
+
+                logger.info("  Saving tag map entries to database...")
+                tag_map_repo = TagMapRepository(db_session)
+                saved_tag_topics = await tag_map_repo.save_tag_maps(
+                    claim_topics=saved_claim_topics
+                )
+
+                logger.info(f"  ✓ Saved {len(saved_tag_topics)} tag map entries")
+
 
                 # Commit transaction
                 db_session.commit()
