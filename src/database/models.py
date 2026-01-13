@@ -189,6 +189,19 @@ class ClaimEpisode(Base):
         "TagMap", back_populates="claim_episode", cascade="all, delete-orphan"
     )
 
+class Tag(Base):
+    """
+    Table: crypto.tags
+    """
+
+    __tablename__ = "tags"
+    __table_args__ = {"schema": "crypto"}
+    
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    name = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class TagMap(Base):
     """
     Table: crypto.tag_map
@@ -210,9 +223,16 @@ class TagMap(Base):
         ForeignKey("crypto.claim_episodes.id", ondelete="CASCADE"),
         nullable=False,
     )
+    to_tag_id = Column(
+        BigInteger,
+        ForeignKey("crypto.tags.id", ondelete="CASCADE"),
+        nullable=False,
+    )
 
     # Relationships
     claim_episode = relationship("ClaimEpisode", back_populates="tag_maps")
+    tag = relationship("Tag")
+
 
 class Quote(Base):
     """

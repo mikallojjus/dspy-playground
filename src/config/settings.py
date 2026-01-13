@@ -218,7 +218,7 @@ class Settings(BaseSettings):
 
     # Premium Claim Extraction (Gemini 3)
     gemini_premium_model: str = Field(
-        default="gemini-3-pro-preview",
+        default="gemini-2.5-flash",
         description="Gemini 3 model for premium claim extraction (1M context)"
     )
     gemini_premium_temperature: float = Field(

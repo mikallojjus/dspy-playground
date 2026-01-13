@@ -87,7 +87,14 @@ class ClaimWithTopic:
     episode_id: int 
     claim_id: int = None
     claim_episode_id: int = None
+    tag_id: int = None
     metadata: dict = field(default_factory=dict)
+
+@dataclass
+class KeyTakeAwayWithClaim:
+    key_takeaway: str
+    claim_episode_id: int = None
+    tag_id: int = None
 
 class QuoteFinder:
     """

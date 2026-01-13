@@ -10,11 +10,11 @@ Usage:
     updated_claims = await repo.save_tag_maps(claim_topics)
 """
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union, overload
 from sqlalchemy.orm import Session
 
 from src.database.models import TagMap
-from src.extraction.quote_finder import ClaimWithTopic
+from src.extraction.quote_finder import ClaimWithTopic, KeyTakeAwayWithClaim
 from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
@@ -48,49 +48,69 @@ class TagMapRepository:
         """
         self.session = db_session
 
+    @overload
     async def save_tag_maps(
         self,
         claim_topics: List[ClaimWithTopic]
     ) -> List[ClaimWithTopic]:
+        ...
+
+    @overload
+    async def save_tag_maps(
+        self,
+        claim_topics: List[KeyTakeAwayWithClaim]
+    ) -> List[KeyTakeAwayWithClaim]:
+        ...
+
+    async def save_tag_maps(
+        self,
+        claim_topics: List[Union[ClaimWithTopic, KeyTakeAwayWithClaim]]
+    ) -> List[Union[ClaimWithTopic, KeyTakeAwayWithClaim]]:
         """
         Save tag map entries to database.
 
-        Creates TagMap records for each claim-episode + topic pair, skipping
-        any entries that already exist. Returns the ClaimWithTopic items that
-        have valid tag map links.
+        Creates TagMap records for each claim-episode + tag pair, skipping
+        any entries that already exist. Uses a constant tag_category of
+        "Topic" and the tag_id from each item. Returns the ClaimWithTopic
+        or KeyTakeAwayWithClaim items that have valid tag map links.
 
         Args:
-            claim_topics: ClaimWithTopic items with claim_episode_id and topic
+            claim_topics: ClaimWithTopic or KeyTakeAwayWithClaim items with
+                claim_episode_id and tag_id
 
         Returns:
-            List of ClaimWithTopic with tag map entries saved
+            List of items with tag map entries saved
         """
         if not claim_topics:
-            logger.warning("No claim topics provided to tag map")
+            logger.warning("No items provided to tag map")
             return []
 
-        logger.info(f"Saving tag maps for {len(claim_topics)} claim topics")
+        logger.info(f"Saving tag maps for {len(claim_topics)} items")
 
         try:
-            pair_to_claim_topics: Dict[Tuple[int, str], List[ClaimWithTopic]] = {}
-            ordered_pairs: List[Tuple[int, str]] = []
+            tag_category = "Topic"
+            pair_to_claim_topics: Dict[
+                Tuple[int, int],
+                List[Union[ClaimWithTopic, KeyTakeAwayWithClaim]]
+            ] = {}
+            ordered_pairs: List[Tuple[int, int]] = []
 
             for claim_topic in claim_topics:
                 claim_episode_id = claim_topic.claim_episode_id
                 if claim_episode_id is None:
                     logger.warning(
-                        "Claim topic missing claim_episode_id; skipping tag map creation"
+                        "Item missing claim_episode_id; skipping tag map creation"
                     )
                     continue
 
-                tag_category = claim_topic.topic
-                if not tag_category:
+                tag_id = claim_topic.tag_id
+                if tag_id is None:
                     logger.warning(
-                        "Claim topic missing topic; skipping tag map creation"
+                        "Item missing tag_id; skipping tag map creation"
                     )
                     continue
 
-                key = (claim_episode_id, tag_category)
+                key = (claim_episode_id, tag_id)
                 if key not in pair_to_claim_topics:
                     pair_to_claim_topics[key] = []
                     ordered_pairs.append(key)
@@ -98,18 +118,25 @@ class TagMapRepository:
                 pair_to_claim_topics[key].append(claim_topic)
 
             if not ordered_pairs:
-                logger.warning("No claim episode IDs provided to tag map")
+                logger.warning(
+                    "No claim episode IDs or tag IDs provided to tag map"
+                )
                 return []
 
             claim_episode_ids = [
                 claim_episode_id for claim_episode_id, _ in ordered_pairs
             ]
+            tag_ids = [tag_id for _, tag_id in ordered_pairs]
             existing_rows = (
                 self.session.query(
                     TagMap.from_claim_episode_id,
-                    TagMap.tag_category
+                    TagMap.to_tag_id
                 )
-                .filter(TagMap.from_claim_episode_id.in_(claim_episode_ids))
+                .filter(
+                    TagMap.from_claim_episode_id.in_(claim_episode_ids),
+                    TagMap.to_tag_id.in_(tag_ids),
+                    TagMap.tag_category == tag_category,
+                )
                 .all()
             )
             existing_pairs = {(row[0], row[1]) for row in existing_rows}
@@ -124,14 +151,17 @@ class TagMapRepository:
                 tag_maps = [
                     TagMap(
                         from_claim_episode_id=claim_episode_id,
-                        tag_category=tag_category
+                        tag_category=tag_category,
+                        to_tag_id=tag_id,
                     )
-                    for claim_episode_id, tag_category in new_pairs
+                    for claim_episode_id, tag_id in new_pairs
                 ]
                 self.session.add_all(tag_maps)
                 self.session.flush()
 
-            saved_claim_topics: List[ClaimWithTopic] = []
+            saved_claim_topics: List[
+                Union[ClaimWithTopic, KeyTakeAwayWithClaim]
+            ] = []
             for key, claim_topic_list in pair_to_claim_topics.items():
                 if key in existing_pairs or key in new_pairs:
                     saved_claim_topics.extend(claim_topic_list)
