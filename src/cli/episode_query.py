@@ -222,9 +222,9 @@ class EpisodeQueryService:
                 unprocessed_episodes_query = (
                     self.session.query(PodcastEpisode)
                     .filter(PodcastEpisode.id.in_(latest_episode_ids))
-                    # .outerjoin(Claim, Claim.episode_id == PodcastEpisode.id)
-                    # .filter(Claim.id.is_(None))  # No claims = unprocessed
-                    # .order_by(PodcastEpisode.air_date.desc().nulls_last())
+                    .outerjoin(Claim, Claim.episode_id == PodcastEpisode.id)
+                    .filter(Claim.id.is_(None))  # No claims = unprocessed
+                    .order_by(PodcastEpisode.air_date.desc().nulls_last())
                 )
 
                 podcast_episodes = unprocessed_episodes_query.all()
@@ -264,14 +264,14 @@ class EpisodeQueryService:
                 logger.debug(f"Filtering by podcast_ids={podcast_ids}")
 
             # Skip already-processed episodes unless force=True
-            # if not force:
-            #     # LEFT JOIN to find episodes without claims
-            #     query = query.outerjoin(
-            #         Claim, Claim.episode_id == PodcastEpisode.id
-            #     ).filter(
-            #         Claim.id.is_(None)
-            #     )  # No claims = not processed
-            #     logger.debug("Filtering to unprocessed episodes only (force=False)")
+            if not force:
+                # LEFT JOIN to find episodes without claims
+                query = query.outerjoin(
+                    Claim, Claim.episode_id == PodcastEpisode.id
+                ).filter(
+                    Claim.id.is_(None)
+                )  # No claims = not processed
+                logger.debug("Filtering to unprocessed episodes only (force=False)")
 
             # Order by newest first (air_date DESC), NULL dates last
             query = query.order_by(PodcastEpisode.air_date.desc().nulls_last())

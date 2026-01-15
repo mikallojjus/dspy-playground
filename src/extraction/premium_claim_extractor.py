@@ -91,7 +91,7 @@ class PremiumClaimExtractor:
             List of extracted topic strings
 
         Raises:
-            Exception: If Gemini API call fails
+            Exception: If LLM call fails
         """
 
         response = None
@@ -102,7 +102,7 @@ class PremiumClaimExtractor:
                 description=description,
                 transcript=full_transcript
             )
-            logger.info(f"Calling Gemini 3 Pro for topics of discussion extraction ")
+            logger.info(f"Calling {self.model_name} for topics of discussion extraction ")
 
             response = self.client.models.generate_content(
                 model=self.model_name,
@@ -131,7 +131,7 @@ class PremiumClaimExtractor:
         full_transcript: str
     ) -> List[str]:
         """
-        Extract claims from full transcript using Gemini 3 Pro with structured outputs.
+        Extract claims from full transcript using LLM with structured outputs.
 
         Args:
             full_transcript: Complete podcast transcript text
@@ -140,7 +140,7 @@ class PremiumClaimExtractor:
             List of extracted claim strings
 
         Raises:
-            Exception: If Gemini API call fails
+            Exception: If LLM call fails
         """
         response = None
         try:
@@ -151,7 +151,7 @@ class PremiumClaimExtractor:
 
             # Call Gemini API with structured output configuration
             logger.info(
-                f"Calling Gemini 3 Pro for claim extraction with structured outputs "
+                f"Calling {self.model_name} for claim extraction with structured outputs "
                 f"({len(full_transcript)} chars)"
             )
 
@@ -185,7 +185,7 @@ class PremiumClaimExtractor:
     ) -> Dict[str, List[str]]:
         """
         Extract claims from full transcript and associate them with topics of discussion
-        using Gemini 3 Pro with structured outputs.
+        using LLM with structured outputs.
 
         Args:
             full_transcript: Complete podcast transcript text
@@ -195,7 +195,7 @@ class PremiumClaimExtractor:
             A dictionary where keys are topic labels and values are lists of claims associated with that topic.
 
         Raises:
-            Exception: If Gemini API call fails
+            Exception: If LLM call fails
         """
 
         response = None
@@ -206,7 +206,7 @@ class PremiumClaimExtractor:
             )
 
             logger.info(
-                f"Calling Gemini 3 Pro for claim extraction with topics of discussion"
+                f"Calling {self.model_name} for claim extraction with topics of discussion"
                 f"({len(full_transcript)} chars)"
             )
             response = self.client.models.generate_content(
@@ -241,7 +241,7 @@ class PremiumClaimExtractor:
         topics_with_claims: List[str]
     ) -> List[str]:
         """
-        Extract key takeaways from a list of claims using Gemini 3 Pro with structured outputs.
+        Extract key takeaways from a list of claims using LLM with structured outputs.
 
         Args:
             topics_with_claims: A structured list of topics, each containing extracted claims.
@@ -250,7 +250,7 @@ class PremiumClaimExtractor:
             List of key takeaway strings.
 
         Raises:
-            Exception: If Gemini API call fails.
+            Exception: If LLM call fails.
         """
         response = None
         try:
@@ -261,7 +261,7 @@ class PremiumClaimExtractor:
 
             # Call Gemini API with structured output configuration
             logger.info(
-                f"Calling Gemini 3 Pro for key takeaway extraction with structured outputs"
+                f"Calling {self.model_name} for key takeaway extraction with structured outputs"
             )
 
             response = self.client.models.generate_content(
