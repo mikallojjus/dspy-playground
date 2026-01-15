@@ -226,50 +226,53 @@ class PremiumExtractionPipeline:
                 # Save claims to database
                 logger.info("  Saving claims to database...")
                 claim_repo = ClaimRepository(db_session)
-                saved_claim_topics = await claim_repo.save_claims(claim_topics, episode_id)
+                saved_claim_topics_with_claim_ids = await claim_repo.save_claims(claim_topics, episode_id)
 
                 # Update embeddings (if enabled)
-                # if settings.enable_embeddings:
-                #     embeddings_dict = {
-                #         claim_id: claim.metadata["embedding"]
-                #         for claim_id, claim in zip(saved_claim_ids, claims)
-                #     }
-                #     await claim_repo.update_claim_embeddings(embeddings_dict)
+                if settings.enable_embeddings:
+                    saved_claim_ids = [claim.claim_id for claim in saved_claim_topics_with_claim_ids]
+                    embeddings_dict = {
+                        claim_id: claim.metadata["embedding"]
+                        for claim_id, claim in zip(saved_claim_ids, saved_claim_topics_with_claim_ids)
+                    }
+                    await claim_repo.update_claim_embeddings(embeddings_dict)
 
-                logger.info(f"  ✓ Saved {len(saved_claim_topics)} claims to database")
+                logger.info(f"  ✓ Saved {len(saved_claim_topics_with_claim_ids)} claims to database")
 
                 logger.info("  Saving claim-episode links to database...")
 
                 claim_episode_repo = ClaimEpisodeRepository(db_session)
-                saved_claim_topics = await claim_episode_repo.save_claim_episodes(
-                    claim_topics=saved_claim_topics,
+                saved_claim_topics_with_claim_episode_id = await claim_episode_repo.save_claim_episodes(
+                    claim_topics=saved_claim_topics_with_claim_ids,
                     episode_id=episode_id
                 )
 
-                logger.info(f"  ✓ Saved {len(saved_claim_topics)} claim-episode links")
+                logger.info(f"  ✓ Saved {len(saved_claim_topics_with_claim_episode_id)} claim-episode links")
 
                
                 logger.info("  Saving topic entries to database...")
                 tag_repo = TagRepository(db_session)
-                saved_claim_topics = await tag_repo.save_tags(claim_topics=saved_claim_topics)   
-                logger.info(f"  ✓ Saved {len(saved_claim_topics)} topic")
+                saved_claim_topics_with_tag_id = await tag_repo.save_tags(
+                    claim_topics=saved_claim_topics_with_claim_episode_id
+                )   
+                logger.info(f"  ✓ Saved {len(saved_claim_topics_with_tag_id)} topic")
 
                 logger.info("  Saving tag map entries to database...")
                 tag_map_repo = TagMapRepository(db_session)
-                saved_tag_topics = await tag_map_repo.save_tag_maps(
-                    claim_topics=saved_claim_topics
+                saved_tag_map_topics = await tag_map_repo.save_tag_maps(
+                    claim_topics=saved_claim_topics_with_tag_id
                 )
-                logger.info(f"  ✓ Saved {len(saved_tag_topics)} tag map entries")
+                logger.info(f"  ✓ Saved {len(saved_tag_map_topics)} tag map entries")
 
                 for key_takeaway in key_takeaways:
-                    for saved_claim_topic in saved_claim_topics:
+                    for saved_claim_topic in saved_claim_topics_with_tag_id:
                         if key_takeaway.key_takeaway == saved_claim_topic.claim_text:
                             key_takeaway.claim_episode_id = saved_claim_topic.claim_episode_id
                             break
                 
                 logger.info("  Saving key takeaways to database...")
-                saved_key_takeaways = await tag_repo.save_tags(key_takeaways)
-                logger.info(f"  ✓ Saved {len(saved_key_takeaways)} key takeaways")
+                saved_key_takeaways_with_claim_episode_id = await tag_repo.save_tags(key_takeaways)
+                logger.info(f"  ✓ Saved {len(saved_key_takeaways_with_claim_episode_id)} key takeaways")
 
                 logger.info("  Saving key takeaways to claim-episode links to database...")
                 saved_key_takeaways = await tag_map_repo.save_tag_maps(key_takeaways)
