@@ -241,19 +241,25 @@ class PremiumExtractionPipeline:
             )
         
         for idx, key_takeaway in enumerate(key_takeaways, start=1):
+            is_key_takeaway_extracted_correct = False
             for claim in claim_topics:
                 if key_takeaway.key_takeaway == claim.claim_text:
                     claim.group_order = 1
                     claim.claim_order = idx
+                    is_key_takeaway_extracted_correct = True
                     break
+            if not is_key_takeaway_extracted_correct:
+                logger.info(f"{key_takeaway.key_takeaway} extracted different from claims")
 
-        
+        claim_count = 1        
         for topic_idx, topic in enumerate(topics, start=2):
-            for claim_idx, claim in enumerate(claim_topics, start=1):
+            for _, claim in enumerate(claim_topics):
+                if claim.claim_order != None:
+                     continue
                 if topic == claim.topic:
                     claim.group_order = topic_idx
-                    claim.claim_order = claim_idx
-                    break
+                    claim.claim_order = claim_count
+                    claim_count += 1
             
         if save_to_db:
             logger.info("Step 5/5: Saving results to database...")
