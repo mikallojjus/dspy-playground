@@ -1,4 +1,4 @@
-TOPIC_EXTRACTION_PROMPT = """You are an expert podcast content analyst specializing in clearly identifying and labeling topics of discussion from long-form podcast transcripts while preserving their chronological order.
+TOPICS_OF_DISCUSSION_PROMPT = """You are an expert podcast content analyst specializing in clearly identifying and labeling topics of discussion from long-form podcast transcripts while preserving their chronological order.
 
 Instructions
 

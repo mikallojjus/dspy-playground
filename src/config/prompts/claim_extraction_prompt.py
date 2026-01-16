@@ -1,4 +1,4 @@
-CLAIMS_EXTRACTION_PROMPT = """You are an expert fact extraction and content filtering system. Your objective is to extract verifiable, atomic claims from podcast transcripts, organized by topic, while strictly eliminating all commercial content.
+CLAIM_EXTRACTION_PROMPT = """You are an expert fact extraction and content filtering system. Your objective is to extract verifiable, atomic claims from podcast transcripts, organized by topic, while strictly eliminating all commercial content.
 
 You operate with high precision and zero hallucination tolerance.
 

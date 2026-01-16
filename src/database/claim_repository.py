@@ -14,7 +14,7 @@ from typing import List, Dict, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from src.database.models import Claim, Quote, ClaimQuote
+from src.database.models import Claim, Quote, ClaimQuote, ClaimEpisode
 from src.extraction.quote_finder import ClaimWithTopic, Quote as ExtractedQuote
 from src.infrastructure.logger import get_logger
 
@@ -425,7 +425,12 @@ class ClaimRepository:
             f"(include_flagged={include_flagged}, include_verified={include_verified})"
         )
 
-        query = self.session.query(Claim).filter(Claim.episode_id.in_(episode_ids))
+        # Query claims through ClaimEpisode junction table
+        query = (
+            self.session.query(Claim, ClaimEpisode.episode_id)
+            .join(ClaimEpisode, Claim.id == ClaimEpisode.claim_id)
+            .filter(ClaimEpisode.episode_id.in_(episode_ids))
+        )
 
         if not include_flagged:
             query = query.filter(Claim.is_flagged == False)
@@ -433,18 +438,17 @@ class ClaimRepository:
         if not include_verified:
             query = query.filter(Claim.is_verified == False)
 
-        claims = query.all()
+        results = query.all()
 
         # Group by episode
-        claims_by_episode = {}
-        for claim in claims:
-            episode_id = claim.episode_id
+        claims_by_episode: Dict[int, List[Claim]] = {}
+        for claim, episode_id in results:
             if episode_id not in claims_by_episode:
                 claims_by_episode[episode_id] = []
             claims_by_episode[episode_id].append(claim)
 
         logger.info(
-            f"Found {len(claims)} claims across {len(claims_by_episode)} episodes"
+            f"Found {len(results)} claims across {len(claims_by_episode)} episodes"
         )
 
         return claims_by_episode
@@ -483,13 +487,15 @@ class ClaimRepository:
             f"(only_unverified={only_unverified})"
         )
 
+        # Query through ClaimEpisode junction table
         query = (
             self.session.query(
-                Claim.episode_id,
+                ClaimEpisode.episode_id,
                 func.count(Claim.id).label("count")
             )
+            .join(ClaimEpisode, Claim.id == ClaimEpisode.claim_id)
             .filter(
-                Claim.episode_id.in_(episode_ids),
+                ClaimEpisode.episode_id.in_(episode_ids),
                 Claim.is_flagged == False
             )
         )
@@ -497,7 +503,7 @@ class ClaimRepository:
         if only_unverified:
             query = query.filter(Claim.is_verified == False)
 
-        results = query.group_by(Claim.episode_id).all()
+        results = query.group_by(ClaimEpisode.episode_id).all()
 
         counts = {episode_id: count for episode_id, count in results}
 

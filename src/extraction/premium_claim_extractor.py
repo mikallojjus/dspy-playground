@@ -7,9 +7,6 @@ from google.genai import types
 
 from src.config.prompts.key_takeaways_prompt import KEY_TAKEAWAYS_PROMPT
 from src.config.settings import settings
-from src.config.prompts.premium_claim_extraction_prompt import (
-    PREMIUM_CLAIM_EXTRACTION_PROMPT
-)
 from src.config.prompts.topics_of_discussion_extraction_prompt import (
     TOPICS_OF_DISCUSSION_PROMPT
 )
@@ -126,58 +123,6 @@ class PremiumClaimExtractor:
                 logger.error(f"Response text: {getattr(response, 'text', 'N/A')[:500]}")
             return []
 
-    async def extract_claims_from_transcript(
-        self,
-        full_transcript: str
-    ) -> List[str]:
-        """
-        Extract claims from full transcript using LLM with structured outputs.
-
-        Args:
-            full_transcript: Complete podcast transcript text
-
-        Returns:
-            List of extracted claim strings
-
-        Raises:
-            Exception: If LLM call fails
-        """
-        response = None
-        try:
-            # Format prompt with transcript
-            prompt = PREMIUM_CLAIM_EXTRACTION_PROMPT.format(
-                transcript=full_transcript
-            )
-
-            # Call Gemini API with structured output configuration
-            logger.info(
-                f"Calling {self.model_name} for claim extraction with structured outputs "
-                f"({len(full_transcript)} chars)"
-            )
-
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=settings.gemini_premium_temperature,
-                    response_mime_type="application/json",
-                    response_schema=ClaimExtractionResult,
-                )
-            )
-
-            # Parse structured response using Pydantic
-            result: ClaimExtractionResult = ClaimExtractionResult.model_validate_json(response.text)
-            claims = result.claims
-
-            logger.info(f"Extracted {len(claims)} claims from full transcript via structured outputs")
-            return claims
-
-        except Exception as e:
-            logger.error(f"Error in premium claim extraction: {e}", exc_info=True)
-            if response:
-                logger.error(f"Response text: {getattr(response, 'text', 'N/A')[:500]}")
-            return []
-
     async def extract_claims_with_topics_from_transcript(
         self,
         full_transcript: str,
@@ -238,13 +183,13 @@ class PremiumClaimExtractor:
 
     async def extract_key_takeaways_from_claims(
         self,
-        topics_with_claims: List[str]
+        topics_with_claims: str
     ) -> List[str]:
         """
         Extract key takeaways from a list of claims using LLM with structured outputs.
 
         Args:
-            topics_with_claims: A structured list of topics, each containing extracted claims.
+            topics_with_claims: A formatted string of topics with their claims.
 
         Returns:
             List of key takeaway strings.

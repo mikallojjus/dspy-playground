@@ -155,6 +155,26 @@ class PremiumExtractionPipeline:
 
         logger.info(f"  ✓ Extracted {claims_extracted} claims in {extraction_time:.1f}s")
 
+        # Post-processing: Filter out topics with fewer than 3 claims
+        min_claims_per_topic = 3
+        filtered_claims_with_topics = {
+            topic: claims for topic, claims in claims_with_topics.items()
+            if len(claims) >= min_claims_per_topic
+        }
+
+        filtered_out_topics = len(claims_with_topics) - len(filtered_claims_with_topics)
+        filtered_out_claims = claims_extracted - sum(len(c) for c in filtered_claims_with_topics.values())
+
+        if filtered_out_topics > 0:
+            logger.info(
+                f"  Filtered out {filtered_out_topics} topics with <{min_claims_per_topic} claims "
+                f"({filtered_out_claims} claims removed)"
+            )
+
+        # Update variables to use filtered data
+        claims_with_topics = filtered_claims_with_topics
+        topics = [t for t in topics if t in claims_with_topics]
+        claims_extracted = sum(len(c) for c in claims_with_topics.values())
 
         claim_topics: List[ClaimWithTopic] = []
         for topic, claims in claims_with_topics.items():
@@ -183,8 +203,19 @@ class PremiumExtractionPipeline:
 
         logger.info("Step 4/5 Extract key takeaways...")
         stage_start = time.time()
+
+        # Format claims_with_topics into a structured string for the LLM
+        # Each topic with its claims listed below it
+        formatted_topics_with_claims = []
+        for topic, claims in claims_with_topics.items():
+            topic_section = f"Topic: {topic}\n"
+            for claim in claims:
+                topic_section += f"- {claim}\n"
+            formatted_topics_with_claims.append(topic_section)
+        topics_with_claims_str = "\n".join(formatted_topics_with_claims)
+
         key_takeaways_raw = await self.premium_extractor.extract_key_takeaways_from_claims(
-            topics_with_claims=topics
+            topics_with_claims=topics_with_claims_str
         )
         extraction_time = time.time() - stage_start
         logger.info(f"  ✓ Extracted {len(key_takeaways_raw)} key takeaways in {extraction_time:.1f}s")

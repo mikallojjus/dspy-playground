@@ -91,7 +91,8 @@ class TagRepository:
                 if isinstance(claim_topic, ClaimWithTopic):
                     tag_name = claim_topic.topic
                 else:
-                    tag_name = claim_topic.key_takeaway
+                    # KeyTakeAwayWithClaim: use constant tag name, not the claim text
+                    tag_name = "Key Takeaways"
                 if not tag_name:
                     logger.warning(
                         "Item missing tag text; skipping tag creation"
@@ -132,7 +133,8 @@ class TagRepository:
                 if isinstance(claim_topic, ClaimWithTopic):
                     tag_name = claim_topic.topic
                 else:
-                    tag_name = claim_topic.key_takeaway
+                    # KeyTakeAwayWithClaim: use constant tag name, not the claim text
+                    tag_name = "Key Takeaways"
                 if not tag_name:
                     continue
                 tag_id = existing_by_name.get(tag_name)
