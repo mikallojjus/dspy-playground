@@ -20,16 +20,19 @@ Usage:
 """
 
 from dataclasses import dataclass
-from typing import cast, Optional
+from typing import List, cast, Optional
 import time
 
 from src.config.settings import settings
+from src.database.claim_episode_repository import ClaimEpisodeRepository
+from src.database.tag_map_repository import TagMapRepository
 from src.database.connection import get_db_session
 from src.database.models import PodcastEpisode
 from src.database.claim_repository import ClaimRepository
+from src.database.tag_repository import TagRepository
 from src.preprocessing.transcript_parser import TranscriptParser
 from src.extraction.premium_claim_extractor import PremiumClaimExtractor
-from src.extraction.quote_finder import ClaimWithQuotes
+from src.extraction.quote_finder import ClaimWithTopic, KeyTakeAwayWithClaim
 from src.infrastructure.embedding_service import EmbeddingService
 from src.infrastructure.logger import get_logger
 
@@ -40,10 +43,14 @@ logger = get_logger(__name__)
 class PremiumPipelineResult:
     """Result from premium pipeline execution."""
     episode_id: int
-    claims: list[ClaimWithQuotes]
+    claims: list[ClaimWithTopic]
     processing_time_seconds: float
     claims_extracted: int
     model_used: str  # "gemini-3-pro-preview"
+    topic_of_discussion: list[str]
+    claim_with_topic: dict[str, list[str]]
+    key_takeaways: list[KeyTakeAwayWithClaim]
+
 
 
 class PremiumExtractionPipeline:
@@ -105,32 +112,62 @@ class PremiumExtractionPipeline:
         )
 
         # Step 2: Parse transcript
-        logger.info("Step 1/3: Parsing transcript...")
+        logger.info("Step 1/5: Parsing transcript...")
         parsed_transcript = self.parser.parse(transcript, format=transcript_format)
         logger.info(f"  ✓ Parsed {len(parsed_transcript.segments)} segments")
 
-        # Step 3: Extract claims from FULL transcript (no chunking!)
-        logger.info("Step 2/3: Extracting claims from full transcript (Gemini 3 Pro)...")
+        logger.info("Step 2/5: Extracting topics of discussion...")
         stage_start = time.time()
-        claim_texts = await self.premium_extractor.extract_claims_from_transcript(
-            parsed_transcript.full_text
+        topics = await self.premium_extractor.extract_topics_of_discussion_from_episode(
+            title=episode.name,
+            description=episode.description,
+            full_transcript=parsed_transcript.full_text
         )
         extraction_time = time.time() - stage_start
-        claims_extracted = len(claim_texts)
+        topics_extracted = len(topics)
+        logger.info(f"  ✓ Extracted {topics_extracted} topics in {extraction_time:.1f}s")
+        if not topics:
+            logger.warning("No topics extracted, ending pipeline")
+            processing_time = time.time() - start_time
+            return PremiumPipelineResult(
+                episode_id=episode_id,
+                claims=[],
+                processing_time_seconds=processing_time,
+                claims_extracted=0,
+                model_used=settings.gemini_premium_model,
+                topic_of_discussion=[],
+                claim_with_topic={},
+                key_takeaways=[]
+            )
+                
+
+        logger.info("Step 3/5: Extracting claims with topics...")
+        stage_start = time.time()
+        claims_with_topics = await self.premium_extractor.extract_claims_with_topics_from_transcript(
+            full_transcript=parsed_transcript.full_text,
+            topics_of_discussion=topics
+        )
+        extraction_time = time.time() - stage_start
+        
+        claims_extracted = 0
+        for _, claimList in claims_with_topics.items():
+            claims_extracted += len(claimList)
+
         logger.info(f"  ✓ Extracted {claims_extracted} claims in {extraction_time:.1f}s")
 
-        # Convert to ClaimWithQuotes objects
-        claims = [
-            ClaimWithQuotes(
-                claim_text=text,
-                source_chunk_id=None,  # No chunks in premium pipeline
-                quotes=[],
-                confidence=0.8  # Default confidence (no quotes)
-            )
-            for text in claim_texts
-        ]
 
-        if not claims:
+        claim_topics: List[ClaimWithTopic] = []
+        for topic, claims in claims_with_topics.items():
+            for claim in claims:
+                claim_topics.append(
+                    ClaimWithTopic(
+                        claim_text=claim,
+                        topic=topic,
+                        episode_id=episode_id
+                    )
+                )
+
+        if not claim_topics:
             logger.warning("No claims extracted, ending pipeline")
             processing_time = time.time() - start_time
             return PremiumPipelineResult(
@@ -138,19 +175,49 @@ class PremiumExtractionPipeline:
                 claims=[],
                 processing_time_seconds=processing_time,
                 claims_extracted=0,
-                model_used=settings.gemini_premium_model
+                model_used=settings.gemini_premium_model,
+                topic_of_discussion=topics,
+                claim_with_topic={},
+                key_takeaways=[]
             )
 
-        # Step 4: Save to database
+        logger.info("Step 4/5 Extract key takeaways...")
+        stage_start = time.time()
+        key_takeaways_raw = await self.premium_extractor.extract_key_takeaways_from_claims(
+            topics_with_claims=topics
+        )
+        extraction_time = time.time() - stage_start
+        logger.info(f"  ✓ Extracted {len(key_takeaways_raw)} key takeaways in {extraction_time:.1f}s")
+
+        key_takeaways = [
+            KeyTakeAwayWithClaim(
+                key_takeaway=key_takeaway,
+            ) for key_takeaway in key_takeaways_raw
+        ]
+
+        if not key_takeaways:
+            logger.warning("No key takeaways extracted, ending pipeline")
+            processing_time = time.time() - start_time
+            return PremiumPipelineResult(
+                episode_id=episode_id,
+                claims=claim_topics,
+                processing_time_seconds=processing_time,
+                claims_extracted=claims_extracted,
+                model_used=settings.gemini_premium_model,
+                topic_of_discussion=topics,
+                claim_with_topic=claims_with_topics,
+                key_takeaways=[]
+            )
+            
         if save_to_db:
-            logger.info("Step 3/3: Saving claims to database...")
+            logger.info("Step 5/5: Saving results to database...")
             db_session = get_db_session()
 
             try:
                 # Generate embeddings for all claims (if enabled)
                 if settings.enable_embeddings:
                     logger.info("  Generating embeddings for claims...")
-                    for claim in claims:
+                    for claim in claim_topics:
                         embedding = await self.embedder.embed_text(claim.claim_text)
                         claim.metadata["embedding"] = embedding
                 else:
@@ -158,18 +225,58 @@ class PremiumExtractionPipeline:
 
                 # Save claims to database
                 logger.info("  Saving claims to database...")
-                repo = ClaimRepository(db_session)
-                saved_claim_ids = await repo.save_claims(claims, episode_id)
+                claim_repo = ClaimRepository(db_session)
+                saved_claim_topics_with_claim_ids = await claim_repo.save_claims(claim_topics, episode_id)
 
                 # Update embeddings (if enabled)
                 if settings.enable_embeddings:
+                    saved_claim_ids = [claim.claim_id for claim in saved_claim_topics_with_claim_ids]
                     embeddings_dict = {
                         claim_id: claim.metadata["embedding"]
-                        for claim_id, claim in zip(saved_claim_ids, claims)
+                        for claim_id, claim in zip(saved_claim_ids, saved_claim_topics_with_claim_ids)
                     }
-                    await repo.update_claim_embeddings(embeddings_dict)
+                    await claim_repo.update_claim_embeddings(embeddings_dict)
 
-                logger.info(f"  ✓ Saved {len(saved_claim_ids)} claims to database")
+                logger.info(f"  ✓ Saved {len(saved_claim_topics_with_claim_ids)} claims to database")
+
+                logger.info("  Saving claim-episode links to database...")
+
+                claim_episode_repo = ClaimEpisodeRepository(db_session)
+                saved_claim_topics_with_claim_episode_id = await claim_episode_repo.save_claim_episodes(
+                    claim_topics=saved_claim_topics_with_claim_ids,
+                    episode_id=episode_id
+                )
+
+                logger.info(f"  ✓ Saved {len(saved_claim_topics_with_claim_episode_id)} claim-episode links")
+
+               
+                logger.info("  Saving topic entries to database...")
+                tag_repo = TagRepository(db_session)
+                saved_claim_topics_with_tag_id = await tag_repo.save_tags(
+                    claim_topics=saved_claim_topics_with_claim_episode_id
+                )   
+                logger.info(f"  ✓ Saved {len(saved_claim_topics_with_tag_id)} topic")
+
+                logger.info("  Saving tag map entries to database...")
+                tag_map_repo = TagMapRepository(db_session)
+                saved_tag_map_topics = await tag_map_repo.save_tag_maps(
+                    claim_topics=saved_claim_topics_with_tag_id
+                )
+                logger.info(f"  ✓ Saved {len(saved_tag_map_topics)} tag map entries")
+
+                for key_takeaway in key_takeaways:
+                    for saved_claim_topic in saved_claim_topics_with_tag_id:
+                        if key_takeaway.key_takeaway == saved_claim_topic.claim_text:
+                            key_takeaway.claim_episode_id = saved_claim_topic.claim_episode_id
+                            break
+                
+                logger.info("  Saving key takeaways to database...")
+                saved_key_takeaways_with_claim_episode_id = await tag_repo.save_tags(key_takeaways)
+                logger.info(f"  ✓ Saved {len(saved_key_takeaways_with_claim_episode_id)} key takeaways")
+
+                logger.info("  Saving key takeaways to claim-episode links to database...")
+                saved_key_takeaways = await tag_map_repo.save_tag_maps(key_takeaways)
+                logger.info(f"  ✓ Saved {len(saved_key_takeaways)} key takeaways to claim-episode links")
 
                 # Commit transaction
                 db_session.commit()
@@ -183,7 +290,7 @@ class PremiumExtractionPipeline:
             finally:
                 db_session.close()
         else:
-            logger.info("Step 3/3: Skipping database save (API mode)")
+            logger.info("Step 5/5: Skipping database save (API mode)")
 
         processing_time = time.time() - start_time
 
@@ -197,7 +304,10 @@ class PremiumExtractionPipeline:
             claims=claims,
             processing_time_seconds=processing_time,
             claims_extracted=claims_extracted,
-            model_used=settings.gemini_premium_model
+            model_used=settings.gemini_premium_model,
+            topic_of_discussion=topics,
+            claim_with_topic=claims_with_topics,
+            key_takeaways=key_takeaways
         )
 
     def _load_episode(self, episode_id: int) -> PodcastEpisode:
