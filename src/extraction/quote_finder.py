@@ -88,6 +88,8 @@ class ClaimWithTopic:
     claim_id: int = None
     claim_episode_id: int = None
     tag_id: int = None
+    group_order: int = None
+    claim_order: int = None
     metadata: dict = field(default_factory=dict)
 
 @dataclass

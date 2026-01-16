@@ -180,6 +180,8 @@ class ClaimEpisode(Base):
         ForeignKey("crypto.podcast_episodes.id", ondelete="CASCADE"),
         nullable=False,
     )
+    group_order = Column(Integer, nullable=True)
+    claim_order = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

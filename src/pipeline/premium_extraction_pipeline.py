@@ -239,6 +239,21 @@ class PremiumExtractionPipeline:
                 claim_with_topic=claims_with_topics,
                 key_takeaways=[]
             )
+        
+        for idx, key_takeaway in enumerate(key_takeaways, start=1):
+            for claim in claim_topics:
+                if key_takeaway.key_takeaway == claim.claim_text:
+                    claim.group_order = 1
+                    claim.claim_order = idx
+                    break
+
+        
+        for topic_idx, topic in enumerate(topics, start=2):
+            for claim_idx, claim in enumerate(claim_topics, start=1):
+                if topic == claim.topic:
+                    claim.group_order = topic_idx
+                    claim.claim_order = claim_idx
+                    break
             
         if save_to_db:
             logger.info("Step 5/5: Saving results to database...")
