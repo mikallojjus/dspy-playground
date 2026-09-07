@@ -56,3 +56,36 @@ echoed back, so the consumer can pass Geo entity ids straight through.
 
 Cost: exactly one Gemini call per task run, rate-limited under `gemini_global` and counted by the
 spend guard. Up to 50 candidates per call.
+
+
+## How the verdict is reached (v2, 2026-09-07)
+
+The model does not return a verdict. For each candidate it reports what the claim asserts and what
+the candidate asserts (naming the kind: effect, intent, necessity, signal, mechanism, frequency,
+scope, value judgement), answers two questions strictly — if the claim is true must the candidate be
+true, and the reverse — and names the relation. `verdict_from` derives the verdict: `equivalent` only
+when both directions hold **and** the relation is `same`; `unsure` only when the model says so;
+otherwise `not_equivalent`, with the rationale built from the two assertions and the decisive
+difference.
+
+Why: asked for a verdict directly, the model judged by thematic correspondence and called related
+claims on the same side equivalent (a replayed debate had a "problems voter ID laws are intended to
+solve" claim attract "provide a necessary signal of trustworthiness" and "a mechanism to ensure each
+vote comes from one citizen"). Made to answer the directional questions, it does not.
+
+Default model is `gemini-3.5-flash`. `CLAIMS_EQUIVALENCE_THINKING_LEVEL` is available but empty by
+default: in the evaluation below, `low` made the batched hub case regress.
+
+### Evaluation
+
+`tests/fixtures/claim_equivalence_eval.json` holds 21 pairs and 2 real candidate batches taken from
+replays of published testnet debates, with expected verdicts (two borderline pairs accept either).
+Run it live with:
+
+```sh
+GEMINI_API_KEY=… uv run python scripts/eval_claim_equivalence.py
+```
+
+Results on 2026-09-07 — v1 rubric, gemini-2.5-flash: precision 0.89, recall 0.89, one batch wrong.
+v2, gemini-2.5-flash: pairs perfect, the mechanism batch still wrong. v2, gemini-3.5-flash: pairs
+perfect, both batches right, stable over three repeats, ~100 s for the whole set.
