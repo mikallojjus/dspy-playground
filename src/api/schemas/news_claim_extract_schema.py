@@ -70,10 +70,10 @@ class ExtractedDebateClaim(BaseModel):
 def normalize_debate_claims(
   items: List[ExtractedDebateClaim],
 ) -> List[ExtractedDebateClaim]:
-  """Deterministic enforcement of the Debate collection contract: 0 or 3-5.
+  """Deterministic enforcement of the Debate collection contract: 0 or 2-5.
 
-  The product requirement is a useful collection of 3-5 independent
-  debates, never a one- or two-card collection. Duplicates collapse first and
+  The product requirement is a useful collection of 2-5 independent
+  debates, never a one-card collection (Armando 2026-09-07: two is enough). Duplicates collapse first and
   producers list strongest first. An underfilled result becomes empty so the
   consumer omits the Debate collection rather than padding it with weak or
   mirrored claims.
@@ -86,7 +86,7 @@ def normalize_debate_claims(
       seen.add(key)
       unique.append(c)
   unique = unique[:5]
-  return unique if len(unique) >= 3 else []
+  return unique if len(unique) >= 2 else []
 
 
 class NewsClaimExtractResponse(BaseModel):

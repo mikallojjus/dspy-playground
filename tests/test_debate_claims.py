@@ -1,7 +1,7 @@
 """Debate claims (Step 8 of the news prompt): schema contract + deterministic
 cardinality enforcement.
 
-The product requires 0 or 3-5 debate claims, but a count is exactly the kind of
+The product requires 0 or 2-5 debate claims, but a count is exactly the kind of
 instruction a model occasionally ignores — these tests pin the repair layer
 that makes the contract hold regardless (normalize_debate_claims, hooked as a
 model_validator on both response models). No LLM calls.
@@ -67,14 +67,18 @@ def test_legacy_checkpoint_without_field_still_validates():
     assert resp.debate_claims == []
 
 
-# ── Cardinality repair (0 or 3-5) ──────────────────────────────────────
+# ── Cardinality repair (0 or 2-5) ──────────────────────────────────────
 
 
-def test_one_or_two_are_omitted_instead_of_published_as_thin_collection():
+def test_a_singleton_is_omitted_instead_of_published_as_thin_collection():
     resp = NewsClaimExtractResponse.model_validate({"debate_claims": _claims("lonely position")})
     assert resp.debate_claims == []
+
+
+def test_two_survive_the_floor():
+    # Armando 2026-09-07: two claims are a publishable collection.
     resp = NewsClaimExtractResponse.model_validate({"debate_claims": _claims("one", "two")})
-    assert resp.debate_claims == []
+    assert [c.text for c in resp.debate_claims] == ["one", "two"]
 
 
 def test_six_capped_at_first_five():
@@ -84,15 +88,15 @@ def test_six_capped_at_first_five():
     assert [c.text for c in resp.debate_claims] == ["a", "b", "c", "d", "e"]
 
 
-def test_duplicates_that_leave_under_three_omit_the_collection():
+def test_duplicates_that_leave_under_two_omit_the_collection():
     resp = NewsClaimExtractResponse.model_validate(
         {"debate_claims": _claims("Same position.", "  same   POSITION. ")}
     )
     assert resp.debate_claims == []
 
 
-def test_three_through_five_pass_untouched():
-    for n in (3, 4, 5):
+def test_two_through_five_pass_untouched():
+    for n in (2, 3, 4, 5):
         texts = [f"distinct position {i}" for i in range(n)]
         resp = NewsClaimExtractResponse.model_validate({"debate_claims": _claims(*texts)})
         assert [c.text for c in resp.debate_claims] == texts
@@ -192,7 +196,7 @@ def test_dedicated_prompt_carries_the_product_definition():
     # The definition, in the team's own terms.
     assert "sounds like a headline" in rendered
     assert "large or significant groups" in rendered
-    assert "3-5 debate claims" in rendered
+    assert "2-5 debate claims" in rendered
     # Discovery lenses, including the societal-instance lens.
     assert "Policy or response" in rendered
     assert "Societal instance" in rendered
@@ -244,7 +248,7 @@ def test_grounded_candidate_is_projected_to_public_contract():
     assert all(claim.source_indices == [7] for claim in result)
 
 
-def test_public_projection_omits_one_or_two_grounded_candidates():
+def test_public_projection_omits_a_singleton_grounded_candidate():
     assert project_debate_candidates([_candidate()]) == []
 
 

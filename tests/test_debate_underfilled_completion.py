@@ -1,4 +1,4 @@
-"""Underfilled 3-5 collection completion orchestration; no provider calls."""
+"""Underfilled 2-5 collection completion orchestration; no provider calls."""
 
 import src.api.services.news_debate_claim_service as service
 from src.api.schemas.news_claim_extract_schema import ExtractedClaim, NewsArticleSource
@@ -55,8 +55,8 @@ def _story():
 
 def test_completion_prompt_carries_count_survivors_and_rejection_audit():
     sources, claims = _story()
-    survivors = [_candidate(0), _candidate(1)]
-    rejected = _candidate(2)
+    survivors = [_candidate(0)]
+    rejected = _candidate(1)
     prompt = service._build_underfilled_rescue_prompt(
         "Council approves traffic plan",
         sources,
@@ -65,12 +65,11 @@ def test_completion_prompt_carries_count_survivors_and_rejection_audit():
         [*survivors, rejected],
         [
             _verdict(0),
-            _verdict(1),
-            _verdict(2, invented_facts=["invented mechanism"]),
+            _verdict(1, invented_facts=["invented mechanism"]),
         ],
     )
-    assert "left 2 publishable" in prompt
-    assert "1 and at most 3 NEW" in prompt
+    assert "left 1 publishable" in prompt
+    assert "1 and at most 4 NEW" in prompt
     assert all(survivor.neutral_question in prompt for survivor in survivors)
     assert rejected.neutral_question in prompt
     assert "INVENTED_FACTS" in prompt
@@ -82,9 +81,9 @@ def test_completion_prompt_carries_count_survivors_and_rejection_audit():
     assert "allocation or strategy advice" in prompt
 
 
-def test_completion_does_not_run_once_collection_has_three(monkeypatch):
+def test_completion_does_not_run_once_collection_has_two(monkeypatch):
     sources, claims = _story()
-    accepted = [_candidate(i) for i in range(3)]
+    accepted = [_candidate(i) for i in range(2)]
 
     def unexpected(*args, **kwargs):
         raise AssertionError("completion generation should not run")
@@ -169,9 +168,9 @@ def test_completion_runs_for_singleton_survivor(monkeypatch):
     assert len(service.project_debate_candidates(completed)) == 3
 
 
-def test_completion_runs_for_exactly_two_survivors(monkeypatch):
+def test_singleton_survivor_with_empty_rescue_returns_unchanged(monkeypatch):
     sources, claims = _story()
-    accepted = [_candidate(0), _candidate(1)]
+    accepted = [_candidate(0)]
     called = False
 
     def generate(*args):
@@ -191,7 +190,7 @@ def test_completion_runs_for_exactly_two_survivors(monkeypatch):
 
 def test_multiple_valid_axes_complete_collection_without_counterclaim_padding(monkeypatch):
     sources, claims = _story()
-    survivors = [_candidate(0), _candidate(1)]
+    survivors = [_candidate(0)]
     additions = [_candidate(2), _candidate(3)]
 
     monkeypatch.setattr(service.settings, "news_debate_underfilled_rescue_enabled", True)
@@ -210,16 +209,16 @@ def test_multiple_valid_axes_complete_collection_without_counterclaim_padding(mo
 
     monkeypatch.setattr(service, "review_news_debate_candidates", accept_review)
     completed, audit = service.complete_underfilled_news_debate_candidates(
-        "headline", sources, claims, survivors, survivors, [_verdict(0), _verdict(1)]
+        "headline", sources, claims, survivors, survivors, [_verdict(0)]
     )
     assert completed == [*survivors, *additions]
     assert len(audit) == 2
-    assert len(service.project_debate_candidates(completed)) == 4
+    assert len(service.project_debate_candidates(completed)) == 3
 
 
 def test_still_underfilled_after_review_is_omitted_at_public_projection(monkeypatch):
     sources, claims = _story()
-    survivors = [_candidate(0), _candidate(1)]
+    survivors = [_candidate(0)]
     rejected_addition = _candidate(2)
 
     monkeypatch.setattr(service.settings, "news_debate_underfilled_rescue_enabled", True)
@@ -237,9 +236,9 @@ def test_still_underfilled_after_review_is_omitted_at_public_projection(monkeypa
         ),
     )
     completed, _ = service.complete_underfilled_news_debate_candidates(
-        "headline", sources, claims, survivors, survivors, [_verdict(0), _verdict(1)]
+        "headline", sources, claims, survivors, survivors, [_verdict(0)]
     )
-    assert len(completed) == 2
+    assert len(completed) == 1
     assert service.project_debate_candidates(completed) == []
 
 
@@ -303,7 +302,7 @@ def test_claude_completion_runs_for_singleton_survivor(monkeypatch):
 
 def test_claude_completion_reviews_only_new_axes_against_prior_attempts(monkeypatch):
     sources, claims = _story()
-    survivors = [_candidate(0), _candidate(1)]
+    survivors = [_candidate(0)]
     additions = [_candidate(2)]
 
     monkeypatch.setattr(service.settings, "news_debate_underfilled_rescue_enabled", True)
@@ -324,7 +323,7 @@ def test_claude_completion_reviews_only_new_axes_against_prior_attempts(monkeypa
         service, "review_news_debate_candidates_claude", accept_review
     )
     completed, audit = service.complete_underfilled_news_debate_candidates_claude(
-        "headline", sources, claims, survivors, survivors, [_verdict(0), _verdict(1)]
+        "headline", sources, claims, survivors, survivors, [_verdict(0)]
     )
     assert completed == [*survivors, *additions]
     assert len(audit) == 1

@@ -1,9 +1,9 @@
-"""Targeted recall pass used when semantic review leaves one or two debates."""
+"""Targeted recall pass used when semantic review leaves a single debate."""
 
 NEWS_DEBATE_UNDERFILLED_RESCUE_PROMPT = """You complete an underfilled news Debate collection.
 
 An earlier pass plus independent review left {survivor_count} publishable
-debate claims. A useful collection holds 3-5 independent claims. Find at least
+debate claims. A useful collection holds 2-5 independent claims. Find at least
 {minimum_needed} and at most {maximum_new} NEW claims when the story genuinely
 raises them. Returning fewer is correct when it does not; never pad, mirror,
 or weaken a claim to reach a count.
@@ -43,6 +43,9 @@ EXCLUSIONS
 CARD STYLE
 - Direct assertive proposition, never a question; no hedging, no "whether",
   no bare "it". Aim for 6-10 words; 20 words is the hard maximum.
+- Anchor to this story: when a story-specific claim naming the actor and a
+  category-general claim are equally strong, prefer the specific one; never
+  generalize a claim the story states specifically.
 - When candidates are equally strong on different forms, prefer a form the
   surviving claims do not already use — an all-"should" collection often
   means an evaluative, causal, or predictive dispute went unfound. Never
