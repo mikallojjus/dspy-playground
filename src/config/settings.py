@@ -57,10 +57,14 @@ class Settings(BaseSettings):
     # claims.judge_equivalence: one Gemini call judges which candidates are logically
     # equivalent to a claim. Candidates come from the caller (typically geo-lens).
     claims_equivalence_model: str = Field(
-        default="gemini-2.5-flash",
+        default="gemini-3.5-flash",
         description="Gemini model for claims.judge_equivalence (one call per claim, all candidates)",
     )
     claims_equivalence_temperature: float = Field(default=0.0)
+    claims_equivalence_thinking_level: str = Field(
+        default="",
+        description="Gemini 3+ thinking level for claims.judge_equivalence: minimal|low|medium|high. Empty disables.",
+    )
 
     # API keys for LLM providers
     anthropic_api_key: str | None = Field(

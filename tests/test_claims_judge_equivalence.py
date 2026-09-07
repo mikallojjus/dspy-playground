@@ -4,19 +4,56 @@ missing-verdict fallback, input bounds, and registry wiring."""
 import pytest
 
 from src.api.schemas.claims_judge_equivalence_schema import ClaimsJudgeEquivalenceInput, ClaimText
-from src.extraction.claim_equivalence_judge import LLMVerdict, build_prompt
+from src.extraction.claim_equivalence_judge import LLMAssessment, LLMVerdict, build_prompt, verdict_from
 from src.tasks.claims_judge_equivalence import assemble
 
 
-def test_prompt_carries_the_equivalence_rubric_and_indexes_candidates():
+def test_prompt_makes_the_model_do_the_two_directional_test_and_indexes_candidates():
     p = build_prompt(
         "Sunlight exposure can cause skin cancer.",
         ["Sun exposure may cause skin cancer.", "Sunlight is good for you."],
     )
-    assert "LOGICALLY EQUIVALENT" in p and "truth conditions" in p and "both directions" in p
-    assert "similar or very close" in p and "entails the other but not the reverse" in p
+    assert "same claim: any situation that makes one true makes the other true" in p
+    assert "if the CLAIM is true, MUST the CANDIDATE be true" in p
+    assert "if the CANDIDATE is true, MUST the\n   CLAIM be true" in p
+    assert "same topic, same policy, same side of the debate" in p
+    assert "entails the other but not the reverse" in p
+    assert "Judge each candidate on its own" in p
     assert "[0] Sun exposure may cause skin cancer." in p and "[1] Sunlight is good for you." in p
     assert "CLAIM:\nSunlight exposure can cause skin cancer." in p
+
+
+def _assessment(**overrides) -> LLMAssessment:
+    base = dict(
+        candidate_index=0,
+        claim_asserts="an effect",
+        candidate_asserts="an effect",
+        claim_implies_candidate=True,
+        candidate_implies_claim=True,
+        relation="same",
+        decisive_difference="none",
+    )
+    return LLMAssessment(**{**base, **overrides})
+
+
+def test_verdict_is_derived_from_the_directional_answers_not_taken_from_the_model():
+    # Both directions and `same`: equivalent.
+    assert verdict_from(_assessment()).verdict == "equivalent"
+    # The model affirming both directions but naming a different relation is a difference it
+    # found itself — related claims on the same side are the failure this guards against.
+    related = verdict_from(
+        _assessment(candidate_asserts="a purpose", relation="related", decisive_difference="signal vs purpose")
+    )
+    assert related.verdict == "not_equivalent"
+    assert related.rationale == "an effect vs a purpose: signal vs purpose"
+    # One direction missing: not equivalent, whatever the relation says.
+    assert verdict_from(_assessment(candidate_implies_claim=False)).verdict == "not_equivalent"
+    assert verdict_from(_assessment(claim_implies_candidate=False)).verdict == "not_equivalent"
+    # Unsure wins over everything.
+    assert verdict_from(_assessment(unsure=True)).verdict == "unsure"
+    # An unexplained non-equivalence still gets a readable rationale.
+    bare = verdict_from(_assessment(relation="candidate_implies_claim_only", decisive_difference=""))
+    assert bare.rationale.endswith("candidate implies claim only")
 
 
 def test_assemble_surfaces_equivalent_and_unsure_and_keeps_every_verdict_in_order():
@@ -47,7 +84,13 @@ async def test_judge_fills_skipped_indices_with_unsure(monkeypatch):
 
         async def _call_gemini(self, prompt: str) -> str:
             # the model answers only for index 1 and invents an out-of-range index
-            return '{"verdicts": [{"candidate_index": 1, "verdict": "equivalent", "rationale": "ok"}, {"candidate_index": 7, "verdict": "equivalent", "rationale": "bogus"}]}'
+            same = (
+                '"claim_asserts": "x", "candidate_asserts": "x", "claim_implies_candidate": true, '
+                '"candidate_implies_claim": true, "relation": "same", "decisive_difference": "none"'
+            )
+            return (
+                '{"assessments": [{"candidate_index": 1, ' + same + '}, {"candidate_index": 7, ' + same + '}]}'
+            )
 
     verdicts = await Fake().judge("X", ["A", "B", "C"])
     assert [v.verdict for v in verdicts] == ["unsure", "equivalent", "unsure"]

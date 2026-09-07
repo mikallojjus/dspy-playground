@@ -4,6 +4,12 @@ claim — same truth conditions, so accepting one commits you to the other and v
 Provider mechanics mirror ClaimsExtractor (structured output via response_schema, blocking SDK
 call offloaded to a thread, app-level retries on transient HTTP errors). The rubric is the
 contract; "similar" and "very close" are explicitly NOT equivalent.
+
+The model does not return a verdict. It returns, per candidate, what each sentence asserts and
+whether each entails the other; `verdict_from` derives the verdict from those answers. Asked for a
+verdict directly, the model judged by thematic correspondence ("the candidate's problems directly
+correspond to trustworthiness and eligibility") and called related claims on the same side
+equivalent; made to answer the two directional questions, it does not.
 """
 
 from __future__ import annotations
@@ -29,37 +35,102 @@ APP_RETRY_INITIAL_DELAY = 5.0
 APP_RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
 
 
-class LLMVerdict(BaseModel):
+Relation = Literal[
+    "same",  # identical or a pure rewording
+    "claim_implies_candidate_only",  # the claim is more specific: it adds a cause, a group, a number…
+    "candidate_implies_claim_only",  # the candidate is the more specific one
+    "related",  # same topic or side, different assertion (intent vs effect, signal vs purpose…)
+    "contradicts",
+    "unrelated",
+]
+
+
+class LLMAssessment(BaseModel):
+    """What the model reports per candidate. The verdict is NOT one of its fields: it is derived in
+    code from the two directional answers, so the model has to do the entailment test rather than
+    reach for a gut feeling of sameness."""
+
     candidate_index: int = Field(description="0-based index into the CANDIDATES list.")
-    verdict: Literal["equivalent", "not_equivalent", "unsure"]
-    rationale: str = Field(description="One sentence: the decisive difference, or why they are equivalent.")
+    claim_asserts: str = Field(
+        description="What the CLAIM asserts, in a few words, naming its kind: an effect, an intent or purpose, "
+        "a necessity, a signal or evidence, a mechanism, a frequency, a scope, a value judgement…"
+    )
+    candidate_asserts: str = Field(description="The same for this CANDIDATE.")
+    claim_implies_candidate: bool = Field(
+        description="If the CLAIM is true, must the CANDIDATE be true? (Not 'would it be plausible' — must.)"
+    )
+    candidate_implies_claim: bool = Field(
+        description="If the CANDIDATE is true, must the CLAIM be true? (Not 'would it be plausible' — must.)"
+    )
+    relation: Relation
+    decisive_difference: str = Field(
+        description="One sentence: the difference that breaks equivalence, or 'none' when the two are the same claim."
+    )
+    unsure: bool = Field(default=False, description="True only when a careful reader could not decide.")
 
 
 class LLMJudgement(BaseModel):
-    verdicts: List[LLMVerdict]
+    assessments: List[LLMAssessment]
 
 
-RUBRIC = """You compare a CLAIM against CANDIDATE claims and decide, for each candidate, whether it is
-LOGICALLY EQUIVALENT to the claim: the two sentences have the same truth conditions, so any
-situation that makes one true makes the other true, and any situation that makes one false makes
-the other false. Accepting one commits a reader to the other, in both directions.
+class LLMVerdict(BaseModel):
+    """The public verdict per candidate (what the task returns)."""
 
-Equivalent:
-- same referents (who / what / where), same quantities and units, same time reference, same
-  polarity (affirmed vs denied), same modality and hedging ("may", "can", "is", "always")
-- paraphrase, synonyms, word order, sentence structure, punctuation and capitalization do NOT
-  matter; neither does extra wording that adds no information
+    candidate_index: int
+    verdict: Literal["equivalent", "not_equivalent", "unsure"]
+    rationale: str
 
-Not equivalent (even when the texts are similar or very close):
-- one entails the other but not the reverse ("X raised prices by 10%" vs "X raised prices")
-- one is more specific or more general ("A and B did X" vs "A did X"; "in 2026" vs "recently")
-- different hedging or modality ("X may cause Y" vs "X causes Y")
-- different quantities, dates, places, or a different actor; opposite polarity
-- one adds a cause, condition, or consequence the other lacks
 
-"unsure" only when a candidate is too ambiguous for a careful reader to decide.
+def verdict_from(assessment: LLMAssessment) -> LLMVerdict:
+    """Equivalent only when the model affirmed BOTH directions and called the relation `same`. Any
+    single disagreement among the three is a difference the model itself found, so it wins."""
+    if assessment.unsure:
+        verdict: Literal["equivalent", "not_equivalent", "unsure"] = "unsure"
+    elif (
+        assessment.claim_implies_candidate
+        and assessment.candidate_implies_claim
+        and assessment.relation == "same"
+    ):
+        verdict = "equivalent"
+    else:
+        verdict = "not_equivalent"
+    difference = assessment.decisive_difference.strip()
+    if verdict == "equivalent":
+        rationale = difference if difference and difference.lower() != "none" else "Same assertion, both directions hold."
+    else:
+        detail = difference if difference and difference.lower() != "none" else assessment.relation.replace("_", " ")
+        rationale = f"{assessment.claim_asserts} vs {assessment.candidate_asserts}: {detail}"
+    return LLMVerdict(candidate_index=assessment.candidate_index, verdict=verdict, rationale=rationale)
 
-Judge EVERY candidate; return exactly one verdict per candidate index."""
+
+RUBRIC = """You compare a CLAIM against CANDIDATE claims. Two claims are EQUIVALENT only when they are the
+same claim: any situation that makes one true makes the other true, and any situation that makes
+one false makes the other false. Wording, word order, synonyms and sentence structure never matter;
+what is asserted does.
+
+Do this for EVERY candidate, in order:
+1. Say what the CLAIM asserts and what the CANDIDATE asserts, naming the kind of assertion each one
+   is: an effect ("X suppresses turnout"), an intent or purpose ("X is meant to…"), a necessity
+   ("X is needed"), a signal or evidence ("X shows that…"), a mechanism ("X works by…"), a frequency
+   ("Y is rare"), a scope ("nationwide"), a value judgement ("the burden is too high").
+   Two sentences of different kinds are NOT equivalent, however consistent they are. A purpose is
+   not an effect; a mechanism is not a purpose; a signal is not a necessity.
+2. Ask: if the CLAIM is true, MUST the CANDIDATE be true? Then: if the CANDIDATE is true, MUST the
+   CLAIM be true? Answer each strictly. "Would follow", "is consistent with", "supports", "is the
+   reason for" are all NO.
+3. Name the relation and the decisive difference.
+
+The traps to avoid — these are NOT equivalence:
+- same topic, same policy, same side of the debate, or mutually supportive statements
+- one sentence entails the other but not the reverse (more specific vs more general: an added cause,
+  condition, consequence, group, number, place or date on one side only)
+- different hedging or modality: "may be" vs "is", "can" vs "does", "always" vs "often"
+- intent vs effect; how often something happens vs whether it ever mattered; a requirement vs its
+  justification; a group vs the intersection of two groups
+- different quantities, dates, places, actors; opposite polarity
+
+Judge each candidate on its own against the CLAIM; the other candidates are not context for it.
+Set `unsure` only when a careful reader could not decide either direction."""
 
 
 def build_prompt(claim_text: str, candidates: Sequence[str]) -> str:
@@ -78,11 +149,15 @@ class ClaimEquivalenceJudge:
         self.model_name = model or settings.claims_equivalence_model
 
     def _config(self) -> types.GenerateContentConfig:
-        return types.GenerateContentConfig(
-            temperature=settings.claims_equivalence_temperature,
-            response_mime_type="application/json",
-            response_schema=LLMJudgement,
-        )
+        config_kwargs: dict = {
+            "temperature": settings.claims_equivalence_temperature,
+            "response_mime_type": "application/json",
+            "response_schema": LLMJudgement,
+        }
+        thinking_level = (settings.claims_equivalence_thinking_level or "").strip()
+        if thinking_level:
+            config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_level=thinking_level)
+        return types.GenerateContentConfig(**config_kwargs)
 
     async def judge(self, claim_text: str, candidates: Sequence[str]) -> List[LLMVerdict]:
         """One call for all candidates. An index the model skips comes back as 'unsure'."""
@@ -90,7 +165,9 @@ class ClaimEquivalenceJudge:
             return []
         raw = await self._call_gemini(build_prompt(claim_text, candidates))
         parsed = LLMJudgement.model_validate(json.loads(raw))
-        by_index = {v.candidate_index: v for v in parsed.verdicts if 0 <= v.candidate_index < len(candidates)}
+        by_index = {
+            a.candidate_index: verdict_from(a) for a in parsed.assessments if 0 <= a.candidate_index < len(candidates)
+        }
         return [
             by_index.get(i, LLMVerdict(candidate_index=i, verdict="unsure", rationale="no verdict returned"))
             for i in range(len(candidates))

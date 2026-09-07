@@ -1,0 +1,248 @@
+{
+  "_about": "Evaluation pairs for claims.judge_equivalence, taken from replays of published testnet debates (voter-ID motions, space 4582fbbe…) on 2026-09-04/07. `expected` is the verdict a careful reader gives under the rubric: equivalent only when the two sentences have the same truth conditions in both directions.",
+  "pairs": [
+    {
+      "id": "pos-burden-paraphrase",
+      "claim": "The burden to obtain an ID for voting may be too high.",
+      "candidate": "Getting an ID in order to vote can be too much of a burden.",
+      "expected": "equivalent",
+      "why": "same hedge (may/can), same subject, same predicate"
+    },
+    {
+      "id": "pos-ineligible-rare",
+      "claim": "Attempts to vote by people who are not entitled to, such as undocumented immigrants, are very rare.",
+      "candidate": "Attempts to vote by people who are illegal immigrants or otherwise ineligible are very rare.",
+      "expected": "equivalent",
+      "why": "same assertion; the example group is illustrative in both"
+    },
+    {
+      "id": "pos-poor-rural",
+      "claim": "Voter ID laws are most likely to suppress the votes of poor people in rural areas.",
+      "candidate": "Voter ID laws are most likely to suppress voting among poor people in rural areas.",
+      "expected": "equivalent",
+      "why": "wording only"
+    },
+    {
+      "id": "pos-democrats",
+      "claim": "The people whose votes are suppressed by voter ID laws are generally Democrats.",
+      "candidate": "The people whose votes are suppressed by voter ID laws are generally Democratic voters.",
+      "expected": "equivalent",
+      "why": "wording only"
+    },
+    {
+      "id": "pos-rig",
+      "claim": "The real aim of voter ID laws is to suppress voting and rig elections.",
+      "candidate": "The real aim of voter ID laws is to suppress voting in an attempt to rig elections.",
+      "expected": [
+        "equivalent",
+        "not_equivalent"
+      ],
+      "why": "same purpose claim; 'in an attempt to' is the same relation as 'and' here — accepted either way: 'and rig' (two aims) vs 'in an attempt to rig' (a means) is a genuine borderline"
+    },
+    {
+      "id": "pos-turnout-verbatim",
+      "claim": "Voter ID laws suppress voter turnout.",
+      "candidate": "Voter ID laws suppress voter turnout",
+      "expected": "equivalent",
+      "why": "verbatim"
+    },
+    {
+      "id": "pos-necessary-measure",
+      "claim": "Requiring some form of identification to vote is necessary.",
+      "candidate": "Requiring some form of identification to be able to vote is a necessary measure.",
+      "expected": "equivalent",
+      "why": "wording only"
+    },
+    {
+      "id": "pos-problems-solved",
+      "claim": "Voter ID laws are intended to solve problems like double-counted votes and voting by ineligible individuals.",
+      "candidate": "The problems voter ID laws are intended to solve include double-counted votes and voting by people who do not have the right to vote.",
+      "expected": "equivalent",
+      "why": "same purpose claim, same two examples, 'like'/'include' both non-exhaustive"
+    },
+    {
+      "id": "pos-mail-in",
+      "claim": "Allowing mail-in voting does not necessarily eliminate voter ID requirements.",
+      "candidate": "Expanding mail-in voting does not necessarily eliminate voter ID requirements.",
+      "expected": [
+        "equivalent",
+        "not_equivalent"
+      ],
+      "why": "allowing vs expanding mail-in voting — accepted either way; the replay matched them, a strict reader can refuse"
+    },
+    {
+      "id": "neg-hub-signal",
+      "claim": "Voter ID laws provide a necessary signal of a voter's trustworthiness and eligibility.",
+      "candidate": "The problems voter ID laws are intended to solve include double-counted votes and voting by people who do not have the right to vote.",
+      "expected": "not_equivalent",
+      "why": "what the laws signal vs which problems they are meant to solve: same side, different assertion"
+    },
+    {
+      "id": "neg-hub-mechanism",
+      "claim": "Voter ID requirements are a mechanism to ensure that each vote comes from one citizen.",
+      "candidate": "The problems voter ID laws are intended to solve include double-counted votes and voting by people who do not have the right to vote.",
+      "expected": "not_equivalent",
+      "why": "mechanism/guarantee vs intended problems; neither implies the other"
+    },
+    {
+      "id": "neg-modality-is-vs-may",
+      "claim": "The burden of obtaining a required ID for voting is too high.",
+      "candidate": "The burden to obtain an ID for voting may be too high.",
+      "expected": "not_equivalent",
+      "why": "'is' vs 'may be'"
+    },
+    {
+      "id": "neg-group-intersection",
+      "claim": "Voter ID laws are most likely to suppress voting among poor people and those in rural areas.",
+      "candidate": "Voter ID laws are most likely to suppress voting among poor people in rural areas.",
+      "expected": "not_equivalent",
+      "why": "two groups vs their intersection"
+    },
+    {
+      "id": "neg-intent-vs-effect",
+      "claim": "Voter ID laws help ensure timely elections.",
+      "candidate": "Voter ID laws are intended to help ensure timely elections.",
+      "expected": "not_equivalent",
+      "why": "effect vs intent"
+    },
+    {
+      "id": "neg-contribute-vs-intended",
+      "claim": "Voter ID laws contribute to holding timely elections.",
+      "candidate": "Voter ID laws are intended to help ensure timely elections.",
+      "expected": "not_equivalent",
+      "why": "effect vs intent"
+    },
+    {
+      "id": "neg-scope-nationwide",
+      "claim": "Voter ID should be required nationwide",
+      "candidate": "Voters should be required to show photo ID",
+      "expected": "not_equivalent",
+      "why": "nationwide scope vs unscoped; ID vs photo ID"
+    },
+    {
+      "id": "neg-added-cause",
+      "claim": "Voter ID laws are needed to stop widespread fraud.",
+      "candidate": "Requiring some form of identification to be able to vote is a necessary measure.",
+      "expected": "not_equivalent",
+      "why": "adds a cause (widespread fraud) the other lacks"
+    },
+    {
+      "id": "neg-added-mechanism",
+      "claim": "Voter ID laws suppress voting because many people do not have the required ID, forget it, or do not carry it with them.",
+      "candidate": "Voter ID laws suppress voter turnout",
+      "expected": "not_equivalent",
+      "why": "adds the mechanism; entails the candidate, not the reverse"
+    },
+    {
+      "id": "neg-frequency-vs-impact",
+      "claim": "Attempts to vote by people who are not entitled to, such as undocumented immigrants, are very rare.",
+      "candidate": "There is no evidence that voting by ineligible people has ever been a significant factor in an election or changed an election's results.",
+      "expected": "not_equivalent",
+      "why": "how often it happens vs whether it ever mattered"
+    },
+    {
+      "id": "neg-opposite-side",
+      "claim": "Voter ID laws are needed to stop widespread fraud.",
+      "candidate": "Voter ID laws solve a problem that is too rare to justify the burden",
+      "expected": "not_equivalent",
+      "why": "opposite positions"
+    },
+    {
+      "id": "neg-necessary-vs-signal",
+      "claim": "Voter ID laws provide a necessary signal of a voter's trustworthiness and eligibility.",
+      "candidate": "Requiring some form of identification to be able to vote is a necessary measure.",
+      "expected": "not_equivalent",
+      "why": "what the law signals vs whether requiring ID is necessary; same side, different assertion"
+    }
+  ],
+  "batches": [
+    {
+      "id": "batch-hub-signal",
+      "claim": "Voter ID laws provide a necessary signal of a voter's trustworthiness and eligibility.",
+      "candidates": [
+        {
+          "id": "7a8762aaf1a64c6e9815a09a8204515a",
+          "text": "Voter ID laws are intended to help ensure timely elections."
+        },
+        {
+          "id": "a61916edc22f4d8e90fab4fce84b73fe",
+          "text": "Requiring some form of identification to be able to vote is a necessary measure."
+        },
+        {
+          "id": "0148a15a5f7a4899b8c5977f1a2e504d",
+          "text": "Voters are required by state law to present an acceptable form of photo ID at their polling place"
+        },
+        {
+          "id": "9c8edcab7f3f4cccbf7f49bc0e972be8",
+          "text": "The legislation would have required voters to show proof of U.S. citizenship, like a passport or birth certificate, when registering to vote"
+        },
+        {
+          "id": "22436fe2eaf44e29a2fd69454f45384f",
+          "text": "Voter ID should be required nationwide"
+        },
+        {
+          "id": "553deda6b6244998b1bbc39792df7d5c",
+          "text": "Voters should be required to show photo ID"
+        },
+        {
+          "id": "bacc096907b04ca58d11c3fc16c9d8d9",
+          "text": "The problems voter ID laws are intended to solve include double-counted votes and voting by people who do not have the right to vote."
+        },
+        {
+          "id": "aaacf60b32544b3c85fb3b2e32548be5",
+          "text": "The bill also proposed requiring voters to present photo identification when casting a ballot"
+        },
+        {
+          "id": "d9bf88d1ca8e4b3cb8b9dd715c447ef4",
+          "text": "The restored provisions of Texas' Senate Bill 1 require voters to provide a driver's license number, an identification number, or a Social Security number on mail-in ballot applications that matches state records"
+        }
+      ],
+      "expected_equivalent_ids": [],
+      "why": "the real geo-lens candidate list from the 2026-09-07 replay; none is the same claim, and the judge called bacc0969 equivalent in this batch while refusing it in isolation"
+    },
+    {
+      "id": "batch-hub-mechanism",
+      "claim": "Voter ID requirements are a mechanism to ensure that each vote comes from one citizen.",
+      "candidates": [
+        {
+          "id": "a61916edc22f4d8e90fab4fce84b73fe",
+          "text": "Requiring some form of identification to be able to vote is a necessary measure."
+        },
+        {
+          "id": "7a8762aaf1a64c6e9815a09a8204515a",
+          "text": "Voter ID laws are intended to help ensure timely elections."
+        },
+        {
+          "id": "22436fe2eaf44e29a2fd69454f45384f",
+          "text": "Voter ID should be required nationwide"
+        },
+        {
+          "id": "9c8edcab7f3f4cccbf7f49bc0e972be8",
+          "text": "The legislation would have required voters to show proof of U.S. citizenship, like a passport or birth certificate, when registering to vote"
+        },
+        {
+          "id": "553deda6b6244998b1bbc39792df7d5c",
+          "text": "Voters should be required to show photo ID"
+        },
+        {
+          "id": "0148a15a5f7a4899b8c5977f1a2e504d",
+          "text": "Voters are required by state law to present an acceptable form of photo ID at their polling place"
+        },
+        {
+          "id": "4f12f5ea073442cbaa0fb10f70a9a876",
+          "text": "The burden to obtain an ID for voting may be too high."
+        },
+        {
+          "id": "9646fc33de1a4b00abd4224793105862",
+          "text": "The SAVE America Act would require voters to present a passport or birth certificate to register to vote"
+        },
+        {
+          "id": "bacc096907b04ca58d11c3fc16c9d8d9",
+          "text": "The problems voter ID laws are intended to solve include double-counted votes and voting by people who do not have the right to vote."
+        }
+      ],
+      "expected_equivalent_ids": [],
+      "why": "the real candidate list from the 2026-09-04 replay of the Victor Amigo debate; bacc0969 was called equivalent"
+    }
+  ]
+}
