@@ -276,7 +276,7 @@ Candidate-qualification gate (mandatory after the sweep):
 - Only return zero after this full sweep produces no strong debatable
   candidate that passes this gate.
 
-If the story supports at least three independent axes, write 3-5 debate claims
+If the story supports at least two independent axes, write 2-5 debate claims
 into the top-level `debate_claims` array. Otherwise return an empty array. Never
 publish one or two claims, and never invent, weaken, or mirror claims merely to
 reach the collection minimum.

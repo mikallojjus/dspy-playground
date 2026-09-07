@@ -207,19 +207,23 @@ def test_debate_completion_step_skips_repair_when_consumer_opts_out(monkeypatch)
     assert called["spend"] == 2
 
 
-def test_debate_claims_response_enforces_zero_or_three_to_five():
+def test_debate_claims_response_enforces_zero_or_two_to_five():
     from src.api.schemas.news_debate_claims_task_schema import (
         NewsDebateClaimsResponse,
     )
     from src.api.schemas.news_claim_extract_schema import ExtractedDebateClaim
 
-    two = [
-        ExtractedDebateClaim(text=f"Contested position {i}", source_indices=[0], confidence=0.8)
-        for i in range(2)
-    ]
+    def positions(n):
+        return [
+            ExtractedDebateClaim(text=f"Contested position {i}", source_indices=[0], confidence=0.8)
+            for i in range(n)
+        ]
+
     # Below the floor the contract empties the list rather than shipping a
     # thin collection — same normalize_debate_claims door as the fused shape.
-    assert NewsDebateClaimsResponse(debate_claims=two).debate_claims == []
+    assert NewsDebateClaimsResponse(debate_claims=positions(1)).debate_claims == []
+    # Two is a publishable collection (Armando 2026-09-07).
+    assert len(NewsDebateClaimsResponse(debate_claims=positions(2)).debate_claims) == 2
 
 
 def test_derive_topics_uses_distinct_claim_topics_in_first_seen_order():

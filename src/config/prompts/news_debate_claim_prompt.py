@@ -10,7 +10,7 @@ are genuinely debating — or would clearly debate — for and against, in socie
 or online. A reader immediately knows what agreeing and disagreeing mean.
 
 Read the headline, the extracted story facts, and the sources. Then compose
-3-5 debate claims that this story raises. Return up to 7 candidates, strongest
+2-5 debate claims that this story raises. Return up to 7 candidates, strongest
 first — an independent reviewer picks the published set — and return fewer,
 or none, when the story genuinely raises fewer real debates. Never pad,
 mirror, or weaken a claim to reach a count.
@@ -32,6 +32,13 @@ through these lenses:
   instance of? Corporate and market stories usually carry their real debate
   here — regulation of the category, public risks, market structure, openness,
   labor, privacy, safety — rather than in the company's own tactics.
+
+Anchor claims to this story wherever possible: when a story-specific claim
+naming the actor and a category-general claim are equally strong, prefer the
+specific one — "Aster should reimburse clients hit by the exploit" beats
+"trading platforms should reimburse clients hit by exploits". Reach for the
+general form only when the story's real debate has no named actor or instance
+to carry it; never generalize a claim the story states specifically.
 
 A story's real debates rarely all share one grammatical form. When candidates
 are equally strong on different forms, prefer form variety across the set —

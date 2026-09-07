@@ -191,7 +191,7 @@ class Settings(BaseSettings):
     )
     news_debate_zero_retry_enabled: bool = Field(
         default=True,
-        description="When first-pass review accepts zero debate candidates but generation produced some, take one fresh generation + review draw. Thin-supply stories sit at the 3-floor with no margin, so a single review flip otherwise zeroes the collection."
+        description="When first-pass review accepts zero debate candidates but generation produced some, take one fresh generation + review draw. Thin-supply stories sit at the 2-floor with no margin, so a single review flip otherwise zeroes the collection."
     )
     news_debate_underfilled_rescue_enabled: bool = Field(
         default=True,

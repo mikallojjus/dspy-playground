@@ -133,7 +133,7 @@ def _build_underfilled_rescue_prompt(
     headline=headline,
     central_claims=_claims_context(claims),
     survivor_count=survivor_count,
-    minimum_needed=max(0, 3 - survivor_count),
+    minimum_needed=max(0, 2 - survivor_count),
     maximum_new=max(0, 5 - survivor_count),
     surviving_candidates=json.dumps(
       [candidate.model_dump() for candidate in accepted_candidates],
@@ -363,7 +363,7 @@ def generate_news_debate_underfilled_rescue(
   attempted_candidates: list[GroundedDebateCandidate],
   verdicts: list[DebateSemanticVerdict],
 ) -> list[GroundedDebateCandidate]:
-  """Ask Gemini for enough new axes to complete a 3-5 claim collection."""
+  """Ask Gemini for enough new axes to complete a 2-5 claim collection."""
   if not settings.gemini_api_key:
     raise Exception("GEMINI_API_KEY not configured for news debate completion")
   if not sources or not claims:
@@ -505,15 +505,15 @@ def complete_underfilled_news_debate_candidates(
   """Best-effort Gemini completion for an underfilled first-pass result.
 
   Zero survivors WITH attempted candidates gets one fresh generation + review
-  draw: thin-supply stories sit at the 3-floor with no margin, so a single
+  draw: thin-supply stories sit at the 2-floor with no margin, so a single
   review flip otherwise zeroes a story whose axes pass cleanly on a redraw.
   The redraw is reviewed WITHOUT prior-axes context — an independent second
-  opinion, unlike rescue, which must never replay rejected axes. One or two
-  survivors get the focused rescue attempt with the first pass's audit trail.
+  opinion, unlike rescue, which must never replay rejected axes. A single
+  survivor gets the focused rescue attempt with the first pass's audit trail.
   Zero survivors from zero candidates stays terminal. Either path spends at
   most one generation and one review call.
   """
-  if len(accepted_candidates) >= 3:
+  if len(accepted_candidates) >= 2:
     return accepted_candidates, []
 
   if len(accepted_candidates) == 0:
@@ -577,7 +577,7 @@ def complete_underfilled_news_debate_candidates_claude(
   verdicts: list[DebateSemanticVerdict],
 ) -> tuple[list[GroundedDebateCandidate], list[DebateSemanticVerdict]]:
   """Best-effort Claude completion with the same retry + rescue policy."""
-  if len(accepted_candidates) >= 3:
+  if len(accepted_candidates) >= 2:
     return accepted_candidates, []
 
   if len(accepted_candidates) == 0:
