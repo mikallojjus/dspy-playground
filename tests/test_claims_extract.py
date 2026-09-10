@@ -554,3 +554,76 @@ def test_motion_validation_line_needs_a_title():
 
     assert "No claim restates the overall title" in build_extract_prompt(_input(title="Motion"), [])
     assert "No claim restates the overall title" not in build_extract_prompt(_input(), [])
+
+
+# ── Topic vocabulary assignment ──────────────────────────────────────────────
+
+
+def test_topic_vocabulary_defaults_empty_and_caps_enforced():
+    from src.api.schemas.claims_extract_schema import TOPIC_VOCABULARY_MAX_ITEMS
+
+    assert _input().topic_vocabulary == []
+    assert ExtractedClaimOut(text="x").assigned_topics == []
+    with pytest.raises(Exception):
+        _input(topic_vocabulary=[{"label": "t"}] * (TOPIC_VOCABULARY_MAX_ITEMS + 1))
+    with pytest.raises(Exception):
+        _input(topic_vocabulary=[{"label": ""}])
+
+
+def test_topic_vocabulary_prompt_sections_only_when_provided():
+    from src.extraction.claims_prompt_builder import build_extract_prompt
+
+    on = build_extract_prompt(
+        _input(grouping=False, topic_vocabulary=[{"id": "a1", "label": "Morning routine"}, {"label": "Sleep"}]),
+        [],
+    )
+    assert "TOPIC VOCABULARY ASSIGNMENT (REQUESTED)" in on
+    assert "TOPIC VOCABULARY\n0. Morning routine\n1. Sleep" in on
+    assert "Every vocabulary_topic_indices entry is a valid 0-based index" in on
+    assert "No topic vocabulary was provided" not in on
+
+    off = build_extract_prompt(_input(grouping=False), [])
+    assert "TOPIC VOCABULARY ASSIGNMENT" not in off
+    assert "No topic vocabulary was provided" in off
+
+
+def test_assign_vocabulary_topics_drops_out_of_range_and_duplicates():
+    from src.api.schemas.claims_extract_schema import TopicVocabularyItem
+    from src.pipeline.claims_extract_core import assign_vocabulary_topics
+
+    vocab = [TopicVocabularyItem(id="a1", label="Morning routine"), TopicVocabularyItem(label="Sleep")]
+    rows = assign_vocabulary_topics(
+        [{"text": "x", "vocabulary_topic_indices": [1, 5, 0, 1, -1, "junk"]}],
+        vocab,
+    )
+    assert rows[0]["assigned_topics"] == [
+        {"id": None, "label": "Sleep"},
+        {"id": "a1", "label": "Morning routine"},
+    ]
+    assert "vocabulary_topic_indices" not in rows[0]
+
+
+def test_assigned_topics_stripped_without_vocabulary_kept_with_it():
+    from src.pipeline.claims_extract_core import assemble_result
+
+    extraction = {
+        "claims": [
+            {"text": "Fact one.", "confidence": 0.9, "vocabulary_topic_indices": [0]},
+            {"text": "Aside.", "confidence": 0.9, "vocabulary_topic_indices": []},
+        ],
+        "groups": [],
+        "quotes": [],
+        "summary": "",
+    }
+    # Model emitted indices, but the request had no vocabulary: nothing surfaces.
+    off = assemble_result(_input(grouping=False), extraction, [], model_used="m")
+    assert [c.assigned_topics for c in off.claims] == [[], []]
+
+    on = assemble_result(
+        _input(grouping=False, topic_vocabulary=[{"id": "a1", "label": "Morning routine"}]),
+        extraction,
+        [],
+        model_used="m",
+    )
+    assert [t.model_dump() for t in on.claims[0].assigned_topics] == [{"id": "a1", "label": "Morning routine"}]
+    assert on.claims[1].assigned_topics == []

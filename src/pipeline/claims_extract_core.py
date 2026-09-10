@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Tuple
 
 from src.api.schemas.claims_extract_schema import (
     ClaimsExtractInput,
+    TopicVocabularyItem,
     ClaimsExtractResult,
     ClaimGroup,
     ExtractedClaimOut,
@@ -54,6 +55,34 @@ def restates_title(claim_text: str, title: Optional[str]) -> bool:
     if not a or not b:
         return False
     return len(a & b) / len(a | b) >= TITLE_RESTATEMENT_MIN_OVERLAP
+
+
+def assign_vocabulary_topics(
+    raw_claims: List[dict],
+    vocabulary: List[TopicVocabularyItem],
+) -> List[dict]:
+    """Resolve each raw claim row's `vocabulary_topic_indices` against the
+    caller's vocabulary: out-of-range and duplicate indices are dropped, the
+    survivors become `assigned_topics` ({id, label}) rows in vocabulary
+    order of first mention. Pure row transform, applied before sanitize so
+    the public model never carries raw indices."""
+    resolved: List[dict] = []
+    for row in raw_claims:
+        if not isinstance(row, dict):
+            resolved.append(row)
+            continue
+        row = dict(row)
+        indices = row.pop("vocabulary_topic_indices", None) or []
+        seen: set = set()
+        assigned: List[dict] = []
+        for index in indices:
+            if isinstance(index, int) and 0 <= index < len(vocabulary) and index not in seen:
+                seen.add(index)
+                item = vocabulary[index]
+                assigned.append({"id": item.id, "label": item.label})
+        row["assigned_topics"] = assigned
+        resolved.append(row)
+    return resolved
 
 
 def sanitize_claims(raw_claims: List[dict], num_documents: int) -> List[ExtractedClaimOut]:
@@ -201,7 +230,10 @@ def assemble_result(
     dict ({claims, groups, quotes, summary}) and the takeaway texts."""
     num_documents = len(input.documents)
 
-    claims = sanitize_claims(extraction.get("claims", []), num_documents)
+    raw_claims = extraction.get("claims", [])
+    if input.topic_vocabulary:
+        raw_claims = assign_vocabulary_topics(raw_claims, input.topic_vocabulary)
+    claims = sanitize_claims(raw_claims, num_documents)
 
     # Strip unrequested sections even if the model emitted them.
     raw_groups = extraction.get("groups", []) if input.grouping else []
@@ -213,6 +245,9 @@ def assemble_result(
     if not input.classify_factuality:
         for claim in claims:
             claim.is_factual = None
+    if not input.topic_vocabulary:
+        for claim in claims:
+            claim.assigned_topics = []
 
     # Only debates carry a motion as the title; a news headline or episode
     # title is not a claim that already exists elsewhere.

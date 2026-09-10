@@ -98,6 +98,7 @@ async def _one_run(extractor: ClaimsExtractor, inp: ClaimsExtractInput, prompt: 
                     "is_factual": c.is_factual,
                     "document_indices": c.document_indices,
                     "confidence": c.confidence,
+                    "assigned_topics": [t.label for t in c.assigned_topics],
                 }
                 for c in result.claims
             ],
