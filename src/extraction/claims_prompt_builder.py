@@ -182,10 +182,11 @@ def _final_validation(input: ClaimsExtractInput, grouping: bool) -> str:
             "- Every claim has is_factual set to an explicit true or false."
         )
         checks.append(
-            "- is_factual is true for every empirical proposition (events, "
-            "quantities, mechanisms, what exists, cited findings — hedged or "
-            "not) and false for every evaluation, prescription, forecast, "
-            "and side-thesis."
+            "- is_factual is true only where the claim asserts one specific "
+            "checkable thing (a named actor and act, a dated event, a "
+            "quantity, a named study's finding, an on-record statement), and "
+            "false for hedges, appraisals, unreferenced generalizations, "
+            "causal theses, forecasts and normative positions."
         )
     if input.classify_contestability:
         checks.append(

@@ -26,6 +26,7 @@ from typing import Any, Dict, List
 from pydantic import BaseModel, Field
 
 from src.api.schemas.claims_extract_schema import ClaimsExtractInput
+from src.config.prompts.claims_extract import CONTESTABILITY_SECTION, FACTUALITY_SECTION
 from src.config.settings import settings
 from src.extraction.claims_extractor import ClaimsExtractor
 from src.extraction.claims_prompt_builder import build_extract_prompt
@@ -43,7 +44,9 @@ CORPUS_PROFILE = {
 
 _SHAPE = {
     "normative_pct": r"\b(should|must|ought to)\b",
-    "hedged_pct": r"\b(can|may|could|might)\b",
+    # `may` only as the modal: case-sensitive, and not the month before a day number,
+    # which would otherwise count the rubric's own dated examples as hedging.
+    "hedged_pct": r"\b(can|could|might)\b|\bmay\b(?!\s+\d)",
     "reports_finding_pct": r"\b(found|according to|study (found|shows)|reported|studies have shown)\b",
     "cites_study_pct": r"\b(study|studies|research|peer-reviewed|survey)\b",
 }
@@ -57,76 +60,28 @@ def shape_metrics(texts: List[str]) -> Dict[str, float]:
         return {}
     out = {"median_words": statistics.median(len(t.split()) for t in texts)}
     for key, rx in _SHAPE.items():
-        out[key] = round(100 * sum(1 for t in texts if re.search(rx, t, re.I)) / len(texts), 1)
+        flags = 0 if key == "hedged_pct" else re.I
+        out[key] = round(100 * sum(1 for t in texts if re.search(rx, t, flags)) / len(texts), 1)
     return out
 
 # ── Rubric variants ─────────────────────────────────────────────────────────
 # Keep every version that has been scored; the winner is what moves into
 # src/config/prompts/claims_extract/sections.py.
 
-_V1 = """Classify each claim's FORM as `debate` or `simple`.
 
-`debate` — a broad, contestable claim whose central assertion supports substantive
-positions for and against it, rather than being resolved through direct verification
-of one narrowly scoped fact. It may express a policy judgment, comparison,
-interpretation, causal thesis, normative position, or broad forecast.
+# `shipped` is the section this repo actually renders into the extraction prompt —
+# the only variant whose score says anything about production. To A/B a candidate,
+# add it here written the way the shipped sections are (instruct the model to set
+# the boolean field) and pass `--rubric shipped --rubric <candidate>`.
+#
+# Recorded from the iteration that produced these: an asymmetric bar needs worked
+# examples of BOTH classes. A draft that said "if not certain, answer not_factual"
+# with only positive examples labelled all 30 gold claims not_factual, including
+# "Tyler Robinson killed Charlie Kirk".
+RUBRICS: Dict[str, str] = {"shipped": CONTESTABILITY_SECTION}
 
-`simple` — the claim's main assertion is settled by directly verifying one narrowly
-scoped fact.
 
-Judge the SCOPE of the claim's main assertion. Not whether it is true, and not
-whether anyone is currently arguing about it. A claim can be both factual and
-`debate` — form and truth are independent.
-
-Rules:
-1. Tag the MAIN assertion. Concrete anchors, examples or figures attached to a broad
-   claim do not rescue it: "The US has historically used inflation to manage debt,
-   such as after WWII" is `debate`.
-2. Naming companies or products does not make a claim `simple`; scope decides:
-   "OpenAI and Anthropic are the main competitors in frontier AI" is `debate`.
-3. Comparative-superiority stances ("X is better than Y", "X is the main competitor
-   to Y", "X would choke Y") are `debate`. A factual comparison of named entities on
-   a checkable attribute (regulatory status, features, dates) is `simple`.
-4. Unattributed economy-wide or market-wide forecasts with no specific market,
-   instrument or figure ("a recession is likely next year", "crypto will replace
-   banks") are `debate`. A forecast about one specific market, asset or event ("the
-   largest wave of commercial real estate debt maturities is expected in the fall")
-   is `simple`.
-5. Advice, and "an indicator to watch for", state no checkable fact, so they are
-   `debate`."""
-
-RUBRICS: Dict[str, str] = {"v1": _V1}
-
-# ── Factuality rubric variants ──────────────────────────────────────────────
-# Deliberately asymmetric: a false negative costs one missing flag, a false
-# positive publishes an interpretation as a checkable fact and sends readers to
-# Verify/Dispute on something no source can settle.
-
-_STRICT_V1 = """Classify each claim as `factual` or `not_factual`.
-
-`factual` — the claim asserts ONE specific, checkable fact that a fact-checker
-could confirm or refute against a source: a named actor doing a named thing, a
-dated event, a quantity or measurement, a location, an attributable on-record
-statement, or a specific named study's finding.
-
-`not_factual` — everything else. In particular:
-- evaluations, value judgments and appraisals of magnitude ("significant",
-  "insufficient", "too", "better", "risky")
-- normative or policy positions (should, must, needs to)
-- interpretations, characterisations and causal theses
-- generalisations with no specific referent ("many people", "most", "often",
-  "some", "not everyone")
-- hedged statements (may, might, can, could, tends to, is likely to)
-- forecasts and predictions
-- definitional or descriptive statements with nothing to check
-
-Truth is not the question: a specific claim that turns out to be wrong is still
-`factual`. Specificity and checkability are the question.
-
-A false negative is cheap; a false positive is not. If you are not certain the
-claim is specifically checkable against a source, answer `not_factual`."""
-
-FACT_RUBRICS: Dict[str, str] = {"strict_v1": _STRICT_V1}
+FACT_RUBRICS: Dict[str, str] = {"shipped": FACTUALITY_SECTION}
 
 # strict_v1 collapsed: told "if not certain, answer not_factual", the model answered
 # not_factual for all 30, including "Tyler Robinson killed Charlie Kirk". Two causes —
@@ -134,56 +89,33 @@ FACT_RUBRICS: Dict[str, str] = {"strict_v1": _STRICT_V1}
 # myself". v2 keeps the asymmetry, anchors both classes with worked examples, and
 # separates checkability from the model's own knowledge.
 
-_STRICT_V2 = """Classify each claim as `factual` or `not_factual`.
 
-The question is what KIND of assertion the claim makes, not whether it is true and
-not whether you happen to know the answer.
 
-`factual` — the claim asserts one specific thing about the world that a source
-could settle: a named actor doing a named thing, a dated event, a quantity or
-measurement, a location, a named study's finding, or an on-record statement by a
-named person. You do not need to know whether it is correct, and you do not need
-to be able to check it yourself. A specific claim that turns out to be false is
-still `factual`.
+FIXTURES = Path(__file__).resolve().parents[2] / "tests" / "fixtures"
 
-Examples of `factual`:
-- "Tyler Robinson killed Charlie Kirk." (named actor, named act)
-- "A 2023 University of Exeter study of 450,000 participants found morning types
-  had a lower risk of depression." (named study, sample, stated finding)
-- "Gaza Strip has been subjected to a continuous blockade since June 2007." (dated)
-- "Sam Altman expects an internal OpenAI system he would call AGI by end of 2026."
-  (on-record statement by a named person)
-
-`not_factual` — the claim has no single specific thing a source could settle:
-- evaluations and appraisals of magnitude: "significant", "insufficient", "too",
-  "risky", "low-cost", "better"
-- normative positions: should, must, needs to
-- interpretations, characterisations and causal theses without a named study
-- generalisations with no specific referent: "many people", "most", "some",
-  "often", "not everyone"
-- hedged statements: may, might, can, could, tends to, is likely to
-- forecasts and predictions
-- definitional or descriptive statements with nothing to verify
-
-Examples of `not_factual`:
-- "Antidepressants are overprescribed." (evaluative)
-- "For some people, AI chatbots can increase their social abilities." (hedged, no
-  specific referent)
-- "Flock Safety cameras reduce crime." (causal thesis, no study named)
-- "AI will create more jobs than it eliminates." (forecast)
-
-Both labels will occur. Classify each claim on its own terms; do not aim for any
-particular balance. When a claim genuinely sits between the two — it names
-something specific but wraps it in an appraisal — choose `not_factual`, because a
-missing flag costs less than a wrong one."""
-
-FACT_RUBRICS["strict_v2"] = _STRICT_V2
-
-TASKS = {
-    "scope": (RUBRICS, ("debate", "simple"), "simple",
-              "You are classifying the form of extracted claims for a knowledge graph."),
-    "factual": (FACT_RUBRICS, ("factual", "not_factual"), "not_factual",
-                "You are classifying whether extracted claims assert specific checkable facts."),
+# The shipped sections instruct the model to set a boolean field, so the classifier
+# answers `true`/`false` and the scorer maps that onto each task's gold vocabulary.
+# Grading the shipped text verbatim is the whole point: a paraphrase would score a
+# document that never runs.
+TASKS: Dict[str, Dict[str, Any]] = {
+    "scope": {
+        "rubrics": RUBRICS,
+        "default_rubric": "shipped",
+        "flag": "is_contestable",
+        "positive": "debate",
+        "negative": "simple",
+        "gold": FIXTURES / "claim_scope_gold.json",
+        "header": "You are classifying the form of extracted claims for a knowledge graph.",
+    },
+    "factual": {
+        "rubrics": FACT_RUBRICS,
+        "default_rubric": "shipped",
+        "flag": "is_factual",
+        "positive": "factual",
+        "negative": "not_factual",
+        "gold": FIXTURES / "claim_factuality_gold.json",
+        "header": "You are classifying whether extracted claims assert specific checkable facts.",
+    },
 }
 
 
@@ -200,12 +132,14 @@ class ScopeLabels(BaseModel):
 
 
 def build_prompt(rubric: str, claims: List[str], task: str = "scope") -> str:
-    header = TASKS[task][3]
+    cfg = TASKS[task]
+    header = cfg["header"]
     listing = "\n".join(f"{i}. {c}" for i, c in enumerate(claims))
     return (
         f"{header}\n\n"
         f"{rubric}\n\n"
-        "Return one label per claim, by index. Every claim gets exactly one label.\n\n"
+        f"Answer for `{cfg['flag']}` on each claim. Return one label per claim, by "
+        "index, as exactly `true` or `false`. Every claim gets exactly one label.\n\n"
         f"CLAIMS\n{listing}"
     )
 
@@ -217,7 +151,12 @@ async def classify(
     conservative label — a claim we cannot confidently call broad should not become a
     debate motion, and one we cannot confidently call checkable should not be flagged
     factual."""
-    _, allowed, fallback, _ = TASKS[task]
+    cfg = TASKS[task]
+    # The shipped rubric sets a boolean, so `false` is the conservative answer for
+    # both tasks: an unflagged claim is neither published as a motion nor sent to
+    # be verified.
+    fallback = cfg["negative"]
+    by_label = {"true": cfg["positive"], "false": cfg["negative"]}
     text = await extractor._call_gemini(
         prompt=build_prompt(rubric, claims, task),
         config=extractor._config(ScopeLabels),
@@ -225,19 +164,21 @@ async def classify(
     )
     parsed = ScopeLabels.model_validate_json(text)
     out = [fallback] * len(claims)
-    recognised = 0
+    filled: set = set()
     for row in parsed.labels:
-        if 0 <= row.index < len(claims) and row.label in allowed:
-            out[row.index] = row.label
-            recognised += 1
+        mapped = by_label.get(str(row.label).strip().lower())
+        if 0 <= row.index < len(claims) and mapped is not None:
+            out[row.index] = mapped
+            filled.add(row.index)
+    recognised = len(filled)
     # A run where most answers fell through to the fallback is instrumentation
     # failure, not a finding. Say so loudly rather than reporting a clean collapse.
     if recognised < 0.8 * len(claims):
-        seen = sorted({row.label for row in parsed.labels})
+        seen = sorted({str(row.label) for row in parsed.labels})
         raise RuntimeError(
-            f"{task}: only {recognised}/{len(claims)} labels were recognised "
-            f"(allowed {allowed}, model returned {seen}) — the fallback would have "
-            f"produced a uniform result"
+            f"{task}: only {recognised}/{len(claims)} claims got a label "
+            f"(expected true/false, model returned {seen}) — the fallback would "
+            f"have produced a uniform result"
         )
     return out
 
@@ -262,8 +203,11 @@ async def score_rubric(
         accuracies.append(correct / len(gold))
         print(f"  {name} run {run + 1}: accuracy {100 * accuracies[-1]:.1f}%")
 
-    positive = TASKS[task][1][0]
-    majority = [max(set(v), key=v.count) for v in votes]
+    positive = TASKS[task]["positive"]
+    # Ties break toward the conservative label, and deterministically: `max` over a
+    # set is at the mercy of per-process string hash randomisation.
+    negative = TASKS[task]["negative"]
+    majority = [positive if v.count(positive) > v.count(negative) else negative for v in votes]
     tp = sum(1 for g, m in zip(gold, majority) if g["label"] == positive and m == positive)
     fp = sum(1 for g, m in zip(gold, majority) if g["label"] != positive and m == positive)
     fn = sum(1 for g, m in zip(gold, majority) if g["label"] == positive and m != positive)
@@ -290,7 +234,9 @@ async def cmd_gold(args: argparse.Namespace) -> None:
     results = []
     for name in args.rubric:
         print(f"\n=== [{args.task}] rubric {name} ({len(gold)} gold claims, {args.runs} runs) ===")
-        results.append(await score_rubric(extractor, name, TASKS[args.task][0][name], gold, args.runs, args.task))
+        results.append(
+            await score_rubric(extractor, name, TASKS[args.task]["rubrics"][name], gold, args.runs, args.task)
+        )
 
     for r in results:
         print(f"\n--- {r['rubric']}: accuracy {100 * r['accuracy_mean']:.1f}%  "
@@ -304,7 +250,9 @@ async def cmd_gold(args: argparse.Namespace) -> None:
 
     if args.hard:
         hard = json.loads(Path(args.hard).read_text())
-        labels = await classify(extractor, TASKS[args.task][0][args.rubric[-1]], [h["text"] for h in hard], args.task)
+        labels = await classify(
+            extractor, TASKS[args.task]["rubrics"][args.rubric[-1]], [h["text"] for h in hard], args.task
+        )
         print("\n--- held-out borderline cases (no gold label; for judgement, not scoring)")
         for h, label in zip(hard, labels):
             print(f"      [{label:6}] {h['text'][:88]}  <- {h['note']}")
@@ -325,6 +273,22 @@ async def cmd_pipeline(args: argparse.Namespace) -> None:
     for path in args.inputs:
         spec = json.loads(Path(path).read_text())
         inp = ClaimsExtractInput(**spec["payload"])
+        # Both headline numbers are read off flags the payload has to ask for. A spec
+        # that omits them yields all-null claims, which would print as a flawless
+        # "0 over-flagged" instead of "this run measured nothing".
+        missing = [
+            name
+            for name, on in (
+                ("classify_factuality", inp.classify_factuality),
+                ("classify_contestability", inp.classify_contestability),
+            )
+            if not on
+        ]
+        if missing:
+            raise RuntimeError(f"{path}: payload does not request {', '.join(missing)} — nothing to measure")
+        # The prompt is always built flat (no topics pass here), so assemble must be
+        # told the same thing or it would run the grouping path over a flat answer.
+        inp = inp.model_copy(update={"grouping": False})
         extraction = await extractor.extract_claims(build_extract_prompt(inp, []))
         result = assemble_result(inp, extraction.model_dump(), [], model_used=settings.claims_extract_model)
         claims = [{"text": c.text, "is_factual": c.is_factual,
@@ -346,6 +310,11 @@ async def cmd_pipeline(args: argparse.Namespace) -> None:
 
     print("\n=== corpus profile (target = Geo's 1,378 Debate-tagged claims) ===")
     everything = [c["text"] for r in report for c in r["claims"]]
+    if not everything:
+        print("  no claims extracted — nothing to profile")
+        if args.out:
+            Path(args.out).write_text(json.dumps(report, indent=1))
+        return
     survivors = [c["text"] for r in report for c in r["claims"] if c["scope"] == "debate"]
     allm, keptm = shape_metrics(everything), shape_metrics(survivors)
     print(f"  {'metric':22} {'target':>8} {'extracted':>10} {'survivors':>10}")
@@ -357,7 +326,7 @@ async def cmd_pipeline(args: argparse.Namespace) -> None:
     from collections import Counter
     fact_all = Counter(str(c["is_factual"]) for r in report for c in r["claims"])
     fact_kept = Counter(str(c["is_factual"]) for r in report for c in r["claims"] if c["scope"] == "debate")
-    print(f"\n  survival: {kept}/{total} ({100 * kept / total:.0f}%)")
+    print(f"\n  survival: {kept}/{total} ({100 * kept / total:.0f}%)" if total else "\n  survival: 0/0")
     print(f"  is_factual all       : {dict(fact_all)}")
     print(f"  is_factual survivors : {dict(fact_kept)}   (Geo corpus: 4% of flagged are true)")
     surv = [c for r in report for c in r["claims"] if c["scope"] == "debate"]
@@ -371,6 +340,8 @@ async def cmd_pipeline(args: argparse.Namespace) -> None:
     # one that errs on some disputes (it misses rule 3 comparatives). Read the
     # disagreements and judge them; do not treat either side as ground truth.
     scored = [c for r in report for c in r["claims"] if c["prompt_contestable"] is not None]
+    if not scored:
+        print("\n  no claim carried an in-prompt contestability flag — skipping agreement")
     if scored:
         agree = sum(1 for c in scored if c["prompt_contestable"] == (c["scope"] == "debate"))
         pc = sum(1 for c in scored if c["prompt_contestable"])
@@ -380,6 +351,11 @@ async def cmd_pipeline(args: argparse.Namespace) -> None:
         for c in scored:
             if c["prompt_contestable"] != (c["scope"] == "debate"):
                 print(f"      in-prompt={c['prompt_contestable']!s:5} standalone={c['scope']:6} {c['text'][:82]}")
+    if not surv:
+        print("\n  nothing survived the contestability filter — no factuality comparison")
+        if args.out:
+            Path(args.out).write_text(json.dumps(report, indent=1))
+        return
     print(f"\n  survivors flagged factual — extraction prompt: {prompt_true}/{len(surv)} "
           f"({100 * prompt_true / len(surv):.0f}%)")
     print(f"  survivors flagged factual — strict rubric:     {strict_true}/{len(surv)} "
@@ -408,7 +384,9 @@ def main(argv: List[str] | None = None) -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     g = sub.add_parser("gold")
-    g.add_argument("--gold", default="/private/tmp/claude-501/eval-debatable/gold.json")
+    # Defaults resolve per task after parsing: the two gold sets use disjoint label
+    # vocabularies, so one shared default would silently grade the wrong file.
+    g.add_argument("--gold", default=None)
     g.add_argument("--hard", default=None)
     g.add_argument("--task", default="scope", choices=sorted(TASKS))
     g.add_argument("--rubric", action="append", default=None)
@@ -421,12 +399,18 @@ def main(argv: List[str] | None = None) -> None:
     r.add_argument("--out", default=None)
 
     args = p.parse_args(argv)
-    print(f"model {settings.claims_extract_model} @ temp {settings.claims_extract_temperature}")
     if args.cmd == "pipeline":
+        print(f"model {settings.claims_extract_model} @ temp {settings.claims_extract_temperature}")
         asyncio.run(cmd_pipeline(args))
-    else:
-        args.rubric = args.rubric or [sorted(TASKS[args.task][0])[0]]
-        asyncio.run(cmd_gold(args))
+        return
+    cfg = TASKS[args.task]
+    args.gold = args.gold or str(cfg["gold"])
+    args.rubric = args.rubric or [cfg["default_rubric"]]
+    unknown = [name for name in args.rubric if name not in cfg["rubrics"]]
+    if unknown:
+        p.error(f"unknown {args.task} rubric(s) {unknown}; choose from {sorted(cfg['rubrics'])}")
+    print(f"model {settings.claims_extract_model} @ temp {settings.claims_extract_temperature}")
+    asyncio.run(cmd_gold(args))
 
 
 if __name__ == "__main__":

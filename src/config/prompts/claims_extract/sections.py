@@ -97,8 +97,9 @@ answer.
 true — the claim asserts ONE specific thing a source could settle: a named
 actor doing a named thing, a dated event, a quantity or measurement, a
 location, a named study's finding, or an on-record statement by a named
-person. You do not need to know whether it is correct: a specific claim that
-turns out to be false is still factual.
+person. You do not need to know whether it is correct, and you do not need to
+be able to check it yourself: a specific claim that turns out to be false is
+still factual.
 - "The WHO declared the DRC Ebola outbreak a public health emergency on
   May 1, 2026." (dated event)
 - "A 2023 University of Exeter study of 450,000 participants found morning
@@ -119,6 +120,13 @@ false — the claim has no single specific thing a source could settle:
 - the material's central proposition and each side's stance on it
 - statements about the argument itself: who bears the burden of proof, what
   has or has not been demonstrated, whether it is premature to conclude
+
+Examples of false:
+- "Antidepressants are overprescribed." (evaluation)
+- "For some people, an assistant can improve their social skills." (hedged,
+  no specific referent)
+- "Safety cameras reduce crime." (causal thesis with no study named)
+- "Automation will create more jobs than it eliminates." (forecast)
 
 Tie-breakers:
 - Classify the content, never the act of saying it. "X argued Y" is not
@@ -195,7 +203,15 @@ Worked examples — false (one narrowly scoped fact settles them):
 
 A hedge does not decide this flag either way: "X may cause Y" can be a broad
 causal thesis (contestable) or a narrow guess about one event (not). Judge the
-scope of what is being asserted, not the confidence it is asserted with."""
+scope of what is being asserted, not the confidence it is asserted with.
+
+The two flags are independent, and a claim can carry both: "The US has
+historically used inflation to manage debt, such as after WWII" is specific
+enough to be factual AND broad enough to be contestable. Do not let one flag
+decide the other.
+
+When this section is present, every claim must carry an explicit true or
+false — never leave `is_contestable` null."""
 
 
 CONSOLIDATION_SECTION = """─────────────────────────────────────────────

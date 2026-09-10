@@ -701,3 +701,42 @@ def test_debate_layer_forbids_restating_a_position_at_a_different_strength():
     assert "do not sharpen a hedged position into a flat assertion" in flat
     assert "do not soften a flat assertion into a hedge" in flat
     assert "misrepresents them" in flat
+
+
+def test_final_validation_agrees_with_the_strict_factuality_rubric():
+    """The checklist renders last, under "verify every one of the following", so a
+    stale line there overrides the rubric it is meant to enforce. This pins the two
+    together: an earlier revision left the previous rule in the checklist while the
+    rubric said the opposite, and deleting the test that named the old string left
+    it uncovered."""
+    from src.extraction.claims_prompt_builder import build_extract_prompt
+
+    prompt = build_extract_prompt(_input(grouping=False, classify_factuality=True), [])
+    assert "is_factual is true for every empirical proposition" not in prompt
+    assert "is_factual is true only where the claim asserts one specific" in prompt
+    # Whatever the checklist says must come after the rubric, and agree with it.
+    assert prompt.index("The bar is deliberately asymmetric") < prompt.index("is_factual is true only where")
+
+
+def test_strict_factuality_section_anchors_both_classes():
+    """A one-sided asymmetric rubric collapses: told only what counts as factual and
+    "when unsure say false", the model answered false for every claim in the gold
+    set. Both example blocks have to survive edits to this section."""
+    from src.extraction.claims_prompt_builder import build_extract_prompt
+
+    prompt = build_extract_prompt(_input(grouping=False, classify_factuality=True), [])
+    assert "Examples of false:" in prompt
+    assert "Antidepressants are overprescribed" in prompt
+    # And checkability must stay separated from the model's own knowledge.
+    assert "do not need to" in " ".join(prompt.split())
+    assert "be able to check it yourself" in " ".join(prompt.split())
+
+
+def test_contestability_section_closes_the_null_and_independence_gaps():
+    from src.extraction.claims_prompt_builder import build_extract_prompt
+
+    prompt = build_extract_prompt(_input(grouping=False, classify_contestability=True), [])
+    flat = " ".join(prompt.split())
+    assert "never leave `is_contestable` null" in flat
+    # An example where both flags agree, so the pairing does not read as an inverse.
+    assert "specific enough to be factual AND broad enough to be contestable" in flat
