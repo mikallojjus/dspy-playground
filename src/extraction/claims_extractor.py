@@ -59,6 +59,15 @@ class LLMClaim(BaseModel):
             "apply to this claim. Leave empty unless a vocabulary was provided."
         ),
     )
+    is_contestable: Optional[bool] = Field(
+        default=None,
+        description=(
+            "True if the claim's main assertion is broad enough to support "
+            "positions for and against it, False if it is settled by verifying "
+            "one narrowly scoped fact. Leave null unless contestability "
+            "classification was requested."
+        ),
+    )
     is_factual: Optional[bool] = Field(
         default=None,
         description=(

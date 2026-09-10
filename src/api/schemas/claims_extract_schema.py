@@ -64,6 +64,11 @@ class ClaimsExtractInput(BaseModel):
   # as `is_factual` (True = verifiable fact, False = opinion). Off by default so
   # existing callers keep the original claim shape (is_factual stays null).
   classify_factuality: bool = False
+  # When true, each claim is classified by the SCOPE of its main assertion and
+  # surfaced as `is_contestable` (True = a broad claim supporting positions for
+  # and against, False = settled by verifying one narrowly scoped fact).
+  # Independent of classify_factuality: a claim can be both.
+  classify_contestability: bool = False
   # Closed labeling vocabulary: when non-empty, the model assigns each claim
   # ALL the entries that apply (zero is valid), surfaced per claim as
   # `assigned_topics`. Selection happens by index into this list, so the
@@ -105,6 +110,9 @@ class ExtractedClaimOut(BaseModel):
   # True = verifiable fact, False = opinion; None when factuality was not
   # requested (classify_factuality=false).
   is_factual: Optional[bool] = None
+  # True = broad and contestable, False = narrowly verifiable; None when
+  # contestability was not requested.
+  is_contestable: Optional[bool] = None
   # Vocabulary entries assigned to this claim; always [] unless the request
   # provided a topic_vocabulary.
   assigned_topics: List[AssignedTopicOut] = Field(default_factory=list)

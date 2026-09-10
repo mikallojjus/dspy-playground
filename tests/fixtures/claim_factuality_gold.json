@@ -1,0 +1,182 @@
+[
+ {
+  "text": "There have been cases where AI chatbots have provided users with steps for suicide.",
+  "label": "factual",
+  "reason": "documented incidents; a single case settles it",
+  "source": "ours"
+ },
+ {
+  "text": "AI chatbots have suggested that individuals commit suicide or take other detrimental rash actions.",
+  "label": "factual",
+  "reason": "same: a checkable occurrence",
+  "source": "ours"
+ },
+ {
+  "text": "In Norway, people use special lamps that gradually brighten over time to mimic the sun.",
+  "label": "factual",
+  "reason": "specific practice and product, verifiable",
+  "source": "ours"
+ },
+ {
+  "text": "Apple CEO Tim Cook reportedly wakes up at 4 a.m.",
+  "label": "factual",
+  "reason": "named person, specific attributed detail",
+  "source": "ours"
+ },
+ {
+  "text": "In 1735, Benjamin Franklin wrote that early to bed and early to rise makes a man healthy, wealthy, and wise.",
+  "label": "factual",
+  "reason": "dated authorship, checkable",
+  "source": "ours"
+ },
+ {
+  "text": "The PER3 gene variant is associated with being an evening person.",
+  "label": "factual",
+  "reason": "named gene, specific published association",
+  "source": "ours"
+ },
+ {
+  "text": "A 2023 University of Exeter study of 450,000 UK Biobank participants found that morning types had a lower risk of depression.",
+  "label": "factual",
+  "reason": "named study, sample size, stated finding",
+  "source": "ours"
+ },
+ {
+  "text": "Tyler Robinson killed Charlie Kirk.",
+  "label": "factual",
+  "reason": "named actor, named act",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "GLM-5.3-Flash runs entirely on Chinese AI chips.",
+  "label": "factual",
+  "reason": "named product, checkable technical fact",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "Gaza Strip has been subjected to a continuous blockade since June 2007.",
+  "label": "factual",
+  "reason": "dated, specific, checkable \u2014 contested framing but the assertion is concrete",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "Before October 7, 2023, there were more than 5,000 Palestinian captives and political prisoners held in Israeli prisons.",
+  "label": "factual",
+  "reason": "quantity plus date",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "Sam Altman expects an internal OpenAI system he would call AGI by end of 2026.",
+  "label": "factual",
+  "reason": "attributable on-record statement by a named person",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "There is insufficient data to support the use of AI chatbots for mental health.",
+  "label": "not_factual",
+  "reason": "'insufficient' is an adequacy judgment",
+  "source": "ours"
+ },
+ {
+  "text": "AI chatbots may provide health advice that is not backed by data.",
+  "label": "not_factual",
+  "reason": "hedged with 'may'",
+  "source": "ours"
+ },
+ {
+  "text": "Improperly implemented AI chatbots for mental health can have negative outcomes.",
+  "label": "not_factual",
+  "reason": "hedged generalisation, no specific referent",
+  "source": "ours"
+ },
+ {
+  "text": "Sharing personal mental health information with AI chatbots carries significant privacy risks.",
+  "label": "not_factual",
+  "reason": "'significant' is an appraisal of magnitude",
+  "source": "ours"
+ },
+ {
+  "text": "An AI chatbot might be more sensitive than a human therapist to the possibility of self-harm.",
+  "label": "not_factual",
+  "reason": "hedged comparison",
+  "source": "ours"
+ },
+ {
+  "text": "Humans are social animals who are evolutionarily wired for social interactions with other humans.",
+  "label": "not_factual",
+  "reason": "broad generalisation, no specific checkable referent",
+  "source": "ours"
+ },
+ {
+  "text": "For some people, AI chatbots can increase their social abilities and skills.",
+  "label": "not_factual",
+  "reason": "'some people' plus 'can' \u2014 unfalsifiable as written",
+  "source": "ours"
+ },
+ {
+  "text": "The act of listening is a primary component of effective therapy for routine, low-level mental health care.",
+  "label": "not_factual",
+  "reason": "interpretive claim about what makes therapy work",
+  "source": "ours"
+ },
+ {
+  "text": "Not everyone can currently afford to see a psychologist.",
+  "label": "not_factual",
+  "reason": "true but unquantified; nothing specific to check",
+  "source": "ours"
+ },
+ {
+  "text": "Human social experience is physical and involves aspects like touch, intimacy, and smell.",
+  "label": "not_factual",
+  "reason": "descriptive/definitional, nothing to verify",
+  "source": "ours"
+ },
+ {
+  "text": "AI chatbots are a low-cost option for mental health support.",
+  "label": "not_factual",
+  "reason": "'low-cost' is a comparative appraisal",
+  "source": "ours"
+ },
+ {
+  "text": "Placing people's health in the hands of AI at its current stage is risky.",
+  "label": "not_factual",
+  "reason": "risk judgment",
+  "source": "ours"
+ },
+ {
+  "text": "Crypto's four-year market cycle is dead.",
+  "label": "not_factual",
+  "reason": "interpretation of market behaviour; Geo flags it factual, I do not",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "Money no longer rotates from Bitcoin into altcoins.",
+  "label": "not_factual",
+  "reason": "interpretive market generalisation",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "Exchange bans have failed to kill privacy coins.",
+  "label": "not_factual",
+  "reason": "'failed to' is an outcome judgment",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "Antidepressants are overprescribed.",
+  "label": "not_factual",
+  "reason": "evaluative",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "Flock Safety cameras reduce crime.",
+  "label": "not_factual",
+  "reason": "contested causal claim, no specific study named",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "AI will create more jobs than it eliminates.",
+  "label": "not_factual",
+  "reason": "forecast",
+  "source": "geo-corpus"
+ }
+]

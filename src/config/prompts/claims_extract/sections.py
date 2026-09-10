@@ -89,69 +89,129 @@ FACTUALITY CLASSIFICATION (REQUESTED)
 ─────────────────────────────────────────────
 
 For every claim, set `is_factual`. The flag decides how readers engage with
-the claim: a factual claim is verified or disputed against evidence; a
-non-factual claim is agreed or disagreed with. The question is about the
-KIND of proposition — never about who said it or how confidently:
+the claim: a factual claim is verified or disputed against a source; a
+non-factual claim is agreed or disagreed with. Ask what KIND of assertion the
+claim makes — not whether it is true, and not whether you happen to know the
+answer.
 
-"Is this a statement about how the world is, was, or works — something
-evidence could in principle confirm or refute — or is it a judgement of
-value, a prescription, a forecast, or a side in the argument?"
+true — the claim asserts ONE specific thing a source could settle: a named
+actor doing a named thing, a dated event, a quantity or measurement, a
+location, a named study's finding, or an on-record statement by a named
+person. You do not need to know whether it is correct, and you do not need to
+be able to check it yourself: a specific claim that turns out to be false is
+still factual.
+- "The WHO declared the DRC Ebola outbreak a public health emergency on
+  May 1, 2026." (dated event)
+- "A 2023 University of Exeter study of 450,000 participants found morning
+  types had a lower risk of depression." (named study, sample, finding)
+- "Sam Altman expects an internal OpenAI system he would call AGI by end of
+  2026." (on-record statement by a named person)
 
-true — empirical propositions, whether or not they are correct, hedged, or
-stated from memory by a speaker or author:
-- events, actions, and decisions, dated or named ("The WHO declared the
-  DRC Ebola outbreak a public health emergency on May 1, 2026")
-- quantities, measurements, statistics, prices, dates
-- mechanisms, causes, and regularities about the world ("Forcing an
-  evening chronotype to wake at 5 a.m. causes social jetlag," "Chronotype
-  is largely genetic," "Sunlight exposure can cause skin cancer")
-- what exists, is available, or is used ("People in Norway use lamps that
-  brighten gradually to mimic sunrise")
-- cited studies, rulings, documents, and official statements, with the
-  finding they report
-- hedged or contested empirical hypotheses ("Night owl behavior may be
-  caused by overwork rather than being an innate trait") — a hedge lowers
-  confidence; it does not change the kind of proposition
+false — the claim has no single specific thing a source could settle:
+- evaluations and appraisals of magnitude: "key," "significant,"
+  "insufficient," "too," "overly," "not enough," "risky," "better"
+- prescriptions and policy positions: "should," "must," "ought to"
+- interpretations, characterizations, and causal theses with no named study
+- generalizations with no specific referent: "many people," "most,"
+  "often," "some," "not everyone"
+- hedged statements: "may," "might," "can," "could," "tends to"
+- forecasts and predictions
+- definitional or descriptive statements with nothing to verify
+- the material's central proposition and each side's stance on it
+- statements about the argument itself: who bears the burden of proof, what
+  has or has not been demonstrated, whether it is premature to conclude
 
-false — propositions evidence cannot settle:
-- evaluations and value judgements: "key," "better," "effective,"
-  "dangerous," "toxic," "good for the soul," "the main thing"
-- degree judgements: "too," "overly," "not enough," "simplistic," "more
-  dangerous than useful"
-- prescriptions and policy positions: "should," "must," "ought to,"
-  "deserve"
-- forecasts about the future
-- the material's central proposition — a debate motion, an op-ed's thesis,
-  an episode's overarching argument — and each side's stance on it ("Waking
-  with the sun, not simply waking early, is what improves health," "AI
-  chatbots are an effective tool for mental health support")
-- generalizations whose content is an appraisal rather than a mechanism
-  ("Human therapists are limited," "AI is too simplistic")
-- statements about the argument itself: who bears the burden of proof,
-  what has or has not been demonstrated, whether it is premature to
-  conclude
+Examples of false:
+- "Antidepressants are overprescribed." (evaluation)
+- "For some people, an assistant can improve their social skills." (hedged,
+  no specific referent)
+- "Safety cameras reduce crime." (causal thesis with no study named)
+- "Automation will create more jobs than it eliminates." (forecast)
 
 Tie-breakers:
 - Classify the content, never the act of saying it. "X argued Y" is not
   factual because X said it — classify Y.
-- The main predicate decides. If it is a value word (effective, better,
-  key, dangerous, worth it, too much), the claim is false even when its
-  subject is concrete. If it describes a state, event, mechanism, or
-  quantity, the claim is true even when the speaker is arguing for a
-  position. A modal or frequency softener ("can be," "tends to be," "is
-  often") does not change the kind: "can be overly agreeable" is still a
-  degree judgement.
-- An evaluation wrapped around a mechanism splits when the split test
-  allows: "Sunlight is good for you because it provides vitamin D" is an
-  appraisal (false) around a mechanism (true) — extract the mechanism as
-  its own claim.
-- Expect a mix. Debates, opinion pieces, interviews, and talks usually
-  yield both kinds; a run where nearly every claim is one kind is a sign of
-  misfiling — re-check.
+- The main predicate decides. A value word (effective, better, key,
+  dangerous, worth it) makes the claim false even when its subject is
+  concrete. A modal softener ("can be," "tends to be") does not rescue a
+  claim into specificity — it removes it.
+- An evaluation wrapped around a specific fact splits when the split test
+  allows: extract the specific fact as its own claim.
+- Both labels will occur; classify each claim on its own terms and do not
+  aim for any balance. Most claims drawn from argument — debates, opinion
+  pieces, interviews — are false under this rule, and that is expected.
 
-Classify each claim as written, without adding hedging. When this section is
-present, every claim must carry an explicit true or false — never leave
-`is_factual` null."""
+The bar is deliberately asymmetric: a missing flag costs one unverified
+claim, a wrong flag sends readers to verify something no source can settle.
+When a claim genuinely sits between the two — it names something specific
+but wraps it in an appraisal — choose false.
+
+Classify each claim as written, without adding or removing hedging. When this
+section is present, every claim must carry an explicit true or false — never
+leave `is_factual` null."""
+
+
+CONTESTABILITY_SECTION = """─────────────────────────────────────────────
+CONTESTABILITY CLASSIFICATION (REQUESTED)
+─────────────────────────────────────────────
+
+For every claim, set `is_contestable`. This classifies the SCOPE of the
+claim's main assertion — not whether it is true, and not whether anyone is
+currently arguing about it. A claim can be both factual and contestable; the
+two flags are independent.
+
+true — a broad, contestable claim whose central assertion supports
+substantive positions for and against it, rather than being resolved through
+direct verification of one narrowly scoped fact. It may express a policy
+judgment, comparison, interpretation, causal thesis, normative position, or
+broad forecast.
+
+false — the claim's main assertion is settled by directly verifying one
+narrowly scoped fact.
+
+Rules:
+1. Judge the MAIN assertion. Concrete anchors, examples or figures attached
+   to a broad claim do not narrow it: "The US has historically used inflation
+   to manage debt, such as after WWII" is contestable.
+2. Naming companies, products or people does not make a claim narrow; scope
+   decides: "OpenAI and Anthropic are the main competitors in frontier AI" is
+   contestable.
+3. Comparative-superiority stances ("X is better than Y", "X is the main
+   competitor to Y") are contestable. A factual comparison of named entities
+   on a checkable attribute (regulatory status, features, dates) is not.
+4. Unattributed economy-wide or market-wide forecasts with no specific
+   market, instrument or figure ("a recession is likely next year") are
+   contestable. A forecast about one specific market, asset or event is not.
+5. Advice, and "an indicator to watch for", state no checkable fact, so they
+   are contestable.
+
+Worked examples — true (broad enough to hold two sides):
+- "Entitlement spending in the United States is not economically sustainable."
+- "Bitcoin is a better store of value than gold." (comparative superiority)
+- "Placing patient care in the hands of automated systems at their current
+  stage is risky." (appraisal of risk)
+- "The design of engagement-maximizing products removes friction that people
+  need." (causal thesis)
+
+Worked examples — false (one narrowly scoped fact settles them):
+- "There have been cases where an automated assistant gave a user unsafe
+  instructions." (a single documented case settles it)
+- "Tim Cook reportedly wakes up at 4 a.m." (one attributed detail)
+- "Coinbase is registered with the SEC as a broker-dealer and Kraken is not."
+  (comparison on a checkable attribute — rule 3)
+- "Specialized assistants for this purpose already exist." (bare existence)
+
+A hedge does not decide this flag either way: "X may cause Y" can be a broad
+causal thesis (contestable) or a narrow guess about one event (not). Judge the
+scope of what is being asserted, not the confidence it is asserted with.
+
+The two flags are independent, and a claim can carry both: "The US has
+historically used inflation to manage debt, such as after WWII" is specific
+enough to be factual AND broad enough to be contestable. Do not let one flag
+decide the other.
+
+When this section is present, every claim must carry an explicit true or
+false — never leave `is_contestable` null."""
 
 
 CONSOLIDATION_SECTION = """─────────────────────────────────────────────
@@ -251,6 +311,11 @@ vocabulary topics that apply to it.
 KEEP_ASSIGNED_TOPICS_EMPTY = (
     "- No topic vocabulary was provided: leave every claim's "
     "vocabulary_topic_indices empty."
+)
+
+KEEP_CONTESTABILITY_NULL = (
+    "- Contestability classification was not requested: leave every claim's "
+    "is_contestable null."
 )
 
 KEEP_FACTUALITY_NULL = "- Factuality classification was not requested: leave every claim's is_factual null."

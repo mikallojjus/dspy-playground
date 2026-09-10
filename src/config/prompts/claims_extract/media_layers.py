@@ -24,7 +24,21 @@ What to extract — both evidence and positions:
   advances about the motion ("Waking with the sun, rather than simply
   waking early, is what improves health and productivity"). These are the
   claims a debate exists to produce; extract them as claims and let the
-  factuality rubric (when requested) classify them.
+  classification rubrics (when requested) label them.
+
+Prefer the arguable proposition over the incidental fact:
+- A debate's value is in what the two sides actually disagree about. When a
+  passage contains both a broad position and the narrow detail offered in
+  support of it, extract the position; extract the supporting detail as its
+  own claim only when it carries independent weight (a named study, a
+  statistic, a dated event).
+- This is a matter of what to select, never of how to phrase. Represent each
+  debater's position exactly as strongly as they put it: do not sharpen a
+  hedged position into a flat assertion, and do not soften a flat assertion
+  into a hedge. "Chatbots may increase dependence" and "chatbots increase
+  dependence" are different claims and the speaker chose one of them. A
+  claim that overstates a debater's position misrepresents them, which is a
+  worse failure than a claim that is narrow.
 - Do NOT extract contentless rhetoric: applause lines, insults, sarcasm,
   hypotheticals with no proposition inside, or bare evaluations with no
   arguable content ("this is simply wrong," "the American people deserve

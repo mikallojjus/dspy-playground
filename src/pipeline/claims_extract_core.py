@@ -245,6 +245,9 @@ def assemble_result(
     if not input.classify_factuality:
         for claim in claims:
             claim.is_factual = None
+    if not input.classify_contestability:
+        for claim in claims:
+            claim.is_contestable = None
     if not input.topic_vocabulary:
         for claim in claims:
             claim.assigned_topics = []

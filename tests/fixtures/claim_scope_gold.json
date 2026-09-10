@@ -1,0 +1,182 @@
+[
+ {
+  "text": "There is insufficient data to support the use of AI chatbots for mental health.",
+  "label": "debate",
+  "reason": "what counts as sufficient evidence is a judgment, not a lookup",
+  "source": "ours"
+ },
+ {
+  "text": "Placing people's health in the hands of AI at its current stage is risky.",
+  "label": "debate",
+  "reason": "risk appraisal; both sides arguable",
+  "source": "ours"
+ },
+ {
+  "text": "Using an AI chatbot for mental health support is better than having no support at all.",
+  "label": "debate",
+  "reason": "comparative-superiority stance (rule 3)",
+  "source": "ours"
+ },
+ {
+  "text": "Sharing personal mental health information with AI chatbots carries significant privacy risks.",
+  "label": "debate",
+  "reason": "'significant' is an evaluation of magnitude, contestable",
+  "source": "ours"
+ },
+ {
+  "text": "Using general-purpose chatbots like ChatGPT or Claude for mental health is risky as they are not optimized for healthcare and mental support.",
+  "label": "debate",
+  "reason": "naming products does not narrow the scope (rule 2); the assertion is a risk judgment",
+  "source": "ours"
+ },
+ {
+  "text": "Using chatbots for emotional support is counterintuitive to human evolutionary wiring and will cause more harm than good long-term.",
+  "label": "debate",
+  "reason": "causal thesis plus a long-run forecast",
+  "source": "ours"
+ },
+ {
+  "text": "While chatbots may not be comparable to the best psychologists, their performance is comparable to that of a medium-level psychologist.",
+  "label": "debate",
+  "reason": "comparative-superiority stance about quality (rule 3)",
+  "source": "ours"
+ },
+ {
+  "text": "Talking to an AI chatbot does not necessarily decrease the feeling of loneliness, which can only be addressed by universal social experience.",
+  "label": "debate",
+  "reason": "causal thesis about what loneliness responds to",
+  "source": "ours"
+ },
+ {
+  "text": "AI chatbots do not fully serve the role of a social trainer because they are built to maximize engagement, which removes the friction of human connection.",
+  "label": "debate",
+  "reason": "interpretive causal argument, not one checkable fact",
+  "source": "ours"
+ },
+ {
+  "text": "The potential for long-term, irreversible negative consequences from harmful AI chatbot suggestions is not worth the risk of using them for therapy.",
+  "label": "debate",
+  "reason": "explicit cost-benefit value judgment",
+  "source": "ours"
+ },
+ {
+  "text": "For AI chatbots to be safe, they must have safeguards and overrides to prevent them from recommending suicide or self-harm.",
+  "label": "debate",
+  "reason": "normative requirement",
+  "source": "ours"
+ },
+ {
+  "text": "The act of listening is a primary component of effective therapy for routine, low-level mental health care.",
+  "label": "debate",
+  "reason": "interpretive claim about what makes therapy work",
+  "source": "ours"
+ },
+ {
+  "text": "The United States should stop policing the world.",
+  "label": "debate",
+  "reason": "normative foreign-policy position",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "The U.S. president lacked constitutional authority to initiate war with Iran.",
+  "label": "debate",
+  "reason": "contested legal interpretation, not a lookup",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "Israeli settler actions in the West Bank constitute ethnic cleansing.",
+  "label": "debate",
+  "reason": "characterisation of events under a contested term",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "Iran's nuclear programme was moving before the Iran war towards the acquisition of a nuclear weapon.",
+  "label": "debate",
+  "reason": "inference about intent from evidence; factual in form but broad in scope (rule 1)",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "AI will create more jobs than it eliminates.",
+  "label": "debate",
+  "reason": "unattributed economy-wide forecast (rule 4)",
+  "source": "geo-corpus"
+ },
+ {
+  "text": "There have been cases where AI chatbots have provided users with steps for suicide.",
+  "label": "simple",
+  "reason": "existence claim; one documented case settles it",
+  "source": "ours"
+ },
+ {
+  "text": "Specialized AI agents for mental health support exist, and users can also specialize a chatbot for this purpose.",
+  "label": "simple",
+  "reason": "existence claim about available products",
+  "source": "ours"
+ },
+ {
+  "text": "Not everyone can currently afford to see a psychologist.",
+  "label": "simple",
+  "reason": "narrow and effectively uncontested",
+  "source": "ours"
+ },
+ {
+  "text": "Human social experience is physical and involves aspects like touch, intimacy, and smell.",
+  "label": "simple",
+  "reason": "descriptive/definitional; no side to argue against",
+  "source": "ours"
+ },
+ {
+  "text": "AI chatbots do not provide the physical aspects of human social experience.",
+  "label": "simple",
+  "reason": "follows from what the medium is; nothing to take a position on",
+  "source": "ours"
+ },
+ {
+  "text": "Friction in human connection includes experiences like awkward silences or misspeaking.",
+  "label": "simple",
+  "reason": "definitional illustration, not a contestable assertion",
+  "source": "ours"
+ },
+ {
+  "text": "AI chatbots have suggested that individuals commit suicide or take other detrimental rash actions.",
+  "label": "simple",
+  "reason": "existence claim about documented incidents",
+  "source": "ours"
+ },
+ {
+  "text": "Apple CEO Tim Cook reportedly wakes up at 4 a.m.",
+  "label": "simple",
+  "reason": "single attributed fact about one person",
+  "source": "ours"
+ },
+ {
+  "text": "In 1735, Benjamin Franklin wrote that early to bed and early to rise makes a man healthy, wealthy, and wise.",
+  "label": "simple",
+  "reason": "dated authorship fact",
+  "source": "ours"
+ },
+ {
+  "text": "The PER3 gene variant is associated with being an evening person.",
+  "label": "simple",
+  "reason": "specific scientific finding, narrowly scoped",
+  "source": "ours"
+ },
+ {
+  "text": "In Norway, people use special lamps that gradually brighten over time to mimic the sun.",
+  "label": "simple",
+  "reason": "narrow fact about a practice and a product",
+  "source": "ours"
+ },
+ {
+  "text": "A 2023 University of Exeter study of 450,000 UK Biobank participants found that morning types had a lower risk of depression.",
+  "label": "simple",
+  "reason": "reports one study's finding; verified by reading the study",
+  "source": "ours"
+ },
+ {
+  "text": "Coinbase is registered with the SEC as a broker-dealer and Kraken is not.",
+  "label": "simple",
+  "reason": "factual comparison of named entities on a checkable attribute (rule 3)",
+  "source": "constructed"
+ }
+]
