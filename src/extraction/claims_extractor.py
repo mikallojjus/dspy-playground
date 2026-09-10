@@ -52,6 +52,13 @@ class LLMClaim(BaseModel):
         default=0.8,
         description="0.9+ explicitly stated, 0.7-0.9 strongly implied, 0.5-0.7 inferred.",
     )
+    vocabulary_topic_indices: List[int] = Field(
+        default_factory=list,
+        description=(
+            "0-based indices into the provided TOPIC VOCABULARY list that "
+            "apply to this claim. Leave empty unless a vocabulary was provided."
+        ),
+    )
     is_factual: Optional[bool] = Field(
         default=None,
         description=(

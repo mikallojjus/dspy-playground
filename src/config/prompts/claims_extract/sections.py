@@ -230,4 +230,27 @@ Populate the structured response as follows:
 KEEP_GROUPS_EMPTY = "- Output an EMPTY groups array; leave every claim's topic empty."
 KEEP_QUOTES_EMPTY = "- Quotes were NOT requested: output an EMPTY quotes array."
 KEEP_SUMMARY_EMPTY = "- A summary was NOT requested: output an empty summary string."
+TOPIC_VOCABULARY_SECTION = """─────────────────────────────────────────────
+TOPIC VOCABULARY ASSIGNMENT (REQUESTED)
+─────────────────────────────────────────────
+
+A closed, numbered TOPIC VOCABULARY is provided under INPUTS. For every
+claim, set `vocabulary_topic_indices` to the 0-based indices of ALL the
+vocabulary topics that apply to it.
+
+- Assign a topic when the claim's content is substantively about it or
+  directly bears on it — evidence for or against the topic counts.
+- Do not assign a topic merely because the material as a whole discusses
+  it: a biographical aside, a meta remark, or an unrelated fact gets no
+  topics. An empty list is a valid answer.
+- The vocabulary is closed: only the given indices exist. Never invent,
+  rename, or approximate a topic, and do not use the `topic` field for
+  vocabulary assignment — that field belongs to the extraction mode."""
+
+
+KEEP_ASSIGNED_TOPICS_EMPTY = (
+    "- No topic vocabulary was provided: leave every claim's "
+    "vocabulary_topic_indices empty."
+)
+
 KEEP_FACTUALITY_NULL = "- Factuality classification was not requested: leave every claim's is_factual null."

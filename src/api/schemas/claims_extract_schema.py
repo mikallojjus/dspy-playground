@@ -20,6 +20,8 @@ DocumentFormat = Literal["plain", "podscribe", "bankless", "assembly"]
 # ~1M tokens of input; chunking is a future layer, so oversized corpora are
 # rejected at enqueue rather than silently truncated.
 MAX_TOTAL_CONTENT_CHARS = 4_000_000
+TOPIC_VOCABULARY_MAX_ITEMS = 50
+TOPIC_VOCABULARY_LABEL_MAX_CHARS = 200
 CUSTOM_INSTRUCTIONS_MAX_CHARS = 2_000
 FOCUS_TOPIC_MAX_CHARS = 100
 
@@ -33,6 +35,13 @@ class InputDocument(BaseModel):
   published_at: Optional[str] = None  # ISO date; used to resolve relative dates
   url: Optional[str] = None
   metadata: Dict[str, str] = Field(default_factory=dict)
+
+
+class TopicVocabularyItem(BaseModel):
+  # Caller-opaque id echoed back on assignment (e.g. a knowledge-graph
+  # entity id); never shown to the model.
+  id: Optional[str] = Field(default=None, max_length=128)
+  label: str = Field(min_length=1, max_length=TOPIC_VOCABULARY_LABEL_MAX_CHARS)
 
 
 class ClaimsExtractInput(BaseModel):
@@ -55,6 +64,14 @@ class ClaimsExtractInput(BaseModel):
   # as `is_factual` (True = verifiable fact, False = opinion). Off by default so
   # existing callers keep the original claim shape (is_factual stays null).
   classify_factuality: bool = False
+  # Closed labeling vocabulary: when non-empty, the model assigns each claim
+  # ALL the entries that apply (zero is valid), surfaced per claim as
+  # `assigned_topics`. Selection happens by index into this list, so the
+  # output can only reference entries given here — labels are never invented.
+  # Empty (the default) keeps the original claim shape.
+  topic_vocabulary: List[TopicVocabularyItem] = Field(
+    default_factory=list, max_length=TOPIC_VOCABULARY_MAX_ITEMS
+  )
 
   @model_validator(mode="after")
   def _validate_caps(self) -> "ClaimsExtractInput":
@@ -75,6 +92,11 @@ class ClaimsExtractInput(BaseModel):
 # ── Response types ─────────────────────────────────────────────────────
 
 
+class AssignedTopicOut(BaseModel):
+  id: Optional[str] = None
+  label: str
+
+
 class ExtractedClaimOut(BaseModel):
   text: str
   topic: Optional[str] = None  # None when grouping=false
@@ -83,6 +105,9 @@ class ExtractedClaimOut(BaseModel):
   # True = verifiable fact, False = opinion; None when factuality was not
   # requested (classify_factuality=false).
   is_factual: Optional[bool] = None
+  # Vocabulary entries assigned to this claim; always [] unless the request
+  # provided a topic_vocabulary.
+  assigned_topics: List[AssignedTopicOut] = Field(default_factory=list)
 
 
 class ExtractedQuoteOut(BaseModel):

@@ -24,6 +24,7 @@ from src.config.prompts.claims_extract import (
     QUOTES_SECTION,
     SUMMARY_SECTION,
     FACTUALITY_SECTION,
+    TOPIC_VOCABULARY_SECTION,
     CONSOLIDATION_SECTION,
     FOCUS_TOPICS_SECTION,
     LANGUAGE_SECTION,
@@ -34,6 +35,7 @@ from src.config.prompts.claims_extract import (
     KEEP_QUOTES_EMPTY,
     KEEP_SUMMARY_EMPTY,
     KEEP_FACTUALITY_NULL,
+    KEEP_ASSIGNED_TOPICS_EMPTY,
 )
 
 _SECTION_SEP = "\n\n"
@@ -119,6 +121,11 @@ def _inputs_description(input: ClaimsExtractInput, grouping: bool) -> str:
         )
     if input.context:
         lines.append("- caller-provided context describing the material.")
+    if input.topic_vocabulary:
+        lines.append(
+            "- TOPIC VOCABULARY: a numbered, closed list of topics; each "
+            "claim's vocabulary_topic_indices selects from it."
+        )
     if grouping:
         lines.append(
             "- topics: an ordered list of topic labels for this material; "
@@ -178,6 +185,12 @@ def _final_validation(input: ClaimsExtractInput, grouping: bool) -> str:
             "not) and false for every evaluation, prescription, forecast, "
             "and side-thesis."
         )
+    if input.topic_vocabulary:
+        checks.append(
+            "- Every vocabulary_topic_indices entry is a valid 0-based index "
+            "into the TOPIC VOCABULARY, and a claim unrelated to every "
+            "vocabulary topic has an empty list."
+        )
     if len(input.documents) > 1:
         checks.append(
             "- The same fact does not appear as multiple near-duplicate claims "
@@ -196,6 +209,8 @@ def _output_contract(input: ClaimsExtractInput, grouping: bool) -> str:
         lines.append(KEEP_SUMMARY_EMPTY)
     if not input.classify_factuality:
         lines.append(KEEP_FACTUALITY_NULL)
+    if not input.topic_vocabulary:
+        lines.append(KEEP_ASSIGNED_TOPICS_EMPTY)
     return "\n".join(lines)
 
 
@@ -226,6 +241,8 @@ def build_extract_prompt(input: ClaimsExtractInput, topics: List[str]) -> str:
         sections.append(SUMMARY_SECTION)
     if input.classify_factuality:
         sections.append(FACTUALITY_SECTION)
+    if input.topic_vocabulary:
+        sections.append(TOPIC_VOCABULARY_SECTION)
     if input.focus_topics:
         sections.append(
             FOCUS_TOPICS_SECTION.format(focus_topics=", ".join(input.focus_topics))
@@ -247,6 +264,11 @@ def build_extract_prompt(input: ClaimsExtractInput, topics: List[str]) -> str:
     sections.append(_output_contract(input, grouping))
 
     inputs_parts = ["INPUTS"] + _overall_context_lines(input)
+    if input.topic_vocabulary:
+        inputs_parts.append(
+            "TOPIC VOCABULARY\n"
+            + "\n".join(f"{i}. {t.label}" for i, t in enumerate(input.topic_vocabulary))
+        )
     if grouping:
         inputs_parts.append("topics\n" + "\n".join(f"- {t}" for t in topics))
     inputs_parts.append("DOCUMENTS\n\n" + render_documents(input))
