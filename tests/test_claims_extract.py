@@ -487,16 +487,21 @@ def test_factuality_rubric_names_non_factual_classes_and_calibration():
     # "attributable statements" made "X said Y" trivially factual — gone.
     assert "attributable statements" not in on
     for needle in (
-        "hedged or contested empirical hypotheses",
         "prescriptions and policy positions",
         "Classify the content, never the act of saying it",
-        "Expect a mix",
-        "is_factual is true for every empirical proposition",
+        "hedged statements",
+        "The bar is deliberately asymmetric",
     ):
         assert needle in on, needle
 
+    # Deliberate reversal of the August 2026 rubric, which counted a hedged
+    # empirical hypothesis as factual ("a hedge lowers confidence; it does not
+    # change the kind of proposition"). Under the strict bar a hedge is exactly
+    # the gray area that must go false.
+    assert "hedged or contested empirical hypotheses" not in on
+
     off = build_extract_prompt(_input(grouping=False), [])
-    assert "is_factual is true for every empirical proposition" not in off
+    assert "The bar is deliberately asymmetric" not in off
 
 
 def test_eval_harness_metrics_flag_speech_acts():
@@ -627,3 +632,72 @@ def test_assigned_topics_stripped_without_vocabulary_kept_with_it():
     )
     assert [t.model_dump() for t in on.claims[0].assigned_topics] == [{"id": "a1", "label": "Morning routine"}]
     assert on.claims[1].assigned_topics == []
+
+
+# ── Contestability classification ────────────────────────────────────────────
+
+
+def test_contestability_defaults_off_and_field_defaults_null():
+    assert _input().classify_contestability is False
+    assert ExtractedClaimOut(text="x").is_contestable is None
+
+
+def test_contestability_section_and_checklist_only_when_requested():
+    from src.extraction.claims_prompt_builder import build_extract_prompt
+
+    on = build_extract_prompt(_input(grouping=False, classify_contestability=True), [])
+    assert "CONTESTABILITY CLASSIFICATION (REQUESTED)" in on
+    assert "Every claim has is_contestable set to an explicit true or false" in on
+    assert "Contestability classification was not requested" not in on
+
+    off = build_extract_prompt(_input(grouping=False), [])
+    assert "CONTESTABILITY CLASSIFICATION" not in off
+    assert "Contestability classification was not requested" in off
+
+
+def test_contestability_is_independent_of_factuality():
+    """The two flags classify different things — scope and specificity — so each
+    renders on its own and neither implies the other."""
+    from src.extraction.claims_prompt_builder import build_extract_prompt
+
+    only_scope = build_extract_prompt(_input(grouping=False, classify_contestability=True), [])
+    assert "CONTESTABILITY CLASSIFICATION (REQUESTED)" in only_scope
+    assert "FACTUALITY CLASSIFICATION (REQUESTED)" not in only_scope
+
+    both = build_extract_prompt(
+        _input(grouping=False, classify_contestability=True, classify_factuality=True), []
+    )
+    assert "CONTESTABILITY CLASSIFICATION (REQUESTED)" in both
+    assert "FACTUALITY CLASSIFICATION (REQUESTED)" in both
+
+
+def test_contestability_stripped_when_off_kept_when_on():
+    from src.pipeline.claims_extract_core import assemble_result
+
+    extraction = {
+        "claims": [
+            {"text": "AI chatbots are effective therapy.", "confidence": 0.9, "is_contestable": True},
+            {"text": "Tim Cook wakes at 4 a.m.", "confidence": 0.9, "is_contestable": False},
+        ],
+        "groups": [], "quotes": [], "summary": "",
+    }
+    off = assemble_result(_input(grouping=False), extraction, [], model_used="m")
+    assert [c.is_contestable for c in off.claims] == [None, None]
+
+    on = assemble_result(
+        _input(grouping=False, classify_contestability=True), extraction, [], model_used="m"
+    )
+    assert [c.is_contestable for c in on.claims] == [True, False]
+
+
+def test_debate_layer_forbids_restating_a_position_at_a_different_strength():
+    """Selection may prefer the arguable proposition; phrasing may not move it."""
+    from src.extraction.claims_prompt_builder import build_extract_prompt
+
+    prompt = build_extract_prompt(_input(grouping=False), [])
+    assert "Prefer the arguable proposition over the incidental fact" in prompt
+    # Compare on collapsed whitespace: the prompt is hard-wrapped, so the rule spans lines.
+    flat = " ".join(prompt.split())
+    assert "do not sharpen a hedged position into a flat assertion" in flat
+    assert "do not soften a flat assertion into a hedge" in flat
+    assert "misrepresents them" in flat

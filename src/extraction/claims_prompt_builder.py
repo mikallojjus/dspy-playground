@@ -24,6 +24,7 @@ from src.config.prompts.claims_extract import (
     QUOTES_SECTION,
     SUMMARY_SECTION,
     FACTUALITY_SECTION,
+    CONTESTABILITY_SECTION,
     TOPIC_VOCABULARY_SECTION,
     CONSOLIDATION_SECTION,
     FOCUS_TOPICS_SECTION,
@@ -35,6 +36,7 @@ from src.config.prompts.claims_extract import (
     KEEP_QUOTES_EMPTY,
     KEEP_SUMMARY_EMPTY,
     KEEP_FACTUALITY_NULL,
+    KEEP_CONTESTABILITY_NULL,
     KEEP_ASSIGNED_TOPICS_EMPTY,
 )
 
@@ -185,6 +187,11 @@ def _final_validation(input: ClaimsExtractInput, grouping: bool) -> str:
             "not) and false for every evaluation, prescription, forecast, "
             "and side-thesis."
         )
+    if input.classify_contestability:
+        checks.append(
+            "- Every claim has is_contestable set to an explicit true or false, "
+            "judged on the scope of its main assertion rather than its truth."
+        )
     if input.topic_vocabulary:
         checks.append(
             "- Every vocabulary_topic_indices entry is a valid 0-based index "
@@ -209,6 +216,8 @@ def _output_contract(input: ClaimsExtractInput, grouping: bool) -> str:
         lines.append(KEEP_SUMMARY_EMPTY)
     if not input.classify_factuality:
         lines.append(KEEP_FACTUALITY_NULL)
+    if not input.classify_contestability:
+        lines.append(KEEP_CONTESTABILITY_NULL)
     if not input.topic_vocabulary:
         lines.append(KEEP_ASSIGNED_TOPICS_EMPTY)
     return "\n".join(lines)
@@ -241,6 +250,8 @@ def build_extract_prompt(input: ClaimsExtractInput, topics: List[str]) -> str:
         sections.append(SUMMARY_SECTION)
     if input.classify_factuality:
         sections.append(FACTUALITY_SECTION)
+    if input.classify_contestability:
+        sections.append(CONTESTABILITY_SECTION)
     if input.topic_vocabulary:
         sections.append(TOPIC_VOCABULARY_SECTION)
     if input.focus_topics:
